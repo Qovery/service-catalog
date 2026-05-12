@@ -1,0 +1,12 @@
+architecture: standalone
+
+auth:
+  enabled: true
+  password: "{{ password }}"
+
+master:
+  resources:
+    limits:
+      memory: "{{ memory_limit }}"
+  persistence:
+    enabled: false

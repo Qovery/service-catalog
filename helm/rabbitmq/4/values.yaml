@@ -1,0 +1,12 @@
+replicaCount: {{ replica_count }}
+
+auth:
+  username: "{{ username }}"
+  password: "{{ password }}"
+
+resources:
+  limits:
+    memory: "{{ memory_limit }}"
+
+persistence:
+  enabled: false

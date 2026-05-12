@@ -1,0 +1,94 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-rds-mysql"
+  version: "1.0.0"
+  description: "AWS RDS MySQL instance with configurable size and storage"
+  icon: "https://cdn.qovery.com/icons/mysql.svg"
+  serviceFamily: "mysql"
+  categories:
+    - "database"
+    - "mysql"
+    - "rds"
+
+spec:
+  engine: terraform
+  provider: aws
+
+  credentials:
+    default: cluster
+    overridable: false
+
+  backend:
+    default: qovery
+    overridable: false
+
+  timeout: 3600
+  resources:
+    cpu: "500m"
+    ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: false
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+      overridable: false
+
+  variables:
+    - name: "db_name"
+      type: "string"
+      required: true
+      description: "Database name"
+    - name: "db_username"
+      type: "string"
+      required: true
+      description: "Master username"
+    - name: "db_password"
+      type: "string"
+      required: true
+      description: "Master password (min 8 characters)"
+    - name: "instance_class"
+      type: "string"
+      required: false
+      default: "db.t3.micro"
+      description: "RDS instance class"
+      allowedValues:
+        - "db.t3.micro"
+        - "db.t3.small"
+        - "db.t3.medium"
+        - "db.t3.large"
+        - "db.m5.large"
+        - "db.m5.xlarge"
+        - "db.m5.2xlarge"
+        - "db.m5.4xlarge"
+        - "db.r5.large"
+        - "db.r5.xlarge"
+    - name: "allocated_storage"
+      type: "number"
+      required: false
+      default: "20"
+      description: "Allocated storage in GiB"
+      min: 20
+      max: 65536
+    - name: "multi_az"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Enable Multi-AZ deployment"
+
+  outputs:
+    - name: "db_endpoint"
+      description: "RDS instance endpoint (host:port)"
+      sensitive: false
+    - name: "db_address"
+      description: "RDS instance hostname"
+      sensitive: false
+    - name: "db_port"
+      description: "RDS instance port"
+      sensitive: false
+    - name: "db_name"
+      description: "Database name"
+      sensitive: false

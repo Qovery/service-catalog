@@ -1,0 +1,58 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "helm-rabbitmq"
+  version: "1.0.0"
+  description: "RabbitMQ message broker via Bitnami Helm chart"
+  icon: "https://cdn.qovery.com/icons/rabbitmq.svg"
+  serviceFamily: "rabbitmq"
+  categories:
+    - "messaging"
+    - "rabbitmq"
+
+spec:
+  engine: helm
+
+  chart:
+    repository: "https://charts.bitnami.com/bitnami"
+    name: "rabbitmq"
+    version: "15.4.6"
+
+  arguments: []
+  allowClusterWideResources: false
+
+  contextVariables:
+    - name: "namespace"
+      source: "cluster.namespace"
+
+  variables:
+    - name: "replica_count"
+      type: "number"
+      required: false
+      default: "1"
+      description: "Number of RabbitMQ replicas"
+      min: 1
+      max: 10
+    - name: "username"
+      type: "string"
+      required: false
+      default: "user"
+      description: "RabbitMQ default username"
+    - name: "password"
+      type: "string"
+      required: true
+      description: "RabbitMQ authentication password"
+    - name: "memory_limit"
+      type: "string"
+      required: false
+      default: "256Mi"
+      description: "Memory limit for RabbitMQ pods"
+
+  outputs:
+    - name: "rabbitmq_host"
+      description: "RabbitMQ service hostname"
+      sensitive: false
+    - name: "rabbitmq_port"
+      description: "RabbitMQ AMQP port"
+      sensitive: false
