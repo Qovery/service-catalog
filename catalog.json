@@ -1,6 +1,6 @@
 {
-  "version": "2",
-  "generatedAt": "2026-05-13T07:21:18Z",
+  "version": "1",
+  "generatedAt": "2026-05-13T07:27:40Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",

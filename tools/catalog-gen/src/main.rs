@@ -345,7 +345,7 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
     }
 
     Ok(Catalog {
-        version: "2".to_string(),
+        version: "1".to_string(),
         generated_at: Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
         blueprints: catalog_blueprints,
     })
