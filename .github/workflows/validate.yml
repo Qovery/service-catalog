@@ -49,7 +49,7 @@ jobs:
             -not -path './.git/*'); do
             dir=$(dirname "$main_tf" | sed 's|^\./||')
             if echo "$CHANGED_FILES" | grep -q "^${dir}/"; then
-              PATHS=$(echo "$PATHS" | jq --arg p "$dir" '. += [$p]')
+              PATHS=$(echo "$PATHS" | jq -c --arg p "$dir" '. += [$p]')
             fi
           done
           echo "matrix=$PATHS" >> $GITHUB_OUTPUT
