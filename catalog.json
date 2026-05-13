@@ -1,0 +1,154 @@
+{
+  "version": "1",
+  "generatedAt": "2026-05-13T07:27:40Z",
+  "blueprints": [
+    {
+      "name": "aws-rds-mysql",
+      "kind": "ServiceBlueprint",
+      "description": "AWS RDS MySQL instance with configurable size and storage",
+      "icon": "https://cdn.qovery.com/icons/mysql.svg",
+      "categories": [
+        "database",
+        "mysql",
+        "rds"
+      ],
+      "provider": "aws",
+      "serviceFamily": "mysql",
+      "majorVersions": [
+        {
+          "serviceVersion": "8",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "aws-rds-postgresql",
+      "kind": "ServiceBlueprint",
+      "description": "AWS RDS PostgreSQL 17 instance with configurable size and storage",
+      "icon": "https://cdn.qovery.com/icons/postgresql.svg",
+      "categories": [
+        "database",
+        "postgresql",
+        "rds"
+      ],
+      "provider": "aws",
+      "serviceFamily": "postgres",
+      "majorVersions": [
+        {
+          "serviceVersion": "17",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "aws-s3",
+      "kind": "ServiceBlueprint",
+      "description": "S3 bucket with encryption, versioning, and lifecycle rules",
+      "icon": "https://cdn.qovery.com/icons/s3.svg",
+      "categories": [
+        "storage",
+        "s3"
+      ],
+      "provider": "aws",
+      "serviceFamily": "s3",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "helm-rabbitmq",
+      "kind": "ServiceBlueprint",
+      "description": "RabbitMQ message broker via Bitnami Helm chart",
+      "icon": "https://cdn.qovery.com/icons/rabbitmq.svg",
+      "categories": [
+        "messaging",
+        "rabbitmq"
+      ],
+      "provider": "helm",
+      "serviceFamily": "rabbitmq",
+      "majorVersions": [
+        {
+          "serviceVersion": "4",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "helm-redis",
+      "kind": "ServiceBlueprint",
+      "description": "Redis cache via Bitnami Helm chart",
+      "icon": "https://cdn.qovery.com/icons/redis.svg",
+      "categories": [
+        "cache",
+        "redis"
+      ],
+      "provider": "helm",
+      "serviceFamily": "redis",
+      "majorVersions": [
+        {
+          "serviceVersion": "7",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "scaleway-mysql",
+      "kind": "ServiceBlueprint",
+      "description": "Scaleway Managed Database MySQL instance with configurable node type and storage",
+      "icon": "https://cdn.qovery.com/icons/mysql.svg",
+      "categories": [
+        "database",
+        "mysql",
+        "scaleway"
+      ],
+      "provider": "scaleway",
+      "serviceFamily": "mysql",
+      "majorVersions": [
+        {
+          "serviceVersion": "8",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "scaleway-object-storage",
+      "kind": "ServiceBlueprint",
+      "description": "Scaleway Object Storage bucket",
+      "icon": "https://cdn.qovery.com/icons/object-storage.svg",
+      "categories": [
+        "storage",
+        "object-storage"
+      ],
+      "provider": "scaleway",
+      "serviceFamily": "object-storage",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": null
+        }
+      ]
+    },
+    {
+      "name": "scaleway-managed-postgresql",
+      "kind": "ServiceBlueprint",
+      "description": "Scaleway Managed Database PostgreSQL instance with configurable node type and storage",
+      "icon": "https://cdn.qovery.com/icons/postgresql.svg",
+      "categories": [
+        "database",
+        "postgresql",
+        "scaleway"
+      ],
+      "provider": "scaleway",
+      "serviceFamily": "postgres",
+      "majorVersions": [
+        {
+          "serviceVersion": "16",
+          "latestTag": null
+        }
+      ]
+    }
+  ]
+}

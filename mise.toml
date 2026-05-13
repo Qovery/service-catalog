@@ -1,0 +1,8 @@
+[tools]
+
+[tasks.generate-catalog]
+description = "Generate catalog.json from committed blueprints (run this locally before pushing)"
+run = """
+cargo run --release --manifest-path tools/catalog-gen/Cargo.toml -- \
+  generate --root . --output catalog.json
+"""

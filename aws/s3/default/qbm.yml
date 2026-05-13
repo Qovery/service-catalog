@@ -1,0 +1,69 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-s3"
+  version: "1.0.0"
+  description: "S3 bucket with encryption, versioning, and lifecycle rules"
+  icon: "https://cdn.qovery.com/icons/s3.svg"
+  serviceFamily: "s3"
+  categories:
+    - "storage"
+    - "s3"
+
+spec:
+  engine: terraform
+  provider: aws
+
+  credentials:
+    default: cluster
+    overridable: false
+
+  backend:
+    default: qovery
+    overridable: true
+
+  timeout: 1800
+  resources:
+    cpu: "500m"
+    ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+      overridable: false
+
+  variables:
+    - name: "bucket_name"
+      type: "string"
+      required: true
+      description: "S3 bucket name (must be globally unique)"
+    - name: "versioning"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Enable object versioning"
+    - name: "encryption"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Enable server-side encryption (AES-256)"
+    - name: "force_destroy"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Allow bucket deletion even if it contains objects"
+
+  outputs:
+    - name: "bucket_arn"
+      description: "Bucket ARN"
+      sensitive: false
+    - name: "bucket_name"
+      description: "Bucket name"
+      sensitive: false
+    - name: "bucket_region"
+      description: "Bucket region"
+      sensitive: false

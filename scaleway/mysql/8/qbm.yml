@@ -1,0 +1,93 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "scaleway-mysql"
+  version: "1.0.0"
+  description: "Scaleway Managed Database MySQL instance with configurable node type and storage"
+  icon: "https://cdn.qovery.com/icons/mysql.svg"
+  serviceFamily: "mysql"
+  categories:
+    - "database"
+    - "mysql"
+    - "scaleway"
+
+spec:
+  engine: terraform
+  provider: scaleway
+
+  credentials:
+    default: cluster
+    overridable: false
+
+  backend:
+    default: qovery
+    overridable: true
+
+  timeout: 3600
+  resources:
+    cpu: "500m"
+    ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+      overridable: false
+
+  variables:
+    - name: "instance_name"
+      type: "string"
+      required: true
+      description: "Database instance name"
+    - name: "db_name"
+      type: "string"
+      required: true
+      description: "Database name"
+    - name: "db_username"
+      type: "string"
+      required: true
+      description: "Database user name"
+    - name: "db_password"
+      type: "string"
+      required: true
+      description: "Database user password (min 8 characters)"
+    - name: "node_type"
+      type: "string"
+      required: false
+      default: "DB-DEV-S"
+      description: "Scaleway node type"
+      allowedValues:
+        - "DB-DEV-S"
+        - "DB-DEV-M"
+        - "DB-DEV-L"
+        - "DB-GP-XS"
+        - "DB-GP-S"
+        - "DB-GP-M"
+        - "DB-GP-L"
+        - "DB-GP-XL"
+    - name: "volume_size_gb"
+      type: "number"
+      required: false
+      default: "5"
+      description: "Volume size in GB"
+      min: 5
+      max: 10000
+    - name: "is_ha_cluster"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Enable high availability cluster mode"
+
+  outputs:
+    - name: "endpoint_ip"
+      description: "Database endpoint IP"
+      sensitive: false
+    - name: "endpoint_port"
+      description: "Database endpoint port"
+      sensitive: false
+    - name: "db_name"
+      description: "Database name"
+      sensitive: false

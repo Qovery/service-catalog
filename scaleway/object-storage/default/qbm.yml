@@ -1,0 +1,70 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "scaleway-object-storage"
+  version: "1.0.0"
+  description: "Scaleway Object Storage bucket"
+  icon: "https://cdn.qovery.com/icons/object-storage.svg"
+  serviceFamily: "object-storage"
+  categories:
+    - "storage"
+    - "object-storage"
+
+spec:
+  engine: terraform
+  provider: scaleway
+
+  credentials:
+    default: cluster
+    overridable: false
+
+  backend:
+    default: qovery
+    overridable: true
+
+  timeout: 1800
+  resources:
+    cpu: "500m"
+    ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+      overridable: false
+
+  variables:
+    - name: "bucket_name"
+      type: "string"
+      required: true
+      description: "Object Storage bucket name (must be unique within region)"
+    - name: "acl"
+      type: "string"
+      required: false
+      default: "private"
+      description: "Bucket ACL"
+      allowedValues:
+        - "private"
+        - "public-read"
+        - "public-read-write"
+    - name: "versioning_enabled"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Enable object versioning"
+    - name: "force_destroy"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Allow bucket deletion even if it contains objects"
+
+  outputs:
+    - name: "bucket_name"
+      description: "Bucket name"
+      sensitive: false
+    - name: "bucket_endpoint"
+      description: "Bucket endpoint URL"
+      sensitive: false
