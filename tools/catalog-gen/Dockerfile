@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.95-alpine AS builder
-RUN apk add --no-cache musl-dev
+FROM rust:1.95-slim AS builder
 WORKDIR /build
 
 # Cache dependencies separately from source
@@ -12,8 +11,9 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs \
 COPY src ./src
 RUN touch src/main.rs && cargo build --release
 
-FROM alpine:3.21
-RUN apk add --no-cache git \
-  && git config --system --add safe.directory '*'
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+  && git config --system --add safe.directory '*' \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/catalog-gen /usr/local/bin/catalog-gen
 ENTRYPOINT ["catalog-gen"]

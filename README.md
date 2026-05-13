@@ -58,5 +58,10 @@ Tags are auto-created by CI on merge to main when `metadata.version` in `qbm.yml
 1. Create a directory: `{provider}/{service}/{version}/`
 2. Add `qbm.yml` + Terraform files or Helm values
 3. Add `README.md` describing what the blueprint creates
-4. Open a PR — CI validates structure and variables
-5. Merge — CI auto-tags and regenerates `catalog.json`
+4. Regenerate `catalog.json` locally and commit it:
+   ```sh
+   mise run generate-catalog
+   git add catalog.json
+   ```
+5. Open a PR — CI validates structure, variables, and that `catalog.json` is up to date
+6. Merge — CI auto-tags the new blueprint version
