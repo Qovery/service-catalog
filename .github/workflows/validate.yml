@@ -156,6 +156,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-qbm, validate-terraform]
     if: |
+      always() &&
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
       needs.validate-qbm.result == 'success' &&
