@@ -2,11 +2,9 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use regex::Regex;
-use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -57,7 +55,6 @@ struct Qbm {
 #[serde(rename_all = "camelCase")]
 struct QbmMetadata {
     name: String,
-    #[allow(dead_code)]
     version: String,
     description: Option<String>,
     icon: Option<String>,
@@ -106,6 +103,9 @@ struct VarDecl {
     allowed_values: Option<Vec<String>>,
     min: Option<f64>,
     max: Option<f64>,
+    // Defaults to false when omitted. Authors must mark sensitive variables explicitly so the
+    // console renders them as secret inputs.
+    sensitive: Option<bool>,
 }
 
 // ---------------------------------------------------------------------------
@@ -216,60 +216,6 @@ fn discover_version_dirs(root: &Path) -> Result<Vec<VersionDir>> {
 }
 
 // ---------------------------------------------------------------------------
-// Git helpers
-// ---------------------------------------------------------------------------
-
-fn list_tags_for_version_dir(root: &Path, version_path: &str) -> Result<Vec<(Version, String)>> {
-    let pattern = format!("{}/*", version_path);
-    let output = Command::new("git")
-        .args(["tag", "-l", &pattern])
-        .current_dir(root)
-        .output()
-        .context("Failed to run git tag -l")?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut versions: Vec<(Version, String)> = Vec::new();
-
-    for line in stdout.lines() {
-        let tag = line.trim();
-        if tag.is_empty() {
-            continue;
-        }
-        let prefix = format!("{}/", version_path);
-        if let Some(version_str) = tag.strip_prefix(&prefix) {
-            match Version::parse(version_str) {
-                Ok(ver) => versions.push((ver, tag.to_string())),
-                Err(e) => {
-                    eprintln!("Warning: skipping tag '{}': invalid semver: {}", tag, e);
-                }
-            }
-        }
-    }
-
-    versions.sort_by(|a, b| b.0.cmp(&a.0));
-    Ok(versions)
-}
-
-fn git_show_file(root: &Path, tag: &str, file_path: &str) -> Result<String> {
-    let spec = format!("{}:{}", tag, file_path);
-    let output = Command::new("git")
-        .args(["show", &spec])
-        .current_dir(root)
-        .output()
-        .with_context(|| format!("Failed to run git show {}", spec))?;
-
-    if !output.status.success() {
-        anyhow::bail!(
-            "git show {} failed: {}",
-            spec,
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-}
-
-// ---------------------------------------------------------------------------
 // Catalog generation
 // ---------------------------------------------------------------------------
 
@@ -289,29 +235,18 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
         let mut top_qbm: Option<Qbm> = None;
 
         for vd in version_dirs {
-            let tags = list_tags_for_version_dir(root, &vd.full_path)?;
-            let latest_tag = tags.first().map(|(_, tag)| tag.clone());
+            // metadata.version in qbm.yml is the source of truth for the tag that auto-tag will
+            // create on merge. Using git tag history would lag by one merge: a PR that bumps
+            // metadata.version would otherwise still show the previous tag.
+            let qbm_from_disk: Option<Qbm> = std::fs::read_to_string(root.join(&vd.full_path).join("qbm.yml"))
+                .ok()
+                .and_then(|c| serde_yaml::from_str(&c).ok());
+            let latest_tag = qbm_from_disk
+                .as_ref()
+                .map(|q| format!("{}/{}", vd.full_path, q.metadata.version));
 
             if top_qbm.is_none() {
-                let qbm = if let Some(ref tag) = latest_tag {
-                    let qbm_file = format!("{}/qbm.yml", vd.full_path);
-                    match git_show_file(root, tag, &qbm_file) {
-                        Ok(content) => serde_yaml::from_str::<Qbm>(&content).ok(),
-                        Err(e) => {
-                            eprintln!(
-                                "Warning: failed to read qbm.yml from tag '{}': {}. Falling back to working tree.",
-                                tag, e
-                            );
-                            std::fs::read_to_string(root.join(&vd.full_path).join("qbm.yml"))
-                                .ok()
-                                .and_then(|c| serde_yaml::from_str(&c).ok())
-                        }
-                    }
-                } else {
-                    std::fs::read_to_string(root.join(&vd.full_path).join("qbm.yml"))
-                        .ok()
-                        .and_then(|c| serde_yaml::from_str(&c).ok())
-                };
+                let qbm = qbm_from_disk;
                 top_qbm = qbm;
             }
 
@@ -355,6 +290,22 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
 // Variable constraint validation
 // ---------------------------------------------------------------------------
 
+// Variable names that look like they should be sensitive. Catches catalog authors who forget
+// to set `sensitive: true` (especially on Helm blueprints, which have no TF to cross-check).
+fn looks_sensitive(name: &str) -> bool {
+    let re = Regex::new(r"(?i)(^|_)(password|passwd|secret|token|credential|api[_-]?key|access[_-]?key|private[_-]?key)($|_)").unwrap();
+    re.is_match(name)
+}
+
+fn validate_sensitive_naming(path: &str, var: &VarDecl, errors: &mut Vec<String>) {
+    if looks_sensitive(&var.name) && var.sensitive != Some(true) {
+        errors.push(format!(
+            "{}: '{}' name looks sensitive — add sensitive: true to qbm.yml (or rename the variable)",
+            path, var.name
+        ));
+    }
+}
+
 fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>) {
     if let Some(av) = &var.allowed_values {
         if let Some(default) = &var.default {
@@ -395,9 +346,19 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // Validation
 // ---------------------------------------------------------------------------
 
+// Captures each `variable "name" { ... }` block: group 1 is the name, group 2 is the body
+// (until the next closing `}`). Assumes no nested braces inside variable blocks, which holds
+// for the catalog's flat declarations.
+fn parse_tf_variables(tf: &str) -> HashMap<String, bool> {
+    let re = Regex::new(r#"(?s)variable\s+"(\w+)"\s*\{([^}]*)\}"#).unwrap();
+    let sensitive_re = Regex::new(r#"(?m)^\s*sensitive\s*=\s*true\b"#).unwrap();
+    re.captures_iter(tf)
+        .map(|c| (c[1].to_string(), sensitive_re.is_match(&c[2])))
+        .collect()
+}
+
 fn validate_blueprints(root: &Path) -> Result<()> {
     let version_dirs = discover_version_dirs(root)?;
-    let tf_var_re = Regex::new(r#"variable\s+"(\w+)""#).unwrap();
     let mut errors: Vec<String> = Vec::new();
 
     for vd in &version_dirs {
@@ -468,18 +429,34 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                             errors.push(format!("{}: variables.tf not found", vd.full_path));
                         }
                         Ok(tf) => {
-                            let tf_vars: HashSet<String> = tf_var_re
-                                .captures_iter(&tf)
-                                .map(|c| c[1].to_string())
-                                .collect();
+                            let tf_vars = parse_tf_variables(&tf);
+                            let tf_names: HashSet<&String> = tf_vars.keys().collect();
                             for var in spec.context_variables.iter().chain(spec.variables.iter()) {
-                                if !tf_vars.contains(&var.name) {
+                                if !tf_names.contains(&var.name) {
                                     errors.push(format!(
                                         "{}: '{}' declared in qbm.yml but not in variables.tf",
                                         vd.full_path, var.name
                                     ));
                                 }
                                 validate_var_constraints(&vd.full_path, var, &mut errors);
+                                validate_sensitive_naming(&vd.full_path, var, &mut errors);
+                                // Cross-check sensitivity between TF and qbm.yml so the console
+                                // can't accidentally render a sensitive value as plaintext.
+                                if let Some(tf_sensitive) = tf_vars.get(&var.name) {
+                                    let qbm_sensitive = var.sensitive.unwrap_or(false);
+                                    if *tf_sensitive && !qbm_sensitive {
+                                        errors.push(format!(
+                                            "{}: '{}' is sensitive in variables.tf but qbm.yml does not set sensitive: true",
+                                            vd.full_path, var.name
+                                        ));
+                                    }
+                                    if !*tf_sensitive && qbm_sensitive {
+                                        errors.push(format!(
+                                            "{}: '{}' is marked sensitive: true in qbm.yml but variables.tf does not set sensitive = true",
+                                            vd.full_path, var.name
+                                        ));
+                                    }
+                                }
                             }
                         }
                     }
@@ -487,6 +464,7 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                 Some("helm") => {
                     for var in spec.variables.iter() {
                         validate_var_constraints(&vd.full_path, var, &mut errors);
+                        validate_sensitive_naming(&vd.full_path, var, &mut errors);
                     }
                     if spec.chart.is_none() {
                         errors.push(format!(

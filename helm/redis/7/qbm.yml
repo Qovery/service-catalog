@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-redis"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Redis cache via Bitnami Helm chart"
   icon: "https://cdn.qovery.com/icons/redis.svg"
   serviceFamily: "redis"
@@ -42,6 +42,7 @@ spec:
     - name: "password"
       type: "string"
       required: true
+      sensitive: true
       description: "Redis authentication password"
 
   outputs:

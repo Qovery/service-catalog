@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-mysql"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Scaleway Managed Database MySQL instance with configurable node type and storage"
   icon: "https://cdn.qovery.com/icons/mysql.svg"
   serviceFamily: "mysql"
@@ -53,6 +53,7 @@ spec:
     - name: "db_password"
       type: "string"
       required: true
+      sensitive: true
       description: "Database user password (min 8 characters)"
     - name: "node_type"
       type: "string"
@@ -84,10 +85,7 @@ spec:
   outputs:
     - name: "endpoint_ip"
       description: "Database endpoint IP"
-      sensitive: false
     - name: "endpoint_port"
       description: "Database endpoint port"
-      sensitive: false
     - name: "db_name"
       description: "Database name"
-      sensitive: false

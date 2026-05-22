@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-05-13T07:27:40Z",
+  "generatedAt": "2026-05-22T08:27:08Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": null
+          "latestTag": "aws/mysql/8/1.0.1"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": null
+          "latestTag": "aws/postgres/17/1.0.1"
         }
       ]
     },
@@ -54,7 +54,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": null
+          "latestTag": "aws/s3/default/1.0.1"
         }
       ]
     },
@@ -72,7 +72,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": null
+          "latestTag": "helm/rabbitmq/4/1.0.1"
         }
       ]
     },
@@ -90,7 +90,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": null
+          "latestTag": "helm/redis/7/1.0.1"
         }
       ]
     },
@@ -109,7 +109,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": null
+          "latestTag": "scaleway/mysql/8/1.0.1"
         }
       ]
     },
@@ -127,7 +127,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": null
+          "latestTag": "scaleway/object-storage/default/1.0.1"
         }
       ]
     },
@@ -146,7 +146,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": null
+          "latestTag": "scaleway/postgres/16/1.0.1"
         }
       ]
     }

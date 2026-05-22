@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "S3 bucket with encryption, versioning, and lifecycle rules"
   icon: "https://cdn.qovery.com/icons/s3.svg"
   serviceFamily: "s3"
@@ -60,10 +60,7 @@ spec:
   outputs:
     - name: "bucket_arn"
       description: "Bucket ARN"
-      sensitive: false
     - name: "bucket_name"
       description: "Bucket name"
-      sensitive: false
     - name: "bucket_region"
       description: "Bucket region"
-      sensitive: false
