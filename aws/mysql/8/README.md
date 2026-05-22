@@ -4,14 +4,14 @@ Creates an AWS RDS MySQL instance with configurable instance class, storage, and
 
 ## Variables
 
-| Name | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
-| `db_name` | string | yes | — | Database name |
-| `db_username` | string | yes | — | Master username |
-| `db_password` | string | yes | — | Master password (min 8 characters) |
-| `instance_class` | string | yes | `db.t3.micro` | RDS instance class |
-| `allocated_storage` | number | no | `20` | Allocated storage in GiB |
-| `multi_az` | bool | no | `false` | Enable Multi-AZ deployment |
+| Name | Type | Required | Sensitive | Default | Description |
+|------|------|----------|-----------|---------|-------------|
+| `db_name` | string | yes | | — | Database name |
+| `db_username` | string | yes | | — | Master username |
+| `db_password` | string | yes | yes | — | Master password (min 8 characters) |
+| `instance_class` | string | yes | | `db.t3.micro` | RDS instance class |
+| `allocated_storage` | number | no | | `20` | Allocated storage in GiB |
+| `multi_az` | bool | no | | `false` | Enable Multi-AZ deployment |
 
 ## Outputs
 

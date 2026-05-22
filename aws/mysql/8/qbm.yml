@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "AWS RDS MySQL instance with configurable size and storage"
   icon: "https://cdn.qovery.com/icons/mysql.svg"
   serviceFamily: "mysql"
@@ -49,6 +49,7 @@ spec:
     - name: "db_password"
       type: "string"
       required: true
+      sensitive: true
       description: "Master password (min 8 characters)"
     - name: "instance_class"
       type: "string"
@@ -82,13 +83,9 @@ spec:
   outputs:
     - name: "db_endpoint"
       description: "RDS instance endpoint (host:port)"
-      sensitive: false
     - name: "db_address"
       description: "RDS instance hostname"
-      sensitive: false
     - name: "db_port"
       description: "RDS instance port"
-      sensitive: false
     - name: "db_name"
       description: "Database name"
-      sensitive: false
