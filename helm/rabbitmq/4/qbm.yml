@@ -38,17 +38,17 @@ spec:
       type: "string"
       required: false
       default: "user"
-      description: "RabbitMQ default username"
+      description: "RabbitMQ default username. Use letters, digits, hyphens, underscores, and dots only."
     - name: "password"
       type: "string"
       required: true
       sensitive: true
-      description: "RabbitMQ authentication password"
+      description: "RabbitMQ authentication password (min 10 chars recommended)."
     - name: "memory_limit"
       type: "string"
       required: false
       default: "256Mi"
-      description: "Memory limit for RabbitMQ pods"
+      description: "Memory limit for RabbitMQ pods. Must be a valid Kubernetes quantity (e.g. 256Mi, 512Mi, 1Gi)."
 
   outputs:
     - name: "rabbitmq_host"
