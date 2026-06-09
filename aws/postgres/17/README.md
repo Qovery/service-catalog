@@ -13,7 +13,6 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | `db_password`       | string | yes      | yes       | —             | Master password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                                      |
 | `instance_class`    | string | no       |           | `db.t3.micro` | RDS instance class (e.g. `db.t3.micro`, `db.m5.large`)                                                                        |
 | `allocated_storage` | number | no       |           | `20`          | Allocated storage in GiB. Min 20, max 65536 (gp3).                                                                            |
-| `engine_version`    | string | no       |           | `17`          | PostgreSQL major version (e.g. `17`, `16`)                                                                                    |
 | `multi_az`          | bool   | no       |           | `false`       | Enable Multi-AZ deployment for high availability                                                                              |
 
 ## Outputs

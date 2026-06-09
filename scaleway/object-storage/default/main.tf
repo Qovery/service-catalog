@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 resource "scaleway_object_bucket" "this" {
-  name   = var.bucket_name
+  name   = lower(var.bucket_name)
   region = var.region
   acl    = var.acl
 

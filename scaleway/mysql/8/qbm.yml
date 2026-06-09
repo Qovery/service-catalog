@@ -41,20 +41,20 @@ spec:
     - name: "instance_name"
       type: "string"
       required: true
-      description: "Database instance name"
+      description: "Instance name. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
     - name: "db_name"
       type: "string"
       required: true
-      description: "Database name"
+      description: "MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed."
     - name: "db_username"
       type: "string"
       required: true
-      description: "Database user name"
+      description: "Database username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit)."
     - name: "db_password"
       type: "string"
       required: true
       sensitive: true
-      description: "Database user password (min 8 characters)"
+      description: 'Database user password. 8–128 chars. Must not contain /, @, ", or spaces.'
     - name: "node_type"
       type: "string"
       required: false
@@ -73,7 +73,7 @@ spec:
       type: "number"
       required: false
       default: "5"
-      description: "Volume size in GB"
+      description: "Volume size in GB (min 5, max 10000)"
       min: 5
       max: 10000
     - name: "is_ha_cluster"
