@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-object-storage"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Scaleway Object Storage bucket"
   icon: "https://cdn.qovery.com/icons/object-storage.svg"
   serviceFamily: "object-storage"
@@ -40,7 +40,7 @@ spec:
     - name: "bucket_name"
       type: "string"
       required: true
-      description: "Object Storage bucket name (must be unique within region)"
+      description: "Globally unique bucket name. Auto-lowercased. 3–63 chars, letters/digits/hyphens only, must start and end with a letter or digit. Underscores are not allowed."
     - name: "acl"
       type: "string"
       required: false

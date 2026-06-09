@@ -1,23 +1,25 @@
 # Scaleway Managed Database MySQL 8
 
-Creates a Scaleway Managed Database for MySQL instance with a database and user. Supports configurable node type, storage, and optional high availability cluster mode. Backups are enabled by default.
+Creates a Scaleway Managed Database for MySQL with a database and user. Supports configurable node type, storage, and optional high availability cluster mode. Backups are enabled by default.
+
+The Scaleway instance name is composed as `{cluster_name}-{instance_name}`.
 
 ## Variables
 
-| Name | Type | Required | Sensitive | Default | Description |
-|------|------|----------|-----------|---------|-------------|
-| `instance_name` | string | yes | | — | Database instance name |
-| `db_name` | string | yes | | — | Database name |
-| `db_username` | string | yes | | — | Database user name |
-| `db_password` | string | yes | yes | — | Database user password (min 8 characters) |
-| `node_type` | string | no | | `DB-DEV-S` | Node type (e.g. DB-DEV-S, DB-GP-XS) |
-| `volume_size_gb` | number | no | | `5` | Volume size in GB |
-| `is_ha_cluster` | bool | no | | `false` | Enable high availability cluster mode |
+| Name             | Type   | Required | Sensitive | Default    | Description                                                                                                              |
+| ---------------- | ------ | -------- | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `instance_name`  | string | yes      |           | —          | Instance name suffix. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars.           |
+| `db_name`        | string | yes      |           | —          | MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed. |
+| `db_username`    | string | yes      |           | —          | Database username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit).                   |
+| `db_password`    | string | yes      | yes       | —          | Database user password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                          |
+| `node_type`      | string | no       |           | `DB-DEV-S` | Scaleway node type (e.g. `DB-DEV-S`, `DB-GP-XS`)                                                                         |
+| `volume_size_gb` | number | no       |           | `5`        | Volume size in GB. Min 5, max 10000.                                                                                     |
+| `is_ha_cluster`  | bool   | no       |           | `false`    | Enable high availability cluster mode                                                                                    |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| `endpoint_ip` | Database endpoint IP |
+| Name            | Description            |
+| --------------- | ---------------------- |
+| `endpoint_ip`   | Database endpoint IP   |
 | `endpoint_port` | Database endpoint port |
-| `db_name` | Database name |
+| `db_name`       | Database name          |

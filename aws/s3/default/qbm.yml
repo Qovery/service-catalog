@@ -3,9 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "S3 bucket with encryption, versioning, and lifecycle rules"
-  icon: "https://cdn.qovery.com/icons/s3.svg"
+  icon: "https://console.qovery.com/assets/devicon/s3.svg"
   serviceFamily: "s3"
   categories:
     - "storage"
@@ -40,7 +40,7 @@ spec:
     - name: "bucket_name"
       type: "string"
       required: true
-      description: "S3 bucket name (must be globally unique)"
+      description: "Globally unique bucket name. Auto-lowercased. 3–63 chars, letters/digits/hyphens only, must start and end with a letter or digit. Underscores are not allowed."
     - name: "versioning"
       type: "bool"
       required: false

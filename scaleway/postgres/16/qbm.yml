@@ -3,9 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-managed-postgresql"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type and storage"
-  icon: "https://cdn.qovery.com/icons/postgresql.svg"
+  icon: "https://console.qovery.com/assets/postgresql-original-CTql7Pj9.svg"
   serviceFamily: "postgres"
   categories:
     - "database"
@@ -41,20 +41,20 @@ spec:
     - name: "instance_name"
       type: "string"
       required: true
-      description: "Database instance name"
+      description: "Instance name. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
     - name: "db_name"
       type: "string"
       required: true
-      description: "Database name"
+      description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
     - name: "db_username"
       type: "string"
       required: true
-      description: "Database user name"
+      description: "Database username. Letters, digits, underscores; must start with a letter; max 63 chars."
     - name: "db_password"
       type: "string"
       required: true
       sensitive: true
-      description: "Database user password (min 8 characters)"
+      description: 'Database user password. 8–128 chars. Must not contain /, @, ", or spaces.'
     - name: "node_type"
       type: "string"
       required: false
@@ -73,9 +73,18 @@ spec:
       type: "number"
       required: false
       default: "5"
-      description: "Volume size in GB"
+      description: "Volume size in GB (min 5, max 10000)"
       min: 5
       max: 10000
+    - name: "engine_version"
+      type: "string"
+      required: false
+      default: "PostgreSQL-16"
+      description: "PostgreSQL engine version"
+      allowedValues:
+        - "PostgreSQL-16"
+        - "PostgreSQL-15"
+        - "PostgreSQL-14"
     - name: "is_ha_cluster"
       type: "bool"
       required: false
