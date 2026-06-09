@@ -41,16 +41,16 @@ spec:
     - name: "db_name"
       type: "string"
       required: true
-      description: "Database name"
+      description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
     - name: "db_username"
       type: "string"
       required: true
-      description: "Master username"
+      description: "Master username. Letters, digits, underscores; must start with a letter; max 63 chars."
     - name: "db_password"
       type: "string"
       required: true
       sensitive: true
-      description: "Master password (min 8 characters)"
+      description: "Master password. 8–128 chars. Must not contain /, @, \", or spaces."
     - name: "instance_class"
       type: "string"
       required: false
@@ -71,7 +71,7 @@ spec:
       type: "number"
       required: false
       default: "20"
-      description: "Allocated storage in GiB"
+      description: "Allocated storage in GiB (min 20, max 65536 for gp3)"
       min: 20
       max: 65536
     - name: "multi_az"

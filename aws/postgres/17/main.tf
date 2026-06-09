@@ -1,5 +1,5 @@
 resource "aws_db_instance" "this" {
-  identifier = "${var.qovery_cluster_name}-${var.db_name}"
+  identifier = replace(lower(var.db_name), "_", "-")
 
   engine         = "postgres"
   engine_version = "17"
@@ -20,7 +20,7 @@ resource "aws_db_instance" "this" {
   backup_retention_period = 7
 
   tags = {
-    Name        = "${var.qovery_cluster_name}-${var.db_name}"
+    Name        = var.db_name
     ManagedBy   = "qovery-blueprint"
     Blueprint   = "aws-rds-postgresql"
   }
