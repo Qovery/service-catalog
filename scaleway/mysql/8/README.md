@@ -23,3 +23,16 @@ The Scaleway instance name is composed as `{cluster_name}-{instance_name}`.
 | `endpoint_ip`   | Database endpoint IP   |
 | `endpoint_port` | Database endpoint port |
 | `db_name`       | Database name          |
+
+## Required Scaleway IAM permissions
+
+Scaleway IAM permissions are granted via **permission sets** on a policy attached to the application/user whose API key is used.
+
+Attach a policy with the following permission sets, scoped to the target Project:
+
+| Permission set                   | Why                                                  |
+| -------------------------------- | ---------------------------------------------------- |
+| `RelationalDatabasesFullAccess`  | Create / read / update / delete the RDB instance, database, and user. |
+| `ProjectReadOnly`                | Resolve the project context for the API call.       |
+
+The minimum scope is the Project where Qovery deploys this blueprint. If your cluster has its own project, attach the policy there.

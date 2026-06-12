@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "S3 bucket with encryption, versioning, and lifecycle rules"
   icon: "https://console.qovery.com/assets/devicon/s3.svg"
   serviceFamily: "s3"
@@ -12,21 +12,19 @@ metadata:
     - "s3"
 
 spec:
-  engine: terraform
-  provider: aws
-
-  credentials:
-    default: cluster
-    overridable: false
-
-  backend:
-    default: qovery
-    overridable: true
-
-  timeout: 1800
-  resources:
-    cpu: "500m"
-    ram: "512Mi"
+  engine:
+    type: terraform
+    provider: AWS
+    engineVersion: "1.9.7"
+    credentials:
+      default: cluster
+    backend:
+      default: qovery
+      overridable: true
+    timeout: 1800
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
 
   contextVariables:
     - name: "region"
@@ -34,13 +32,15 @@ spec:
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
-      overridable: false
 
   variables:
     - name: "bucket_name"
       type: "string"
       required: true
       description: "Globally unique bucket name. Auto-lowercased. 3–63 chars, letters/digits/hyphens only, must start and end with a letter or digit. Underscores are not allowed."
+      pattern: "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+      minLength: 3
+      maxLength: 63
     - name: "versioning"
       type: "bool"
       required: false

@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-redis"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Redis cache via Bitnami Helm chart"
   icon: "https://cdn.qovery.com/icons/redis.svg"
   serviceFamily: "redis"
@@ -12,15 +12,14 @@ metadata:
     - "redis"
 
 spec:
-  engine: helm
-
-  chart:
-    repository: "https://charts.bitnami.com/bitnami"
-    name: "redis"
-    version: "25.3.11"
-
-  arguments: []
-  allowClusterWideResources: false
+  engine:
+    type: helm
+    chart:
+      repository: "https://charts.bitnami.com/bitnami"
+      name: "redis"
+      version: "25.3.11"
+    arguments: []
+    allowClusterWideResources: false
 
   contextVariables:
     - name: "namespace"
@@ -32,11 +31,14 @@ spec:
       required: false
       default: "256Mi"
       description: "Memory limit for Redis pods. Must be a valid Kubernetes quantity (e.g. 256Mi, 512Mi, 1Gi)."
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "password"
       type: "string"
       required: true
       sensitive: true
       description: "Redis authentication password (min 10 chars recommended)."
+      minLength: 10
+      maxLength: 128
 
   outputs:
     - name: "redis_host"

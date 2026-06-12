@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "AWS RDS MySQL instance with configurable size and storage"
   icon: "https://cdn.qovery.com/icons/mysql.svg"
   serviceFamily: "mysql"
@@ -13,44 +13,48 @@ metadata:
     - "rds"
 
 spec:
-  engine: terraform
-  provider: aws
-
-  credentials:
-    default: cluster
-    overridable: false
-
-  backend:
-    default: qovery
-    overridable: false
-
-  timeout: 3600
-  resources:
-    cpu: "500m"
-    ram: "512Mi"
+  engine:
+    type: terraform
+    provider: AWS
+    engineVersion: "1.9.7"
+    credentials:
+      default: cluster
+    backend:
+      default: qovery
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
 
   contextVariables:
     - name: "region"
       source: "cluster.region"
-      overridable: false
     - name: "qovery_cluster_name"
       source: "cluster.name"
-      overridable: false
 
   variables:
     - name: "db_name"
       type: "string"
       required: true
       description: "MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed."
+      pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,63}$"
+      minLength: 1
+      maxLength: 64
     - name: "db_username"
       type: "string"
       required: true
       description: "Master username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit)."
+      pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,31}$"
+      minLength: 1
+      maxLength: 32
     - name: "db_password"
       type: "string"
       required: true
       sensitive: true
       description: 'Master password. 8–128 chars. Must not contain /, @, ", or spaces.'
+      pattern: '^[^/@" ]+$'
+      minLength: 8
+      maxLength: 128
     - name: "instance_class"
       type: "string"
       required: false
