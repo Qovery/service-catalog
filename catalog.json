@@ -1,12 +1,12 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-14T13:11:13Z",
+  "generatedAt": "2026-06-15T12:32:02Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
       "kind": "ServiceBlueprint",
       "description": "AWS RDS MySQL instance with configurable size and storage",
-      "icon": "https://cdn.qovery.com/icons/mysql.svg",
+      "icon": "app://qovery-console/mysql",
       "categories": [
         "database",
         "mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "aws/mysql/8/1.0.3"
+          "latestTag": "aws/mysql/8/1.0.4"
         }
       ]
     },
@@ -25,7 +25,7 @@
       "name": "aws-rds-postgresql",
       "kind": "ServiceBlueprint",
       "description": "AWS RDS PostgreSQL 17 instance with configurable size and storage",
-      "icon": "https://console.qovery.com/assets/postgresql-original-CTql7Pj9.svg",
+      "icon": "app://qovery-console/postgresql",
       "categories": [
         "database",
         "postgresql",
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": "aws/postgres/17/1.0.3"
+          "latestTag": "aws/postgres/17/1.0.4"
         }
       ]
     },
@@ -44,7 +44,7 @@
       "name": "aws-s3",
       "kind": "ServiceBlueprint",
       "description": "S3 bucket with encryption, versioning, and lifecycle rules",
-      "icon": "https://console.qovery.com/assets/devicon/s3.svg",
+      "icon": "app://qovery-console/s3",
       "categories": [
         "storage",
         "s3"
@@ -54,7 +54,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "aws/s3/default/1.0.3"
+          "latestTag": "aws/s3/default/1.0.4"
         }
       ]
     },
@@ -62,7 +62,7 @@
       "name": "helm-rabbitmq",
       "kind": "ServiceBlueprint",
       "description": "RabbitMQ message broker via Bitnami Helm chart",
-      "icon": "https://cdn.qovery.com/icons/rabbitmq.svg",
+      "icon": "app://qovery-console/rabbitmq",
       "categories": [
         "messaging",
         "rabbitmq"
@@ -72,7 +72,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "helm/rabbitmq/4/1.0.3"
+          "latestTag": "helm/rabbitmq/4/1.0.4"
         }
       ]
     },
@@ -80,7 +80,7 @@
       "name": "helm-redis",
       "kind": "ServiceBlueprint",
       "description": "Redis cache via Bitnami Helm chart",
-      "icon": "https://cdn.qovery.com/icons/redis.svg",
+      "icon": "app://qovery-console/redis",
       "categories": [
         "cache",
         "redis"
@@ -90,7 +90,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "helm/redis/7/1.0.3"
+          "latestTag": "helm/redis/7/1.0.4"
         }
       ]
     },
@@ -98,7 +98,7 @@
       "name": "scaleway-mysql",
       "kind": "ServiceBlueprint",
       "description": "Scaleway Managed Database MySQL instance with configurable node type and storage",
-      "icon": "https://cdn.qovery.com/icons/mysql.svg",
+      "icon": "app://qovery-console/mysql",
       "categories": [
         "database",
         "mysql",
@@ -109,7 +109,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "scaleway/mysql/8/1.0.3"
+          "latestTag": "scaleway/mysql/8/1.0.4"
         }
       ]
     },
@@ -117,7 +117,7 @@
       "name": "scaleway-object-storage",
       "kind": "ServiceBlueprint",
       "description": "Scaleway Object Storage bucket",
-      "icon": "https://cdn.qovery.com/icons/object-storage.svg",
+      "icon": "app://qovery-console/scaleway",
       "categories": [
         "storage",
         "object-storage"
@@ -127,7 +127,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "scaleway/object-storage/default/1.0.3"
+          "latestTag": "scaleway/object-storage/default/1.0.4"
         }
       ]
     },
@@ -135,7 +135,7 @@
       "name": "scaleway-managed-postgresql",
       "kind": "ServiceBlueprint",
       "description": "Scaleway Managed Database PostgreSQL instance with configurable node type and storage",
-      "icon": "https://console.qovery.com/assets/postgresql-original-CTql7Pj9.svg",
+      "icon": "app://qovery-console/postgresql",
       "categories": [
         "database",
         "postgresql",
@@ -146,7 +146,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "scaleway/postgres/16/1.0.3"
+          "latestTag": "scaleway/postgres/16/1.0.4"
         }
       ]
     }

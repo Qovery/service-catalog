@@ -3,9 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "1.0.3"
+  version: "1.0.4"
   description: "AWS RDS PostgreSQL 17 instance with configurable size and storage"
-  icon: "https://console.qovery.com/assets/postgresql-original-CTql7Pj9.svg"
+  icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
   categories:
     - "database"

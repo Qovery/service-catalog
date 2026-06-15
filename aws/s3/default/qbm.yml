@@ -3,9 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.0.3"
+  version: "1.0.4"
   description: "S3 bucket with encryption, versioning, and lifecycle rules"
-  icon: "https://console.qovery.com/assets/devicon/s3.svg"
+  icon: "app://qovery-console/s3"
   serviceFamily: "s3"
   categories:
     - "storage"
