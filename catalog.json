@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-15T12:32:02Z",
+  "generatedAt": "2026-06-15T15:15:24Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "aws/mysql/8/1.0.4"
+          "latestTag": "AWS/mysql/8/1.0.4"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": "aws/postgres/17/1.0.4"
+          "latestTag": "AWS/postgres/17/1.0.4"
         }
       ]
     },
@@ -54,7 +54,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "aws/s3/default/1.0.4"
+          "latestTag": "AWS/s3/default/1.0.4"
         }
       ]
     },
@@ -67,12 +67,12 @@
         "messaging",
         "rabbitmq"
       ],
-      "provider": "helm",
+      "provider": "HELM",
       "serviceFamily": "rabbitmq",
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "helm/rabbitmq/4/1.0.4"
+          "latestTag": "HELM/rabbitmq/4/1.0.4"
         }
       ]
     },
@@ -85,12 +85,12 @@
         "cache",
         "redis"
       ],
-      "provider": "helm",
+      "provider": "HELM",
       "serviceFamily": "redis",
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "helm/redis/7/1.0.4"
+          "latestTag": "HELM/redis/7/1.0.4"
         }
       ]
     },
@@ -109,7 +109,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "scaleway/mysql/8/1.0.4"
+          "latestTag": "SCW/mysql/8/1.0.4"
         }
       ]
     },
@@ -127,7 +127,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "scaleway/object-storage/default/1.0.4"
+          "latestTag": "SCW/object-storage/default/1.0.4"
         }
       ]
     },
@@ -146,7 +146,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "scaleway/postgres/16/1.0.4"
+          "latestTag": "SCW/postgres/16/1.0.4"
         }
       ]
     }
