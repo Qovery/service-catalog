@@ -8,24 +8,24 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 | Service    | Path               | Description                              |
 | ---------- | ------------------ | ---------------------------------------- |
-| S3         | `aws/s3/default/`  | S3 bucket with encryption and versioning |
-| PostgreSQL | `aws/postgres/17/` | RDS PostgreSQL 17 instance               |
-| MySQL      | `aws/mysql/8/`     | RDS MySQL 8.4 instance                   |
+| S3         | `AWS/s3/default/`  | S3 bucket with encryption and versioning |
+| PostgreSQL | `AWS/postgres/17/` | RDS PostgreSQL 17 instance               |
+| MySQL      | `AWS/mysql/8/`     | RDS MySQL 8.4 instance                   |
 
 ### Scaleway (Terraform)
 
-| Service        | Path                               | Description                    |
-| -------------- | ---------------------------------- | ------------------------------ |
-| Object Storage | `scaleway/object-storage/default/` | Scaleway Object Storage bucket |
-| PostgreSQL     | `scaleway/postgres/16/`            | Managed Database PostgreSQL 16 |
-| MySQL          | `scaleway/mysql/8/`                | Managed Database MySQL 8       |
+| Service        | Path                          | Description                    |
+| -------------- | ----------------------------- | ------------------------------ |
+| Object Storage | `SCW/object-storage/default/` | Scaleway Object Storage bucket |
+| PostgreSQL     | `SCW/postgres/16/`            | Managed Database PostgreSQL 16 |
+| MySQL          | `SCW/mysql/8/`                | Managed Database MySQL 8       |
 
 ### Helm (Kubernetes)
 
 | Service  | Path               | Description                                    |
 | -------- | ------------------ | ---------------------------------------------- |
-| Redis    | `helm/redis/7/`    | Redis cache via Bitnami Helm chart             |
-| RabbitMQ | `helm/rabbitmq/4/` | RabbitMQ message broker via Bitnami Helm chart |
+| Redis    | `HELM/redis/7/`    | Redis cache via Bitnami Helm chart             |
+| RabbitMQ | `HELM/rabbitmq/4/` | RabbitMQ message broker via Bitnami Helm chart |
 
 ## Directory Structure
 
@@ -50,7 +50,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 ## Versioning
 
-Tags follow the format `{provider}/{service}/{major-version}/{semver}` (e.g. `aws/s3/1/1.0.0`).
+Tags follow the format `{provider}/{service}/{major-version}/{semver}` (e.g. `AWS/s3/default/1.0.0`).
 Tags are auto-created by CI on merge to main when `metadata.version` in `qbm.yml` changes.
 
 ## Contributing
