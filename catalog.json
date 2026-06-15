@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-09T07:56:52Z",
+  "generatedAt": "2026-06-14T13:11:13Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -12,12 +12,12 @@
         "mysql",
         "rds"
       ],
-      "provider": "aws",
+      "provider": "AWS",
       "serviceFamily": "mysql",
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "aws/mysql/8/1.0.2"
+          "latestTag": "aws/mysql/8/1.0.3"
         }
       ]
     },
@@ -31,12 +31,12 @@
         "postgresql",
         "rds"
       ],
-      "provider": "aws",
+      "provider": "AWS",
       "serviceFamily": "postgres",
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": "aws/postgres/17/1.0.2"
+          "latestTag": "aws/postgres/17/1.0.3"
         }
       ]
     },
@@ -49,12 +49,12 @@
         "storage",
         "s3"
       ],
-      "provider": "aws",
+      "provider": "AWS",
       "serviceFamily": "s3",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "aws/s3/default/1.0.2"
+          "latestTag": "aws/s3/default/1.0.3"
         }
       ]
     },
@@ -72,7 +72,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "helm/rabbitmq/4/1.0.2"
+          "latestTag": "helm/rabbitmq/4/1.0.3"
         }
       ]
     },
@@ -90,7 +90,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "helm/redis/7/1.0.2"
+          "latestTag": "helm/redis/7/1.0.3"
         }
       ]
     },
@@ -104,12 +104,12 @@
         "mysql",
         "scaleway"
       ],
-      "provider": "scaleway",
+      "provider": "SCW",
       "serviceFamily": "mysql",
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "scaleway/mysql/8/1.0.2"
+          "latestTag": "scaleway/mysql/8/1.0.3"
         }
       ]
     },
@@ -122,12 +122,12 @@
         "storage",
         "object-storage"
       ],
-      "provider": "scaleway",
+      "provider": "SCW",
       "serviceFamily": "object-storage",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "scaleway/object-storage/default/1.0.2"
+          "latestTag": "scaleway/object-storage/default/1.0.3"
         }
       ]
     },
@@ -141,12 +141,12 @@
         "postgresql",
         "scaleway"
       ],
-      "provider": "scaleway",
+      "provider": "SCW",
       "serviceFamily": "postgres",
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "scaleway/postgres/16/1.0.2"
+          "latestTag": "scaleway/postgres/16/1.0.3"
         }
       ]
     }

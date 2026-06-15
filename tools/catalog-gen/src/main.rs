@@ -49,6 +49,7 @@ struct RootArg {
 struct Qbm {
     kind: Option<String>,
     metadata: QbmMetadata,
+    spec: Option<QbmSpec>,
 }
 
 #[derive(Deserialize)]
@@ -60,6 +61,16 @@ struct QbmMetadata {
     icon: Option<String>,
     service_family: Option<String>,
     categories: Option<Vec<String>>,
+}
+
+#[derive(Deserialize)]
+struct QbmSpec {
+    engine: Option<QbmEngineRef>,
+}
+
+#[derive(Deserialize)]
+struct QbmEngineRef {
+    provider: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -84,13 +95,23 @@ struct ValidateMeta {
 #[derive(Deserialize, Default)]
 #[serde(default)]
 struct ValidateSpec {
-    engine: Option<String>,
-    provider: Option<String>,
-    chart: Option<serde_yaml::Value>,
+    engine: Option<ValidateEngine>,
     variables: Vec<VarDecl>,
     #[serde(rename = "contextVariables")]
     context_variables: Vec<VarDecl>,
     stages: Option<serde_yaml::Value>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct ValidateEngine {
+    #[serde(rename = "type")]
+    type_: Option<String>,
+    provider: Option<String>,
+    chart: Option<serde_yaml::Value>,
+    /// Terraform/opentofu binary version (e.g. "1.9.7"). Required for terraform/opentofu engines.
+    #[serde(rename = "engineVersion")]
+    engine_version: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -103,6 +124,12 @@ struct VarDecl {
     allowed_values: Option<Vec<String>>,
     min: Option<f64>,
     max: Option<f64>,
+    // String-only constraints surfaced to the console for client-side validation.
+    pattern: Option<String>,
+    #[serde(rename = "minLength")]
+    min_length: Option<u64>,
+    #[serde(rename = "maxLength")]
+    max_length: Option<u64>,
     // Defaults to false when omitted. Authors must mark sensitive variables explicitly so the
     // console renders them as secret inputs.
     sensitive: Option<bool>,
@@ -238,9 +265,10 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
             // metadata.version in qbm.yml is the source of truth for the tag that auto-tag will
             // create on merge. Using git tag history would lag by one merge: a PR that bumps
             // metadata.version would otherwise still show the previous tag.
-            let qbm_from_disk: Option<Qbm> = std::fs::read_to_string(root.join(&vd.full_path).join("qbm.yml"))
-                .ok()
-                .and_then(|c| serde_yaml::from_str(&c).ok());
+            let qbm_from_disk: Option<Qbm> =
+                std::fs::read_to_string(root.join(&vd.full_path).join("qbm.yml"))
+                    .ok()
+                    .and_then(|c| serde_yaml::from_str(&c).ok());
             let latest_tag = qbm_from_disk
                 .as_ref()
                 .map(|q| format!("{}/{}", vd.full_path, q.metadata.version));
@@ -267,13 +295,19 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
             }
         };
 
+        let provider = qbm
+            .spec
+            .as_ref()
+            .and_then(|s| s.engine.as_ref())
+            .and_then(|e| e.provider.clone())
+            .unwrap_or_else(|| version_dirs[0].provider.clone());
         catalog_blueprints.push(CatalogBlueprint {
             name: qbm.metadata.name,
             kind: qbm.kind.unwrap_or_else(|| "ServiceBlueprint".to_string()),
             description: qbm.metadata.description.unwrap_or_default(),
             icon: qbm.metadata.icon,
             categories: qbm.metadata.categories.unwrap_or_default(),
-            provider: version_dirs[0].provider.clone(),
+            provider,
             service_family: qbm.metadata.service_family,
             major_versions,
         });
@@ -338,6 +372,34 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
                     path, var.name, min, max
                 ));
             }
+        }
+    }
+
+    // String-only constraints. A null type is also treated as string by q-core, so we accept them
+    // there too rather than only when the author wrote `type: string` explicitly.
+    let is_string_typed = matches!(var.type_.as_deref(), None | Some("string"));
+    if (var.pattern.is_some() || var.min_length.is_some() || var.max_length.is_some())
+        && !is_string_typed
+    {
+        errors.push(format!(
+            "{}: '{}' pattern/minLength/maxLength can only be used with type: string",
+            path, var.name
+        ));
+    }
+    if let Some(pattern) = &var.pattern {
+        if Regex::new(pattern).is_err() {
+            errors.push(format!(
+                "{}: '{}' pattern '{}' is not a valid regular expression",
+                path, var.name, pattern
+            ));
+        }
+    }
+    if let (Some(min), Some(max)) = (var.min_length, var.max_length) {
+        if min > max {
+            errors.push(format!(
+                "{}: '{}' minLength ({}) is greater than maxLength ({})",
+                path, var.name, min, max
+            ));
         }
     }
 }
@@ -415,11 +477,33 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                 ));
             }
         } else {
-            match spec.engine.as_deref() {
+            let engine = spec.engine.as_ref();
+            let engine_type = engine.and_then(|e| e.type_.as_deref());
+            let engine_provider = engine.and_then(|e| e.provider.as_ref());
+            let engine_chart = engine.and_then(|e| e.chart.as_ref());
+            let engine_version = engine
+                .and_then(|e| e.engine_version.as_deref())
+                .map(str::trim)
+                .filter(|s| !s.is_empty());
+            if engine_version.is_some()
+                && !matches!(engine_type, Some("terraform") | Some("opentofu"))
+            {
+                errors.push(format!(
+                    "{}: spec.engine.engineVersion is only allowed when engine.type is terraform/opentofu",
+                    vd.full_path
+                ));
+            }
+            match engine_type {
                 Some("terraform") | Some("opentofu") => {
-                    if spec.provider.is_none() {
+                    if engine_provider.is_none() {
                         errors.push(format!(
-                            "{}: spec.provider required when engine is terraform/opentofu",
+                            "{}: spec.engine.provider required when engine.type is terraform/opentofu",
+                            vd.full_path
+                        ));
+                    }
+                    if engine_version.is_none() {
+                        errors.push(format!(
+                            "{}: spec.engine.engineVersion required when engine.type is terraform/opentofu (e.g. \"1.9.7\")",
                             vd.full_path
                         ));
                     }
@@ -466,21 +550,21 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                         validate_var_constraints(&vd.full_path, var, &mut errors);
                         validate_sensitive_naming(&vd.full_path, var, &mut errors);
                     }
-                    if spec.chart.is_none() {
+                    if engine_chart.is_none() {
                         errors.push(format!(
-                            "{}: spec.chart required when engine is helm",
+                            "{}: spec.engine.chart required when engine.type is helm",
                             vd.full_path
                         ));
                     }
                 }
                 Some(other) => {
                     errors.push(format!(
-                        "{}: unknown spec.engine '{}' (expected terraform, opentofu, or helm)",
+                        "{}: unknown spec.engine.type '{}' (expected terraform, opentofu, or helm)",
                         vd.full_path, other
                     ));
                 }
                 None => {
-                    errors.push(format!("{}: missing spec.engine", vd.full_path));
+                    errors.push(format!("{}: missing spec.engine.type", vd.full_path));
                 }
             }
         }
@@ -518,8 +602,8 @@ fn list_terraform_blueprints(root: &Path) -> Result<()> {
             Ok(q) => q,
             Err(_) => continue,
         };
-        let engine = qbm.spec.and_then(|s| s.engine);
-        if matches!(engine.as_deref(), Some("terraform") | Some("opentofu")) {
+        let engine_type = qbm.spec.and_then(|s| s.engine).and_then(|e| e.type_);
+        if matches!(engine_type.as_deref(), Some("terraform") | Some("opentofu")) {
             paths.push(vd.full_path.clone());
         }
     }

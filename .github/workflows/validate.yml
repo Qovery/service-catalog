@@ -10,23 +10,24 @@ jobs:
   validate-qbm:
     name: Validate QBM manifests
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/login-action@v3
+      # Build catalog-gen from the PR's own source so schema and validator stay in lockstep.
+      # The published GHCR image lags by one merge (publish-catalog-gen runs on main only),
+      # so pulling :latest would validate the PR against a stale binary.
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          workspaces: tools/catalog-gen
+
+      - name: Build catalog-gen
+        working-directory: tools/catalog-gen
+        run: cargo build --release --locked
 
       - name: Validate QBM manifests and TF variable alignment
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/repo \
-            ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/catalog-gen:latest \
-            validate --root /repo
+        run: tools/catalog-gen/target/release/catalog-gen validate --root .
 
   discover-terraform-blueprints:
     name: Discover changed Terraform blueprints
@@ -219,23 +220,21 @@ jobs:
   check-catalog:
     name: Check catalog.json is up to date
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/login-action@v3
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          workspaces: tools/catalog-gen
+
+      - name: Build catalog-gen
+        working-directory: tools/catalog-gen
+        run: cargo build --release --locked
 
       - name: Generate catalog.json into temp file
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/repo \
-            ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/catalog-gen:latest \
-            generate --root /repo --output /repo/catalog.json.generated
+        run: tools/catalog-gen/target/release/catalog-gen generate --root . --output catalog.json.generated
 
       - name: Diff against committed catalog.json
         run: |

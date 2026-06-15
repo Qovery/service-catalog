@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-managed-postgresql"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type and storage"
   icon: "https://console.qovery.com/assets/postgresql-original-CTql7Pj9.svg"
   serviceFamily: "postgres"
@@ -13,21 +13,19 @@ metadata:
     - "scaleway"
 
 spec:
-  engine: terraform
-  provider: scaleway
-
-  credentials:
-    default: cluster
-    overridable: false
-
-  backend:
-    default: qovery
-    overridable: true
-
-  timeout: 3600
-  resources:
-    cpu: "500m"
-    ram: "512Mi"
+  engine:
+    type: terraform
+    provider: SCW
+    engineVersion: "1.9.7"
+    credentials:
+      default: cluster
+    backend:
+      default: qovery
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
 
   contextVariables:
     - name: "region"
@@ -35,26 +33,37 @@ spec:
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
-      overridable: false
 
   variables:
     - name: "instance_name"
       type: "string"
       required: true
       description: "Instance name. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
+      pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$"
+      minLength: 1
+      maxLength: 100
     - name: "db_name"
       type: "string"
       required: true
       description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
+      pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
+      minLength: 1
+      maxLength: 63
     - name: "db_username"
       type: "string"
       required: true
       description: "Database username. Letters, digits, underscores; must start with a letter; max 63 chars."
+      pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
+      minLength: 1
+      maxLength: 63
     - name: "db_password"
       type: "string"
       required: true
       sensitive: true
       description: 'Database user password. 8–128 chars. Must not contain /, @, ", or spaces.'
+      pattern: '^[^/@" ]+$'
+      minLength: 8
+      maxLength: 128
     - name: "node_type"
       type: "string"
       required: false
