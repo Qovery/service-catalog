@@ -3,9 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-object-storage"
-  version: "1.0.3"
+  version: "1.0.4"
   description: "Scaleway Object Storage bucket"
-  icon: "https://cdn.qovery.com/icons/object-storage.svg"
+  icon: "app://qovery-console/scaleway"
   serviceFamily: "object-storage"
   categories:
     - "storage"
