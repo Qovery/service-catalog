@@ -1,0 +1,147 @@
+name: Create Blueprint Release
+
+on:
+  push:
+    tags:
+      - '*/*/*/**'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Generate release notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - << 'PYEOF'
+          import yaml, os, subprocess, sys
+
+          tag = os.environ['TAG']
+          parts = tag.split('/')
+          if len(parts) < 4:
+              print(f"Tag '{tag}' does not match provider/service/variant/version — skipping.")
+              sys.exit(0)
+
+          version = parts[-1]
+          dir_path = '/'.join(parts[:-1])
+          provider = parts[0]
+          qbm_path = f"{dir_path}/qbm.yml"
+
+          if not os.path.exists(qbm_path):
+              print(f"No qbm.yml at {qbm_path} — skipping.")
+              sys.exit(0)
+
+          with open(qbm_path) as f:
+              doc = yaml.safe_load(f)
+
+          meta = doc.get('metadata', {})
+          spec = doc.get('spec', {})
+          name = meta.get('name', dir_path)
+          description = meta.get('description', '')
+          categories = meta.get('categories', [])
+
+          # Find previous tag for this blueprint path
+          result = subprocess.run(
+              ['git', 'tag', '-l', f'{dir_path}/*', '--sort=-version:refname'],
+              capture_output=True, text=True
+          )
+          sibling_tags = [t for t in result.stdout.strip().split('\n') if t and t != tag]
+          prev_tag = sibling_tags[0] if sibling_tags else None
+
+          # Build changelog
+          if prev_tag:
+              log = subprocess.run(
+                  ['git', 'log', f'{prev_tag}..HEAD', '--oneline', '--', f'{dir_path}/'],
+                  capture_output=True, text=True
+              )
+              commits = [l.strip() for l in log.stdout.strip().split('\n') if l.strip()]
+          else:
+              commits = []
+
+          if commits:
+              changes = '\n'.join(f'- {c}' for c in commits)
+          elif not prev_tag:
+              changes = '_Initial release_'
+          else:
+              changes = '_No changes recorded_'
+
+          # Configuration table
+          config_rows = []
+          for v in spec.get('variables', []):
+              req = 'Yes' if v.get('required', False) else 'No'
+              default = f"`{v['default']}`" if 'default' in v else '—'
+              desc = v.get('description', '')
+              if len(desc) > 80:
+                  desc = desc[:77] + '...'
+              config_rows.append(f"| {v.get('name','')} | {v.get('type','')} | {req} | {default} | {desc} |")
+
+          # Outputs table
+          output_rows = [
+              f"| {o.get('name','')} | {o.get('description','')} |"
+              for o in spec.get('outputs', [])
+          ]
+
+          cats_str = ', '.join(categories)
+          meta_line = f'**Provider:** {provider}'
+          if cats_str:
+              meta_line += f' | **Categories:** {cats_str}'
+
+          lines = [
+              f'## {name} · v{version}',
+              '',
+              f'> {description}',
+              '',
+              meta_line,
+              '',
+              '---',
+              '',
+              "### What's new",
+              '',
+              changes,
+          ]
+
+          if config_rows:
+              lines += [
+                  '',
+                  '---',
+                  '',
+                  '### Configuration',
+                  '',
+                  '| Variable | Type | Required | Default | Description |',
+                  '|---|---|---|---|---|',
+              ] + config_rows
+
+          if output_rows:
+              lines += [
+                  '',
+                  '### Outputs',
+                  '',
+                  '| Name | Description |',
+                  '|---|---|',
+              ] + output_rows
+
+          with open('/tmp/release_notes.md', 'w') as f:
+              f.write('\n'.join(lines))
+          with open('/tmp/release_title.txt', 'w') as f:
+              f.write(f'{name} v{version}')
+
+          print(f"Release notes ready for {name} v{version}")
+          PYEOF
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "$(cat /tmp/release_title.txt)" \
+            --notes-file /tmp/release_notes.md
