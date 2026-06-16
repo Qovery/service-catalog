@@ -76,6 +76,32 @@ jobs:
           terraform init -backend=false
           terraform validate
 
+  check-commit-messages:
+    name: Check commit message format
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          ERRORS=""
+          while IFS= read -r msg; do
+            [ -z "$msg" ] && continue
+            if ! echo "$msg" | grep -qE '^(feat|fix|patch|core)(\([^)]+\))?: .+'; then
+              ERRORS="$ERRORS\nERROR: invalid commit message: \"$msg\""
+              ERRORS="$ERRORS\n       expected: feat|fix|patch|core(subject): message"
+            fi
+          done < <(git log origin/main..HEAD --no-merges --format="%s" | grep -v '^Merge ')
+
+          if [ -n "$ERRORS" ]; then
+            echo -e "$ERRORS"
+            exit 1
+          fi
+          echo "All commit messages are valid."
+
   check-version-bump:
     name: Check version bump
     runs-on: ubuntu-latest
