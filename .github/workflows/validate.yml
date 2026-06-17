@@ -198,50 +198,153 @@ jobs:
       - name: Install tools
         run: pip install pyyaml
 
-      - name: Create tags for new versions
+      - name: Create tags and releases for new versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAGS_CREATED=""
+          python3 - << 'PYEOF'
+          import yaml, os, subprocess, sys
 
-          for qbm in $(find . -mindepth 4 -maxdepth 4 -name 'qbm.yml' -type f \
-            -not -path './tools/*' \
-            -not -path './.github/*' \
-            -not -path './stacks/*' \
-            -not -path './.git/*'); do
-            dir=$(dirname "$qbm" | sed 's|^\./||')
+          result = subprocess.run(
+              ['find', '.', '-mindepth', '4', '-maxdepth', '4', '-name', 'qbm.yml', '-type', 'f',
+               '-not', '-path', './tools/*', '-not', '-path', './.github/*',
+               '-not', '-path', './stacks/*', '-not', '-path', './.git/*'],
+              capture_output=True, text=True
+          )
+          qbm_files = [p.strip() for p in result.stdout.strip().split('\n') if p.strip()]
 
-            # Read version from qbm.yml
-            VERSION=$(python3 -c "
-          import yaml
-          with open('$qbm') as f:
-              doc = yaml.safe_load(f)
-          print(doc.get('metadata', {}).get('version', ''))
-          ")
+          new_tags = []
+          for qbm_path in qbm_files:
+              dir_path = os.path.dirname(qbm_path).lstrip('./')
+              with open(qbm_path) as f:
+                  doc = yaml.safe_load(f)
+              version = doc.get('metadata', {}).get('version', '')
+              if not version:
+                  print(f"Warning: no version in {qbm_path}, skipping")
+                  continue
+              tag = f"{dir_path}/{version}"
+              existing = subprocess.run(['git', 'tag', '-l', tag], capture_output=True, text=True)
+              if tag in existing.stdout.strip().split('\n'):
+                  print(f"Tag {tag} already exists, skipping")
+              else:
+                  subprocess.run(['git', 'tag', tag], check=True)
+                  new_tags.append(tag)
+                  print(f"Created tag: {tag}")
 
-            if [ -z "$VERSION" ]; then
-              echo "Warning: no version in $qbm, skipping"
-              continue
-            fi
+          if not new_tags:
+              print("No new tags to create.")
+              sys.exit(0)
 
-            # Tag format: {provider}/{service}/{version}/{metadata.version}
-            # dir is already {provider}/{service}/{version}
-            TAG="${dir}/${VERSION}"
+          subprocess.run(['git', 'push', 'origin', '--tags'], check=True)
 
-            # Check if tag already exists
-            if git tag -l "$TAG" | grep -q "$TAG"; then
-              echo "Tag $TAG already exists, skipping"
-            else
-              echo "Creating tag: $TAG"
-              git tag "$TAG"
-              TAGS_CREATED="$TAGS_CREATED $TAG"
-            fi
-          done
+          for tag in new_tags:
+              check = subprocess.run(['gh', 'release', 'view', tag], capture_output=True, text=True)
+              if check.returncode == 0:
+                  print(f"Release {tag} already exists, skipping")
+                  continue
 
-          if [ -n "$TAGS_CREATED" ]; then
-            echo "Pushing tags:$TAGS_CREATED"
-            git push origin --tags
-          else
-            echo "No new tags to create."
-          fi
+              parts = tag.split('/')
+              version = parts[-1]
+              dir_path = '/'.join(parts[:-1])
+              provider = parts[0]
+              qbm_path = f"{dir_path}/qbm.yml"
+
+              with open(qbm_path) as f:
+                  doc = yaml.safe_load(f)
+
+              meta = doc.get('metadata', {})
+              spec = doc.get('spec', {})
+              name = meta.get('name', dir_path)
+              description = meta.get('description', '')
+              categories = meta.get('categories', [])
+
+              prev_result = subprocess.run(
+                  ['git', 'tag', '-l', f'{dir_path}/*', '--sort=-version:refname'],
+                  capture_output=True, text=True
+              )
+              sibling_tags = [t for t in prev_result.stdout.strip().split('\n') if t and t != tag]
+              prev_tag = sibling_tags[0] if sibling_tags else None
+
+              if prev_tag:
+                  log = subprocess.run(
+                      ['git', 'log', f'{prev_tag}..HEAD', '--oneline', '--', f'{dir_path}/'],
+                      capture_output=True, text=True
+                  )
+                  commits = [l.strip() for l in log.stdout.strip().split('\n') if l.strip()]
+              else:
+                  commits = []
+
+              if commits:
+                  changes = '\n'.join(f'- {c}' for c in commits)
+              elif not prev_tag:
+                  changes = '_Initial release_'
+              else:
+                  changes = '_No changes recorded_'
+
+              config_rows = []
+              for v in spec.get('variables', []):
+                  req = 'Yes' if v.get('required', False) else 'No'
+                  default = f"`{v['default']}`" if 'default' in v else '—'
+                  desc = v.get('description', '')
+                  if len(desc) > 80:
+                      desc = desc[:77] + '...'
+                  config_rows.append(f"| {v.get('name','')} | {v.get('type','')} | {req} | {default} | {desc} |")
+
+              output_rows = [
+                  f"| {o.get('name','')} | {o.get('description','')} |"
+                  for o in spec.get('outputs', [])
+              ]
+
+              cats_str = ', '.join(categories)
+              meta_line = f'**Provider:** {provider}'
+              if cats_str:
+                  meta_line += f' | **Categories:** {cats_str}'
+
+              lines = [
+                  f'## {name} · v{version}',
+                  '',
+                  f'> {description}',
+                  '',
+                  meta_line,
+                  '',
+                  '---',
+                  '',
+                  "### What's new",
+                  '',
+                  changes,
+              ]
+
+              if config_rows:
+                  lines += [
+                      '',
+                      '---',
+                      '',
+                      '### Configuration',
+                      '',
+                      '| Variable | Type | Required | Default | Description |',
+                      '|---|---|---|---|---|',
+                  ] + config_rows
+
+              if output_rows:
+                  lines += [
+                      '',
+                      '### Outputs',
+                      '',
+                      '| Name | Description |',
+                      '|---|---|',
+                  ] + output_rows
+
+              notes_path = f'/tmp/release_notes_{version}.md'
+              with open(notes_path, 'w') as f:
+                  f.write('\n'.join(lines))
+
+              subprocess.run([
+                  'gh', 'release', 'create', tag,
+                  '--title', f'{name} v{version}',
+                  '--notes-file', notes_path,
+              ], check=True)
+              print(f"Released {tag}")
+          PYEOF
 
   check-catalog:
     name: Check catalog.json is up to date
