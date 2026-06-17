@@ -71,16 +71,32 @@ variable "db_password" {
   }
 }
 
+variable "engine_version" {
+  type        = string
+  default     = "PostgreSQL-16"
+  description = "Engine version (e.g. PostgreSQL-16, PostgreSQL-15)"
+
+  validation {
+    condition     = contains(["PostgreSQL-16", "PostgreSQL-15", "PostgreSQL-14"], var.engine_version)
+    error_message = "engine_version must be one of: PostgreSQL-16, PostgreSQL-15, PostgreSQL-14."
+  }
+}
+
 variable "node_type" {
   type        = string
   default     = "DB-DEV-S"
   description = "Node type (e.g. DB-DEV-S, DB-GP-XS)"
 }
 
-variable "engine_version" {
+variable "volume_type" {
   type        = string
-  default     = "PostgreSQL-16"
-  description = "Engine version (e.g. PostgreSQL-16, PostgreSQL-15)"
+  default     = "lssd"
+  description = "Volume backend type: lssd (local SSD) or bssd (block SSD)"
+
+  validation {
+    condition     = contains(["lssd", "bssd"], var.volume_type)
+    error_message = "volume_type must be one of: lssd, bssd."
+  }
 }
 
 variable "volume_size_gb" {
@@ -89,8 +105,8 @@ variable "volume_size_gb" {
   description = "Volume size in GB (minimum 5)"
 
   validation {
-    condition     = var.volume_size_gb >= 5
-    error_message = "volume_size_gb must be at least 5 GB."
+    condition     = var.volume_size_gb >= 5 && var.volume_size_gb <= 10000
+    error_message = "volume_size_gb must be between 5 and 10000."
   }
 }
 
@@ -98,4 +114,27 @@ variable "is_ha_cluster" {
   type        = bool
   default     = false
   description = "Enable high availability cluster mode"
+}
+
+variable "activate_backups" {
+  type        = bool
+  default     = true
+  description = "Enable automated backups"
+}
+
+variable "publicly_accessible" {
+  type        = bool
+  default     = false
+  description = "Open the database to traffic from acl_allowed_cidr. When false, no ACL is created."
+}
+
+variable "acl_allowed_cidr" {
+  type        = string
+  default     = "0.0.0.0/0"
+  description = "Single CIDR allowed to reach the instance (only used when publicly_accessible)."
+
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$", var.acl_allowed_cidr))
+    error_message = "acl_allowed_cidr must be a valid CIDR (e.g. 10.0.0.0/8)."
+  }
 }

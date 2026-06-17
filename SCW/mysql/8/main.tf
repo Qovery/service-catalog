@@ -2,17 +2,38 @@
 # Scaleway Managed Database MySQL
 # -----------------------------------------------------------------------------
 
+# Scaleway tags are bare strings (no KV) — flatten cluster context into "key:value" entries.
+locals {
+  rdb_tags = [
+    "managed-by:qovery-blueprint",
+    "blueprint:scaleway-mysql",
+    "cluster:${var.qovery_cluster_name}",
+    "region:${var.region}",
+    "instance:${var.instance_name}",
+  ]
+}
+
 resource "scaleway_rdb_instance" "this" {
   name           = "${var.qovery_cluster_name}-${var.instance_name}"
   node_type      = var.node_type
-  engine         = "MySQL-8"
+  engine         = var.engine_version
   is_ha_cluster  = var.is_ha_cluster
-  disable_backup = false
+  disable_backup = !var.activate_backups
 
-  volume_type       = "lssd"
+  volume_type       = var.volume_type
   volume_size_in_gb = var.volume_size_gb
 
-  tags = ["managed-by:qovery-blueprint", "cluster:${var.qovery_cluster_name}"]
+  # Initial admin user — required by the Scaleway provider on instance create.
+  user_name = var.db_username
+  password  = var.db_password
+
+  region = var.region
+
+  settings = {
+    slow_query_log = var.slow_query_log ? "true" : "false"
+  }
+
+  tags = local.rdb_tags
 }
 
 resource "scaleway_rdb_database" "this" {
@@ -20,9 +41,14 @@ resource "scaleway_rdb_database" "this" {
   name        = var.db_name
 }
 
-resource "scaleway_rdb_user" "this" {
+# ACL is only created when publicly_accessible. Without an ACL, the instance is unreachable
+# from outside Scaleway's private network — which is the expected default for private DBs.
+resource "scaleway_rdb_acl" "this" {
+  count       = var.publicly_accessible ? 1 : 0
   instance_id = scaleway_rdb_instance.this.id
-  name        = var.db_username
-  password    = var.db_password
-  is_admin    = true
+
+  acl_rules {
+    ip          = var.acl_allowed_cidr
+    description = "qovery-blueprint allowed CIDR"
+  }
 }
