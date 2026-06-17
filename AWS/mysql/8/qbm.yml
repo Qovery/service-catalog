@@ -3,8 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "1.0.4"
-  description: "AWS RDS MySQL instance with configurable size and storage"
+  version: "1.1.0"
+  description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
   categories:
@@ -55,6 +55,13 @@ spec:
       pattern: '^[^/@" ]+$'
       minLength: 8
       maxLength: 128
+    - name: "port"
+      type: "number"
+      required: false
+      default: "3306"
+      description: "Database port"
+      min: 1024
+      max: 65535
     - name: "instance_class"
       type: "string"
       required: false
@@ -78,13 +85,149 @@ spec:
       description: "Allocated storage in GiB (min 20, max 65536 for gp3)"
       min: 20
       max: 65536
+    - name: "storage_type"
+      type: "string"
+      required: false
+      default: "gp3"
+      description: "EBS storage type"
+      allowedValues:
+        - "gp2"
+        - "gp3"
+        - "io1"
+        - "io2"
+    - name: "storage_encrypted"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Encrypt storage at rest"
+    - name: "disk_iops"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default."
+      min: 0
+      max: 256000
     - name: "multi_az"
       type: "bool"
       required: false
       default: "false"
       description: "Enable Multi-AZ deployment"
+    - name: "publicly_accessible"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Expose the database to the public internet"
+    - name: "db_subnet_group_name"
+      type: "string"
+      required: false
+      default: ""
+      description: "Optional DB subnet group. Empty = AWS default for the VPC."
+    - name: "apply_changes_now"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Apply changes immediately instead of waiting for the next maintenance window"
+    - name: "allow_major_version_upgrade"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Allow major engine version upgrades on apply"
+    - name: "auto_minor_version_upgrade"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Automatically apply minor version upgrades during the maintenance window"
+    - name: "preferred_maintenance_window"
+      type: "string"
+      required: false
+      default: "Tue:02:00-Tue:04:00"
+      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+    - name: "preferred_backup_window"
+      type: "string"
+      required: false
+      default: "00:00-01:00"
+      description: "Daily backup window (UTC), format hh24:mi-hh24:mi"
+    - name: "backup_retention_period"
+      type: "number"
+      required: false
+      default: "7"
+      description: "Days to retain automated backups (0 disables)"
+      min: 0
+      max: 35
+    - name: "skip_final_snapshot"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Skip the final snapshot on deletion"
+    - name: "delete_automated_backups"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Delete automated backups when the instance is deleted"
+    - name: "copy_tags_to_snapshot"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Propagate instance tags to snapshots"
+    - name: "performance_insights_enabled"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Enable RDS Performance Insights"
+    - name: "performance_insights_retention_period"
+      type: "number"
+      required: false
+      default: "7"
+      description: "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 31, or a multiple of 31 up to 731."
+      min: 7
+      max: 731
+    - name: "ca_cert_identifier"
+      type: "string"
+      required: false
+      default: "rds-ca-rsa2048-g1"
+      description: "CA certificate identifier used by the DB instance"
+    - name: "monitoring_interval"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Enhanced monitoring interval in seconds (0 disables). Allowed values: 0, 1, 5, 10, 15, 30, 60."
+      allowedValues:
+        - "0"
+        - "1"
+        - "5"
+        - "10"
+        - "15"
+        - "30"
+        - "60"
+    - name: "monitoring_role_arn"
+      type: "string"
+      required: false
+      default: ""
+      description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+    - name: "option_group_name"
+      type: "string"
+      required: false
+      default: ""
+      description: "Optional option group name. Empty = AWS default."
+    - name: "deletion_protection"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Prevent the database from being deleted via TF or the API"
+    - name: "iam_database_authentication_enabled"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Enable IAM database authentication"
+    - name: "dedicated_log_volume"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Provision a dedicated EBS volume for database logs (RDS feature)"
 
   outputs:
+    - name: "db_identifier"
+      description: "RDS instance identifier (what AWS console shows as the instance name)"
     - name: "db_endpoint"
       description: "RDS instance endpoint (host:port)"
     - name: "db_address"
@@ -93,3 +236,14 @@ spec:
       description: "RDS instance port"
     - name: "db_name"
       description: "Database name"
+    - name: "db_username"
+      description: "Master username"
+    - name: "db_password"
+      description: "Master password"
+      sensitive: true
+    - name: "db_resource_id"
+      description: "RDS internal resource ID (used in IAM DB auth ARNs)"
+    - name: "db_arn"
+      description: "RDS instance ARN"
+    - name: "db_engine_version_actual"
+      description: "Engine version actually running (may include the minor AWS chose)"
