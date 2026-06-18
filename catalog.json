@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-17T12:24:53Z",
+  "generatedAt": "2026-06-18T14:54:42Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/1.1.0"
+          "latestTag": "AWS/mysql/8/1.2.0"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/1.1.0"
+          "latestTag": "AWS/postgres/17/1.2.0"
         }
       ]
     },
@@ -54,7 +54,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.0.4"
+          "latestTag": "AWS/s3/default/1.1.0"
         }
       ]
     },
@@ -72,7 +72,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "HELM/rabbitmq/4/1.0.4"
+          "latestTag": "HELM/rabbitmq/4/1.1.0"
         }
       ]
     },
@@ -90,7 +90,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "HELM/redis/7/1.0.4"
+          "latestTag": "HELM/redis/7/1.1.0"
         }
       ]
     },
@@ -109,7 +109,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.1.0"
+          "latestTag": "SCW/mysql/8/1.2.0"
         }
       ]
     },
@@ -127,7 +127,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.0.4"
+          "latestTag": "SCW/object-storage/default/1.1.0"
         }
       ]
     },
@@ -146,7 +146,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.1.0"
+          "latestTag": "SCW/postgres/16/1.2.0"
         }
       ]
     }
