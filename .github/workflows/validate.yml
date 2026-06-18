@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  validate-qbm:
-    name: Validate QBM manifests
+  build-catalog-gen:
+    name: Build catalog-gen
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,12 +22,33 @@ jobs:
         with:
           workspaces: tools/catalog-gen
 
-      - name: Build catalog-gen
+      - name: Build
         working-directory: tools/catalog-gen
         run: cargo build --release --locked
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalog-gen
+          path: tools/catalog-gen/target/release/catalog-gen
+          retention-days: 1
+          if-no-files-found: error
+
+  validate-qbm:
+    name: Validate QBM manifests
+    runs-on: ubuntu-latest
+    needs: [build-catalog-gen]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
+
       - name: Validate QBM manifests and TF variable alignment
-        run: tools/catalog-gen/target/release/catalog-gen validate --root .
+        run: |
+          chmod +x bin/catalog-gen
+          bin/catalog-gen validate --root .
 
   discover-terraform-blueprints:
     name: Discover changed Terraform blueprints
@@ -77,115 +98,50 @@ jobs:
           terraform validate
 
   check-commit-messages:
-    name: Check commit message format
+    name: Check PR title format
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Validate commit messages
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          ERRORS=""
-          while IFS= read -r msg; do
-            [ -z "$msg" ] && continue
-            if ! echo "$msg" | grep -qE '^(feat|fix|patch|core)(\([^)]+\))?: .+'; then
-              ERRORS="$ERRORS\nERROR: invalid commit message: \"$msg\""
-              ERRORS="$ERRORS\n       expected: feat|fix|patch|core(subject): message"
-            fi
-          done < <(git log origin/main..HEAD --no-merges --format="%s" | grep -v '^Merge ')
-
-          if [ -n "$ERRORS" ]; then
-            echo -e "$ERRORS"
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|patch|core)(\([^)]+\))?: .+'; then
+            echo "ERROR: invalid PR title: \"$PR_TITLE\""
+            echo "       expected: feat|fix|patch|core(subject): message"
             exit 1
           fi
-          echo "All commit messages are valid."
+          echo "PR title is valid."
 
   check-version-bump:
     name: Check version bump
     runs-on: ubuntu-latest
+    needs: [build-catalog-gen]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install tools
-        run: pip install pyyaml
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
 
       - name: Check blueprint version bumps
         run: |
-          # Get list of changed files in this PR
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
-
-          # Find all blueprint directories that had file changes
-          CHANGED_BLUEPRINTS=""
-          for qbm in $(find . -mindepth 4 -maxdepth 4 -name 'qbm.yml' -type f \
-            -not -path './tools/*' \
-            -not -path './.github/*' \
-            -not -path './stacks/*' \
-            -not -path './.git/*'); do
-            dir=$(dirname "$qbm" | sed 's|^\./||')
-
-            # Check if any file in this blueprint directory changed
-            if echo "$CHANGED_FILES" | grep -q "^${dir}/"; then
-              CHANGED_BLUEPRINTS="$CHANGED_BLUEPRINTS $dir"
-            fi
-          done
-
-          if [ -z "$CHANGED_BLUEPRINTS" ]; then
-            echo "No blueprint directories changed."
-            exit 0
-          fi
-
-          ERRORS=""
-          for dir in $CHANGED_BLUEPRINTS; do
-            echo "Checking $dir..."
-
-            # Get the version from main branch
-            OLD_VERSION=$(git show origin/main:${dir}/qbm.yml 2>/dev/null | python3 -c "
-          import yaml, sys
-          try:
-              doc = yaml.safe_load(sys.stdin)
-              print(doc.get('metadata', {}).get('version', ''))
-          except:
-              print('')
-          " || echo "")
-
-            # Get the version from PR branch
-            NEW_VERSION=$(python3 -c "
-          import yaml
-          with open('${dir}/qbm.yml') as f:
-              doc = yaml.safe_load(f)
-          print(doc.get('metadata', {}).get('version', ''))
-          ")
-
-            if [ -z "$OLD_VERSION" ]; then
-              echo "  New blueprint (no version on main). OK."
-              continue
-            fi
-
-            if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-              ERRORS="$ERRORS\nERROR: $dir has file changes but metadata.version was not bumped (still $OLD_VERSION)"
-            else
-              echo "  Version bumped: $OLD_VERSION → $NEW_VERSION. OK."
-            fi
-          done
-
-          if [ -n "$ERRORS" ]; then
-            echo -e "$ERRORS"
-            exit 1
-          fi
+          chmod +x bin/catalog-gen
+          bin/catalog-gen check-version-bump --root . --base-ref origin/main
 
   auto-tag:
     name: Auto-tag changed blueprints
     runs-on: ubuntu-latest
-    needs: [validate-qbm, validate-terraform]
+    needs: [build-catalog-gen, validate-qbm, validate-terraform]
     if: |
       always() &&
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
+      needs.build-catalog-gen.result == 'success' &&
       needs.validate-qbm.result == 'success' &&
       (needs.validate-terraform.result == 'success' || needs.validate-terraform.result == 'skipped')
     permissions:
@@ -195,72 +151,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install tools
-        run: pip install pyyaml
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
 
-      - name: Create tags for new versions
+      - name: Create tags and releases for new versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAGS_CREATED=""
-
-          for qbm in $(find . -mindepth 4 -maxdepth 4 -name 'qbm.yml' -type f \
-            -not -path './tools/*' \
-            -not -path './.github/*' \
-            -not -path './stacks/*' \
-            -not -path './.git/*'); do
-            dir=$(dirname "$qbm" | sed 's|^\./||')
-
-            # Read version from qbm.yml
-            VERSION=$(python3 -c "
-          import yaml
-          with open('$qbm') as f:
-              doc = yaml.safe_load(f)
-          print(doc.get('metadata', {}).get('version', ''))
-          ")
-
-            if [ -z "$VERSION" ]; then
-              echo "Warning: no version in $qbm, skipping"
-              continue
-            fi
-
-            # Tag format: {provider}/{service}/{version}/{metadata.version}
-            # dir is already {provider}/{service}/{version}
-            TAG="${dir}/${VERSION}"
-
-            # Check if tag already exists
-            if git tag -l "$TAG" | grep -q "$TAG"; then
-              echo "Tag $TAG already exists, skipping"
-            else
-              echo "Creating tag: $TAG"
-              git tag "$TAG"
-              TAGS_CREATED="$TAGS_CREATED $TAG"
-            fi
-          done
-
-          if [ -n "$TAGS_CREATED" ]; then
-            echo "Pushing tags:$TAGS_CREATED"
-            git push origin --tags
-          else
-            echo "No new tags to create."
-          fi
+          chmod +x bin/catalog-gen
+          bin/catalog-gen auto-tag --root .
 
   check-catalog:
     name: Check catalog.json is up to date
     runs-on: ubuntu-latest
+    needs: [build-catalog-gen]
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v4
         with:
-          workspaces: tools/catalog-gen
-
-      - name: Build catalog-gen
-        working-directory: tools/catalog-gen
-        run: cargo build --release --locked
+          name: catalog-gen
+          path: bin
 
       - name: Generate catalog.json into temp file
-        run: tools/catalog-gen/target/release/catalog-gen generate --root . --output catalog.json.generated
+        run: |
+          chmod +x bin/catalog-gen
+          bin/catalog-gen generate --root . --output catalog.json.generated
 
       - name: Diff against committed catalog.json
         run: |

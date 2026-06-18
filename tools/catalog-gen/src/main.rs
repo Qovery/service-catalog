@@ -5,6 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -25,6 +26,10 @@ enum Commands {
     Validate(RootArg),
     /// Print Terraform blueprint paths as a JSON array (used for CI matrix discovery)
     ListTerraform(RootArg),
+    /// Verify each changed blueprint bumped its metadata.version vs the base ref
+    CheckVersionBump(CheckVersionBumpArgs),
+    /// Create git tags for blueprint versions, push them, and create GitHub releases
+    AutoTag(AutoTagArgs),
 }
 
 #[derive(Parser)]
@@ -39,6 +44,30 @@ struct GenerateArgs {
 struct RootArg {
     #[arg(long, default_value = ".")]
     root: PathBuf,
+}
+
+#[derive(Parser)]
+struct CheckVersionBumpArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Base ref to diff against (e.g. origin/main)
+    #[arg(long, default_value = "origin/main")]
+    base_ref: String,
+}
+
+#[derive(Parser)]
+struct AutoTagArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Remote to push tags to
+    #[arg(long, default_value = "origin")]
+    remote: String,
+    /// Skip `git push --tags` (for local dry-run testing)
+    #[arg(long)]
+    no_push: bool,
+    /// Skip `gh release create` (for local dry-run testing)
+    #[arg(long)]
+    no_release: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -613,6 +642,455 @@ fn list_terraform_blueprints(root: &Path) -> Result<()> {
 }
 
 // ---------------------------------------------------------------------------
+// QBM types for release-notes rendering
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct NotesQbm {
+    metadata: NotesMetadata,
+    spec: Option<NotesSpec>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct NotesMetadata {
+    name: Option<String>,
+    version: Option<String>,
+    description: Option<String>,
+    categories: Vec<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct NotesSpec {
+    variables: Vec<NotesVariable>,
+    outputs: Vec<NotesOutput>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct NotesVariable {
+    name: Option<String>,
+    #[serde(rename = "type")]
+    type_: Option<String>,
+    required: Option<bool>,
+    default: Option<serde_yaml::Value>,
+    description: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct NotesOutput {
+    name: Option<String>,
+    description: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers: blueprint qbm.yml discovery + git invocation
+// ---------------------------------------------------------------------------
+
+// Mirrors the find -mindepth 4 -maxdepth 4 -name qbm.yml filter that the original bash/python
+// CI scripts used. Returns paths relative to `root`, with forward slashes, no leading "./".
+fn find_blueprint_qbm_files(root: &Path) -> Result<Vec<String>> {
+    let mut out: Vec<String> = Vec::new();
+    let dirs = discover_version_dirs(root)?;
+    for vd in dirs {
+        out.push(format!("{}/qbm.yml", vd.full_path));
+    }
+    out.sort();
+    Ok(out)
+}
+
+fn run_git(root: &Path, args: &[&str]) -> Result<String> {
+    let output = Command::new("git")
+        .args(args)
+        .current_dir(root)
+        .output()
+        .with_context(|| format!("Failed to spawn git {:?}", args))?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "git {:?} failed: {}",
+            args,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+// Non-failing variant: returns empty string on non-zero exit, used to mirror the original
+// shell `2>/dev/null || echo ""` semantics (e.g. reading qbm.yml on a ref where it does not exist).
+fn run_git_or_empty(root: &Path, args: &[&str]) -> String {
+    Command::new("git")
+        .args(args)
+        .current_dir(root)
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default()
+}
+
+fn metadata_version_from_yaml(content: &str) -> Option<String> {
+    let doc: serde_yaml::Value = serde_yaml::from_str(content).ok()?;
+    doc.get("metadata")?
+        .get("version")?
+        .as_str()
+        .map(|s| s.to_string())
+}
+
+// ---------------------------------------------------------------------------
+// check-version-bump
+// ---------------------------------------------------------------------------
+
+fn check_version_bump(root: &Path, base_ref: &str) -> Result<()> {
+    let diff = run_git(root, &["diff", "--name-only", &format!("{}...HEAD", base_ref)])?;
+    let changed_files: Vec<&str> = diff.lines().filter(|l| !l.is_empty()).collect();
+
+    let qbm_files = find_blueprint_qbm_files(root)?;
+
+    let mut changed_blueprints: Vec<String> = Vec::new();
+    for qbm in &qbm_files {
+        let dir = match qbm.strip_suffix("/qbm.yml") {
+            Some(d) => d,
+            None => continue,
+        };
+        let prefix = format!("{}/", dir);
+        if changed_files.iter().any(|f| f.starts_with(&prefix)) {
+            changed_blueprints.push(dir.to_string());
+        }
+    }
+
+    if changed_blueprints.is_empty() {
+        println!("No blueprint directories changed.");
+        return Ok(());
+    }
+
+    let mut errors: Vec<String> = Vec::new();
+    for dir in &changed_blueprints {
+        println!("Checking {}...", dir);
+
+        let old_content =
+            run_git_or_empty(root, &["show", &format!("{}:{}/qbm.yml", base_ref, dir)]);
+        let old_version = metadata_version_from_yaml(&old_content).unwrap_or_default();
+
+        let new_path = root.join(dir).join("qbm.yml");
+        let new_content = std::fs::read_to_string(&new_path)
+            .with_context(|| format!("Failed to read {}", new_path.display()))?;
+        let new_version = metadata_version_from_yaml(&new_content).unwrap_or_default();
+
+        if old_version.is_empty() {
+            println!("  New blueprint (no version on {}). OK.", base_ref);
+            continue;
+        }
+
+        if old_version == new_version {
+            errors.push(format!(
+                "{} has file changes but metadata.version was not bumped (still {})",
+                dir, old_version
+            ));
+        } else {
+            println!("  Version bumped: {} → {}. OK.", old_version, new_version);
+        }
+    }
+
+    if !errors.is_empty() {
+        for e in &errors {
+            eprintln!("ERROR: {}", e);
+        }
+        anyhow::bail!("{} version-bump error(s)", errors.len());
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// auto-tag + release notes
+// ---------------------------------------------------------------------------
+
+// Python's str() output for YAML-loaded values, used inside the default-column backticks so the
+// rendered markdown matches the original script byte-for-byte even for non-string defaults.
+fn render_yaml_default(v: &serde_yaml::Value) -> String {
+    match v {
+        serde_yaml::Value::Null => "None".to_string(),
+        serde_yaml::Value::Bool(b) => {
+            if *b {
+                "True".to_string()
+            } else {
+                "False".to_string()
+            }
+        }
+        serde_yaml::Value::Number(n) => n.to_string(),
+        serde_yaml::Value::String(s) => s.clone(),
+        // Sequences/mappings rarely appear as defaults; fall back to yaml repr (best-effort).
+        other => serde_yaml::to_string(other)
+            .unwrap_or_default()
+            .trim_end()
+            .to_string(),
+    }
+}
+
+// Python: desc[:77] + '...' when len(desc) > 80. Operates on Unicode codepoints.
+fn truncate_description(desc: &str) -> String {
+    let count = desc.chars().count();
+    if count > 80 {
+        let head: String = desc.chars().take(77).collect();
+        format!("{}...", head)
+    } else {
+        desc.to_string()
+    }
+}
+
+struct ReleaseNotes {
+    title: String,
+    body: String,
+}
+
+fn build_release_notes(root: &Path, tag: &str) -> Result<ReleaseNotes> {
+    let parts: Vec<&str> = tag.split('/').collect();
+    if parts.len() < 4 {
+        anyhow::bail!("Tag '{}' does not match provider/service/variant/version", tag);
+    }
+    let version = parts[parts.len() - 1];
+    let dir_path = parts[..parts.len() - 1].join("/");
+    let provider = parts[0];
+
+    let qbm_path = root.join(&dir_path).join("qbm.yml");
+    let content = std::fs::read_to_string(&qbm_path)
+        .with_context(|| format!("Failed to read {}", qbm_path.display()))?;
+    let qbm: NotesQbm =
+        serde_yaml::from_str(&content).with_context(|| format!("Failed to parse {}", qbm_path.display()))?;
+
+    let name = qbm.metadata.name.clone().unwrap_or_else(|| dir_path.clone());
+    let description = qbm.metadata.description.clone().unwrap_or_default();
+    let categories = qbm.metadata.categories.clone();
+
+    // Previous tag under the same blueprint dir, by version-sort. Mirrors:
+    //   git tag -l 'dir_path/*' --sort=-version:refname
+    let sibling_raw = run_git(
+        root,
+        &["tag", "-l", &format!("{}/*", dir_path), "--sort=-version:refname"],
+    )?;
+    let sibling_tags: Vec<&str> = sibling_raw
+        .lines()
+        .filter(|l| !l.is_empty() && *l != tag)
+        .collect();
+    let prev_tag = sibling_tags.first().copied();
+
+    let changes: String = if let Some(prev) = prev_tag {
+        let log = run_git(
+            root,
+            &[
+                "log",
+                &format!("{}..HEAD", prev),
+                "--oneline",
+                "--",
+                &format!("{}/", dir_path),
+            ],
+        )?;
+        let commits: Vec<&str> = log.lines().filter(|l| !l.is_empty()).collect();
+        if commits.is_empty() {
+            "_No changes recorded_".to_string()
+        } else {
+            commits
+                .iter()
+                .map(|c| format!("- {}", c))
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+    } else {
+        "_Initial release_".to_string()
+    };
+
+    let spec = qbm.spec.unwrap_or_default();
+
+    let mut config_rows: Vec<String> = Vec::new();
+    for v in &spec.variables {
+        let req = if v.required.unwrap_or(false) { "Yes" } else { "No" };
+        let default = match &v.default {
+            Some(d) => format!("`{}`", render_yaml_default(d)),
+            None => "—".to_string(),
+        };
+        let desc = truncate_description(v.description.as_deref().unwrap_or(""));
+        config_rows.push(format!(
+            "| {} | {} | {} | {} | {} |",
+            v.name.as_deref().unwrap_or(""),
+            v.type_.as_deref().unwrap_or(""),
+            req,
+            default,
+            desc,
+        ));
+    }
+
+    let output_rows: Vec<String> = spec
+        .outputs
+        .iter()
+        .map(|o| {
+            format!(
+                "| {} | {} |",
+                o.name.as_deref().unwrap_or(""),
+                o.description.as_deref().unwrap_or("")
+            )
+        })
+        .collect();
+
+    let cats_str = categories.join(", ");
+    let mut meta_line = format!("**Provider:** {}", provider);
+    if !cats_str.is_empty() {
+        meta_line.push_str(&format!(" | **Categories:** {}", cats_str));
+    }
+
+    let mut lines: Vec<String> = vec![
+        format!("## {} · v{}", name, version),
+        String::new(),
+        format!("> {}", description),
+        String::new(),
+        meta_line,
+        String::new(),
+        "---".to_string(),
+        String::new(),
+        "### What's new".to_string(),
+        String::new(),
+        changes,
+    ];
+
+    if !config_rows.is_empty() {
+        lines.extend([
+            String::new(),
+            "---".to_string(),
+            String::new(),
+            "### Configuration".to_string(),
+            String::new(),
+            "| Variable | Type | Required | Default | Description |".to_string(),
+            "|---|---|---|---|---|".to_string(),
+        ]);
+        lines.extend(config_rows);
+    }
+
+    if !output_rows.is_empty() {
+        lines.extend([
+            String::new(),
+            "### Outputs".to_string(),
+            String::new(),
+            "| Name | Description |".to_string(),
+            "|---|---|".to_string(),
+        ]);
+        lines.extend(output_rows);
+    }
+
+    Ok(ReleaseNotes {
+        title: format!("{} v{}", name, version),
+        body: lines.join("\n"),
+    })
+}
+
+fn auto_tag(args: &AutoTagArgs) -> Result<()> {
+    let root = args.root.canonicalize().context("Invalid root path")?;
+
+    let qbm_files = find_blueprint_qbm_files(&root)?;
+
+    let existing_raw = run_git(&root, &["tag", "-l"])?;
+    let existing: HashSet<String> = existing_raw
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
+
+    let mut new_tags: Vec<String> = Vec::new();
+    for qbm in &qbm_files {
+        let dir = qbm.strip_suffix("/qbm.yml").unwrap();
+        let content = std::fs::read_to_string(root.join(qbm))
+            .with_context(|| format!("Failed to read {}", qbm))?;
+        let version = match metadata_version_from_yaml(&content) {
+            Some(v) if !v.is_empty() => v,
+            _ => {
+                println!("Warning: no version in {}, skipping", qbm);
+                continue;
+            }
+        };
+        let tag = format!("{}/{}", dir, version);
+        if existing.contains(&tag) {
+            println!("Tag {} already exists, skipping", tag);
+        } else {
+            run_git(&root, &["tag", &tag])?;
+            println!("Created tag: {}", tag);
+            new_tags.push(tag);
+        }
+    }
+
+    if !new_tags.is_empty() && !args.no_push {
+        run_git(&root, &["push", &args.remote, "--tags"])?;
+    }
+
+    // gh release create runs against tags pointing at HEAD (filtered to blueprint shape, i.e.
+    // tags with 4+ slash-separated parts: provider/service/variant/version).
+    let head_tags_raw = run_git(&root, &["tag", "--points-at", "HEAD"])?;
+    let release_tags: Vec<String> = head_tags_raw
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && l.split('/').count() >= 4)
+        .map(String::from)
+        .collect();
+
+    if release_tags.is_empty() {
+        println!("No blueprint tags on HEAD — nothing to release.");
+        return Ok(());
+    }
+
+    if args.no_release {
+        for tag in &release_tags {
+            println!("[dry-run] would create release for {}", tag);
+        }
+        return Ok(());
+    }
+
+    for tag in &release_tags {
+        let check = Command::new("gh")
+            .args(["release", "view", tag])
+            .current_dir(&root)
+            .output()
+            .with_context(|| format!("Failed to spawn gh release view {}", tag))?;
+        if check.status.success() {
+            println!("Release {} already exists, skipping", tag);
+            continue;
+        }
+
+        let notes = build_release_notes(&root, tag)?;
+
+        // Write the body to a tempfile so `gh release create` can read it; matches the
+        // /tmp/release_notes_{version}.md pattern in the original Python.
+        let version = tag.rsplit('/').next().unwrap_or("unknown");
+        let safe_version: String = version
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+            .collect();
+        let notes_path = std::env::temp_dir().join(format!("release_notes_{}.md", safe_version));
+        std::fs::write(&notes_path, &notes.body)
+            .with_context(|| format!("Failed to write {}", notes_path.display()))?;
+
+        let status = Command::new("gh")
+            .args([
+                "release",
+                "create",
+                tag,
+                "--title",
+                &notes.title,
+                "--notes-file",
+            ])
+            .arg(&notes_path)
+            .current_dir(&root)
+            .status()
+            .with_context(|| format!("Failed to spawn gh release create {}", tag))?;
+        if !status.success() {
+            anyhow::bail!("gh release create {} failed", tag);
+        }
+        println!("Released {}", tag);
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
@@ -640,6 +1118,13 @@ fn main() -> Result<()> {
         Commands::ListTerraform(args) => {
             let root = args.root.canonicalize().context("Invalid root path")?;
             list_terraform_blueprints(&root)?;
+        }
+        Commands::CheckVersionBump(args) => {
+            let root = args.root.canonicalize().context("Invalid root path")?;
+            check_version_bump(&root, &args.base_ref)?;
+        }
+        Commands::AutoTag(args) => {
+            auto_tag(&args)?;
         }
     }
 
