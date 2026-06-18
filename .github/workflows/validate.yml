@@ -215,7 +215,7 @@ jobs:
 
           new_tags = []
           for qbm_path in qbm_files:
-              dir_path = os.path.dirname(qbm_path).lstrip('./')
+              dir_path = os.path.relpath(os.path.dirname(qbm_path))
               with open(qbm_path) as f:
                   doc = yaml.safe_load(f)
               version = doc.get('metadata', {}).get('version', '')
@@ -231,13 +231,20 @@ jobs:
                   new_tags.append(tag)
                   print(f"Created tag: {tag}")
 
-          if not new_tags:
-              print("No new tags to create.")
+          if new_tags:
+              subprocess.run(['git', 'push', 'origin', '--tags'], check=True)
+
+          head_tags = subprocess.run(
+              ['git', 'tag', '--points-at', 'HEAD'],
+              capture_output=True, text=True
+          )
+          release_tags = [t.strip() for t in head_tags.stdout.strip().split('\n') if t.strip() and len(t.split('/')) >= 4]
+
+          if not release_tags:
+              print("No blueprint tags on HEAD — nothing to release.")
               sys.exit(0)
 
-          subprocess.run(['git', 'push', 'origin', '--tags'], check=True)
-
-          for tag in new_tags:
+          for tag in release_tags:
               check = subprocess.run(['gh', 'release', 'view', tag], capture_output=True, text=True)
               if check.returncode == 0:
                   print(f"Release {tag} already exists, skipping")
