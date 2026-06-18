@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  validate-qbm:
-    name: Validate QBM manifests
+  build-catalog-gen:
+    name: Build catalog-gen
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,12 +22,33 @@ jobs:
         with:
           workspaces: tools/catalog-gen
 
-      - name: Build catalog-gen
+      - name: Build
         working-directory: tools/catalog-gen
         run: cargo build --release --locked
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalog-gen
+          path: tools/catalog-gen/target/release/catalog-gen
+          retention-days: 1
+          if-no-files-found: error
+
+  validate-qbm:
+    name: Validate QBM manifests
+    runs-on: ubuntu-latest
+    needs: [build-catalog-gen]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
+
       - name: Validate QBM manifests and TF variable alignment
-        run: tools/catalog-gen/target/release/catalog-gen validate --root .
+        run: |
+          chmod +x bin/catalog-gen
+          bin/catalog-gen validate --root .
 
   discover-terraform-blueprints:
     name: Discover changed Terraform blueprints
@@ -95,87 +116,32 @@ jobs:
   check-version-bump:
     name: Check version bump
     runs-on: ubuntu-latest
+    needs: [build-catalog-gen]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install tools
-        run: pip install pyyaml
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
 
       - name: Check blueprint version bumps
         run: |
-          # Get list of changed files in this PR
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
-
-          # Find all blueprint directories that had file changes
-          CHANGED_BLUEPRINTS=""
-          for qbm in $(find . -mindepth 4 -maxdepth 4 -name 'qbm.yml' -type f \
-            -not -path './tools/*' \
-            -not -path './.github/*' \
-            -not -path './stacks/*' \
-            -not -path './.git/*'); do
-            dir=$(dirname "$qbm" | sed 's|^\./||')
-
-            # Check if any file in this blueprint directory changed
-            if echo "$CHANGED_FILES" | grep -q "^${dir}/"; then
-              CHANGED_BLUEPRINTS="$CHANGED_BLUEPRINTS $dir"
-            fi
-          done
-
-          if [ -z "$CHANGED_BLUEPRINTS" ]; then
-            echo "No blueprint directories changed."
-            exit 0
-          fi
-
-          ERRORS=""
-          for dir in $CHANGED_BLUEPRINTS; do
-            echo "Checking $dir..."
-
-            # Get the version from main branch
-            OLD_VERSION=$(git show origin/main:${dir}/qbm.yml 2>/dev/null | python3 -c "
-          import yaml, sys
-          try:
-              doc = yaml.safe_load(sys.stdin)
-              print(doc.get('metadata', {}).get('version', ''))
-          except:
-              print('')
-          " || echo "")
-
-            # Get the version from PR branch
-            NEW_VERSION=$(python3 -c "
-          import yaml
-          with open('${dir}/qbm.yml') as f:
-              doc = yaml.safe_load(f)
-          print(doc.get('metadata', {}).get('version', ''))
-          ")
-
-            if [ -z "$OLD_VERSION" ]; then
-              echo "  New blueprint (no version on main). OK."
-              continue
-            fi
-
-            if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-              ERRORS="$ERRORS\nERROR: $dir has file changes but metadata.version was not bumped (still $OLD_VERSION)"
-            else
-              echo "  Version bumped: $OLD_VERSION → $NEW_VERSION. OK."
-            fi
-          done
-
-          if [ -n "$ERRORS" ]; then
-            echo -e "$ERRORS"
-            exit 1
-          fi
+          chmod +x bin/catalog-gen
+          bin/catalog-gen check-version-bump --root . --base-ref origin/main
 
   auto-tag:
     name: Auto-tag changed blueprints
     runs-on: ubuntu-latest
-    needs: [validate-qbm, validate-terraform]
+    needs: [build-catalog-gen, validate-qbm, validate-terraform]
     if: |
       always() &&
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
+      needs.build-catalog-gen.result == 'success' &&
       needs.validate-qbm.result == 'success' &&
       (needs.validate-terraform.result == 'success' || needs.validate-terraform.result == 'skipped')
     permissions:
@@ -185,182 +151,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install tools
-        run: pip install pyyaml
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
 
       - name: Create tags and releases for new versions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 - << 'PYEOF'
-          import yaml, os, subprocess, sys
-
-          result = subprocess.run(
-              ['find', '.', '-mindepth', '4', '-maxdepth', '4', '-name', 'qbm.yml', '-type', 'f',
-               '-not', '-path', './tools/*', '-not', '-path', './.github/*',
-               '-not', '-path', './stacks/*', '-not', '-path', './.git/*'],
-              capture_output=True, text=True
-          )
-          qbm_files = [p.strip() for p in result.stdout.strip().split('\n') if p.strip()]
-
-          new_tags = []
-          for qbm_path in qbm_files:
-              dir_path = os.path.relpath(os.path.dirname(qbm_path))
-              with open(qbm_path) as f:
-                  doc = yaml.safe_load(f)
-              version = doc.get('metadata', {}).get('version', '')
-              if not version:
-                  print(f"Warning: no version in {qbm_path}, skipping")
-                  continue
-              tag = f"{dir_path}/{version}"
-              existing = subprocess.run(['git', 'tag', '-l', tag], capture_output=True, text=True)
-              if tag in existing.stdout.strip().split('\n'):
-                  print(f"Tag {tag} already exists, skipping")
-              else:
-                  subprocess.run(['git', 'tag', tag], check=True)
-                  new_tags.append(tag)
-                  print(f"Created tag: {tag}")
-
-          if new_tags:
-              subprocess.run(['git', 'push', 'origin', '--tags'], check=True)
-
-          head_tags = subprocess.run(
-              ['git', 'tag', '--points-at', 'HEAD'],
-              capture_output=True, text=True
-          )
-          release_tags = [t.strip() for t in head_tags.stdout.strip().split('\n') if t.strip() and len(t.split('/')) >= 4]
-
-          if not release_tags:
-              print("No blueprint tags on HEAD — nothing to release.")
-              sys.exit(0)
-
-          for tag in release_tags:
-              check = subprocess.run(['gh', 'release', 'view', tag], capture_output=True, text=True)
-              if check.returncode == 0:
-                  print(f"Release {tag} already exists, skipping")
-                  continue
-
-              parts = tag.split('/')
-              version = parts[-1]
-              dir_path = '/'.join(parts[:-1])
-              provider = parts[0]
-              qbm_path = f"{dir_path}/qbm.yml"
-
-              with open(qbm_path) as f:
-                  doc = yaml.safe_load(f)
-
-              meta = doc.get('metadata', {})
-              spec = doc.get('spec', {})
-              name = meta.get('name', dir_path)
-              description = meta.get('description', '')
-              categories = meta.get('categories', [])
-
-              prev_result = subprocess.run(
-                  ['git', 'tag', '-l', f'{dir_path}/*', '--sort=-version:refname'],
-                  capture_output=True, text=True
-              )
-              sibling_tags = [t for t in prev_result.stdout.strip().split('\n') if t and t != tag]
-              prev_tag = sibling_tags[0] if sibling_tags else None
-
-              if prev_tag:
-                  log = subprocess.run(
-                      ['git', 'log', f'{prev_tag}..HEAD', '--oneline', '--', f'{dir_path}/'],
-                      capture_output=True, text=True
-                  )
-                  commits = [l.strip() for l in log.stdout.strip().split('\n') if l.strip()]
-              else:
-                  commits = []
-
-              if commits:
-                  changes = '\n'.join(f'- {c}' for c in commits)
-              elif not prev_tag:
-                  changes = '_Initial release_'
-              else:
-                  changes = '_No changes recorded_'
-
-              config_rows = []
-              for v in spec.get('variables', []):
-                  req = 'Yes' if v.get('required', False) else 'No'
-                  default = f"`{v['default']}`" if 'default' in v else '—'
-                  desc = v.get('description', '')
-                  if len(desc) > 80:
-                      desc = desc[:77] + '...'
-                  config_rows.append(f"| {v.get('name','')} | {v.get('type','')} | {req} | {default} | {desc} |")
-
-              output_rows = [
-                  f"| {o.get('name','')} | {o.get('description','')} |"
-                  for o in spec.get('outputs', [])
-              ]
-
-              cats_str = ', '.join(categories)
-              meta_line = f'**Provider:** {provider}'
-              if cats_str:
-                  meta_line += f' | **Categories:** {cats_str}'
-
-              lines = [
-                  f'## {name} · v{version}',
-                  '',
-                  f'> {description}',
-                  '',
-                  meta_line,
-                  '',
-                  '---',
-                  '',
-                  "### What's new",
-                  '',
-                  changes,
-              ]
-
-              if config_rows:
-                  lines += [
-                      '',
-                      '---',
-                      '',
-                      '### Configuration',
-                      '',
-                      '| Variable | Type | Required | Default | Description |',
-                      '|---|---|---|---|---|',
-                  ] + config_rows
-
-              if output_rows:
-                  lines += [
-                      '',
-                      '### Outputs',
-                      '',
-                      '| Name | Description |',
-                      '|---|---|',
-                  ] + output_rows
-
-              notes_path = f'/tmp/release_notes_{version}.md'
-              with open(notes_path, 'w') as f:
-                  f.write('\n'.join(lines))
-
-              subprocess.run([
-                  'gh', 'release', 'create', tag,
-                  '--title', f'{name} v{version}',
-                  '--notes-file', notes_path,
-              ], check=True)
-              print(f"Released {tag}")
-          PYEOF
+          chmod +x bin/catalog-gen
+          bin/catalog-gen auto-tag --root .
 
   check-catalog:
     name: Check catalog.json is up to date
     runs-on: ubuntu-latest
+    needs: [build-catalog-gen]
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v4
         with:
-          workspaces: tools/catalog-gen
-
-      - name: Build catalog-gen
-        working-directory: tools/catalog-gen
-        run: cargo build --release --locked
+          name: catalog-gen
+          path: bin
 
       - name: Generate catalog.json into temp file
-        run: tools/catalog-gen/target/release/catalog-gen generate --root . --output catalog.json.generated
+        run: |
+          chmod +x bin/catalog-gen
+          bin/catalog-gen generate --root . --output catalog.json.generated
 
       - name: Diff against committed catalog.json
         run: |
