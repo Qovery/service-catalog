@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-managed-postgresql"
-  version: "1.1.0"
+  version: "1.2.0"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -16,11 +16,17 @@ spec:
   engine:
     type: terraform
     provider: SCW
-    engineVersion: "1.9.7"
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.5.7", "1.9.7", "1.13.3"]
+      overridable: true
     credentials:
       default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
     backend:
       default: qovery
+      allowedValues: ["qovery", "user_provided"]
       overridable: true
     timeout: 3600
     resources:

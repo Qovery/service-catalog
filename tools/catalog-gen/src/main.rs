@@ -138,10 +138,53 @@ struct ValidateEngine {
     type_: Option<String>,
     provider: Option<String>,
     chart: Option<serde_yaml::Value>,
-    /// Terraform/opentofu binary version (e.g. "1.9.7"). Required for terraform/opentofu engines.
-    #[serde(rename = "engineVersion")]
-    engine_version: Option<String>,
+    /// Nested per-engine block carrying the terraform binary version. Required when type=terraform.
+    terraform: Option<ValidateEngineVersion>,
+    /// Nested per-engine block carrying the opentofu binary version. Required when type=opentofu.
+    opentofu: Option<ValidateEngineVersion>,
+    credentials: Option<ValidateCredentials>,
+    backend: Option<ValidateBackend>,
 }
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct ValidateEngineVersion {
+    version: Option<String>,
+    #[serde(rename = "allowedValues")]
+    allowed_values: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct ValidateCredentials {
+    default: Option<String>,
+    #[serde(rename = "allowedValues")]
+    allowed_values: Option<Vec<String>>,
+    overridable: Option<bool>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct ValidateBackend {
+    default: Option<String>,
+    #[serde(rename = "allowedValues")]
+    allowed_values: Option<Vec<String>>,
+    overridable: Option<bool>,
+    /// Required when `default = user_provided`. Engine forwards type+config to the Qovery
+    /// terraform provider for backend.tf generation.
+    user_provided: Option<ValidateUserProvidedBackend>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct ValidateUserProvidedBackend {
+    #[serde(rename = "type")]
+    backend_type: Option<String>,
+    config: Option<std::collections::HashMap<String, String>>,
+}
+
+const CREDENTIAL_MODES: &[&str] = &["cluster", "env"];
+const BACKEND_MODES: &[&str] = &["qovery", "user_provided"];
 
 #[derive(Deserialize)]
 struct VarDecl {
@@ -360,6 +403,47 @@ fn looks_sensitive(name: &str) -> bool {
     re.is_match(name)
 }
 
+// Validates that an enum-like field (credentials.default, backend.default) is within the platform's
+// supported universe, and that authoring constraints hold:
+//   - any value in allowedValues must be in the universe;
+//   - default must be in the universe;
+//   - default must be in allowedValues when allowedValues is set.
+fn validate_allowed_values_subset(
+    path: &str,
+    field: &str,
+    default: Option<&str>,
+    allowed: Option<&Vec<String>>,
+    universe: &[&str],
+    errors: &mut Vec<String>,
+) {
+    if let Some(av) = allowed {
+        for v in av {
+            if !universe.contains(&v.as_str()) {
+                errors.push(format!(
+                    "{}: spec.engine.{}.allowedValues contains '{}' (must be one of {:?})",
+                    path, field, v, universe
+                ));
+            }
+        }
+        if let Some(d) = default {
+            if !av.iter().any(|a| a == d) {
+                errors.push(format!(
+                    "{}: spec.engine.{}.default '{}' not in allowedValues {:?}",
+                    path, field, d, av
+                ));
+            }
+        }
+    }
+    if let Some(d) = default {
+        if !universe.contains(&d) {
+            errors.push(format!(
+                "{}: spec.engine.{}.default '{}' must be one of {:?}",
+                path, field, d, universe
+            ));
+        }
+    }
+}
+
 fn validate_sensitive_naming(path: &str, var: &VarDecl, errors: &mut Vec<String>) {
     if looks_sensitive(&var.name) && var.sensitive != Some(true) {
         errors.push(format!(
@@ -510,18 +594,56 @@ fn validate_blueprints(root: &Path) -> Result<()> {
             let engine_type = engine.and_then(|e| e.type_.as_deref());
             let engine_provider = engine.and_then(|e| e.provider.as_ref());
             let engine_chart = engine.and_then(|e| e.chart.as_ref());
-            let engine_version = engine
-                .and_then(|e| e.engine_version.as_deref())
-                .map(str::trim)
-                .filter(|s| !s.is_empty());
-            if engine_version.is_some()
-                && !matches!(engine_type, Some("terraform") | Some("opentofu"))
-            {
+
+            // The version block is named after the engine type. Pull the right one and surface
+            // a clear error when the wrong block is used (e.g. terraform manifest with opentofu block).
+            let (version_block, wrong_block) = match engine_type {
+                Some("terraform") => (engine.and_then(|e| e.terraform.as_ref()), engine.and_then(|e| e.opentofu.as_ref()).map(|_| "opentofu")),
+                Some("opentofu")  => (engine.and_then(|e| e.opentofu.as_ref()), engine.and_then(|e| e.terraform.as_ref()).map(|_| "terraform")),
+                _                 => (None, None),
+            };
+            if let Some(name) = wrong_block {
                 errors.push(format!(
-                    "{}: spec.engine.engineVersion is only allowed when engine.type is terraform/opentofu",
-                    vd.full_path
+                    "{}: spec.engine.{} block is set but engine.type is '{}'",
+                    vd.full_path, name, engine_type.unwrap_or("")
                 ));
             }
+
+            let creds = engine.and_then(|e| e.credentials.as_ref());
+            validate_allowed_values_subset(
+                &vd.full_path,
+                "credentials",
+                creds.and_then(|c| c.default.as_deref()),
+                creds.and_then(|c| c.allowed_values.as_ref()),
+                CREDENTIAL_MODES,
+                &mut errors,
+            );
+            let backend = engine.and_then(|e| e.backend.as_ref());
+            validate_allowed_values_subset(
+                &vd.full_path,
+                "backend",
+                backend.and_then(|b| b.default.as_deref()),
+                backend.and_then(|b| b.allowed_values.as_ref()),
+                BACKEND_MODES,
+                &mut errors,
+            );
+            if backend.and_then(|b| b.default.as_deref()) == Some("user_provided")
+                && backend.and_then(|b| b.user_provided.as_ref()).is_none()
+            {
+                errors.push(format!(
+                    "{}: spec.engine.backend.user_provided is required when backend.default = user_provided",
+                    vd.full_path,
+                ));
+            }
+            if let Some(up) = backend.and_then(|b| b.user_provided.as_ref()) {
+                if up.backend_type.as_deref().unwrap_or("").trim().is_empty() {
+                    errors.push(format!(
+                        "{}: spec.engine.backend.user_provided.type must be set (e.g. \"s3\", \"gcs\", \"azurerm\")",
+                        vd.full_path,
+                    ));
+                }
+            }
+
             match engine_type {
                 Some("terraform") | Some("opentofu") => {
                     if engine_provider.is_none() {
@@ -530,11 +652,31 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                             vd.full_path
                         ));
                     }
-                    if engine_version.is_none() {
-                        errors.push(format!(
-                            "{}: spec.engine.engineVersion required when engine.type is terraform/opentofu (e.g. \"1.9.7\")",
-                            vd.full_path
-                        ));
+                    let version_label = engine_type.unwrap_or("terraform"); // "terraform" or "opentofu"
+                    match version_block {
+                        None => errors.push(format!(
+                            "{}: spec.engine.{}.version required when engine.type is {} (e.g. \"1.9.7\")",
+                            vd.full_path, version_label, version_label
+                        )),
+                        Some(vb) => {
+                            let version = vb.version.as_deref().map(str::trim).filter(|s| !s.is_empty());
+                            match version {
+                                None => errors.push(format!(
+                                    "{}: spec.engine.{}.version required when engine.type is {} (e.g. \"1.9.7\")",
+                                    vd.full_path, version_label, version_label
+                                )),
+                                Some(v) => {
+                                    if let Some(allowed) = vb.allowed_values.as_ref() {
+                                        if !allowed.iter().any(|a| a == v) {
+                                            errors.push(format!(
+                                                "{}: spec.engine.{}.version '{}' not in allowedValues {:?}",
+                                                vd.full_path, version_label, v, allowed
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     let vars_path = root.join(&vd.full_path).join("variables.tf");
                     match std::fs::read_to_string(&vars_path) {
@@ -582,6 +724,18 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                     if engine_chart.is_none() {
                         errors.push(format!(
                             "{}: spec.engine.chart required when engine.type is helm",
+                            vd.full_path
+                        ));
+                    }
+                    if engine.and_then(|e| e.terraform.as_ref()).is_some() {
+                        errors.push(format!(
+                            "{}: spec.engine.terraform block is not allowed when engine.type is helm",
+                            vd.full_path
+                        ));
+                    }
+                    if engine.and_then(|e| e.opentofu.as_ref()).is_some() {
+                        errors.push(format!(
+                            "{}: spec.engine.opentofu block is not allowed when engine.type is helm",
                             vd.full_path
                         ));
                     }

@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-object-storage"
-  version: "1.0.4"
+  version: "1.1.0"
   description: "Scaleway Object Storage bucket"
   icon: "app://qovery-console/scaleway"
   serviceFamily: "object-storage"
@@ -15,11 +15,17 @@ spec:
   engine:
     type: terraform
     provider: SCW
-    engineVersion: "1.9.7"
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.5.7", "1.9.7", "1.13.3"]
+      overridable: true
     credentials:
       default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
     backend:
       default: qovery
+      allowedValues: ["qovery", "user_provided"]
       overridable: true
     timeout: 1800
     resources:
