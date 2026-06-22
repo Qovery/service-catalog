@@ -84,6 +84,12 @@ variable "allocated_storage" {
     condition     = var.allocated_storage >= 20
     error_message = "allocated_storage must be at least 20 GiB for gp3 storage."
   }
+
+  validation {
+    # gp2 caps at 16384 GiB; io1/io2/gp3 go to 65536.
+    condition     = var.storage_type != "gp2" || var.allocated_storage <= 16384
+    error_message = "allocated_storage must not exceed 16384 GiB for gp2 storage."
+  }
 }
 
 variable "storage_type" {
@@ -203,8 +209,9 @@ variable "performance_insights_retention_period" {
   description = "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 31, or a multiple of 31 up to 731."
 
   validation {
-    condition     = var.performance_insights_retention_period >= 7 && var.performance_insights_retention_period <= 731
-    error_message = "performance_insights_retention_period must be between 7 and 731."
+    # AWS only accepts 7, 731, or a multiple of 31 — a plain range check lets invalid values (e.g. 30) reach apply.
+    condition     = contains([7, 731], var.performance_insights_retention_period) || (var.performance_insights_retention_period % 31 == 0 && var.performance_insights_retention_period >= 31 && var.performance_insights_retention_period <= 731)
+    error_message = "performance_insights_retention_period must be 7, 731, or a multiple of 31 (e.g. 31, 62, 93)."
   }
 }
 

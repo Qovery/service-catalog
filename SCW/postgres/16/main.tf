@@ -20,8 +20,9 @@ resource "scaleway_rdb_instance" "this" {
   is_ha_cluster  = var.is_ha_cluster
   disable_backup = !var.activate_backups
 
-  volume_type       = var.volume_type
-  volume_size_in_gb = var.volume_size_gb
+  volume_type = var.volume_type
+  # Scaleway rejects volume_size_in_gb for lssd — size is fixed by node_type there.
+  volume_size_in_gb = var.volume_type == "lssd" ? null : var.volume_size_gb
 
   # Initial admin user — required by the Scaleway provider on instance create.
   user_name = var.db_username

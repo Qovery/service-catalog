@@ -2,14 +2,21 @@
 # don't collide on an existing snapshot id. Combined with ignore_changes on
 # final_snapshot_identifier (below), this keeps plans clean — timestamp() rotates every plan.
 locals {
-  final_snap_timestamp = replace(timestamp(), "/[- TZ:]/", "")
-  final_snapshot_name  = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snap_timestamp}"
+  final_snapshot_timestamp = replace(timestamp(), "/[- TZ:]/", "")
+  final_snapshot_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snapshot_timestamp}"
+  # AWS requires the snapshot id to begin with a letter and contain only alphanumerics/hyphens.
+  final_snapshot_cleaned  = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
+  final_snapshot_name = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
+
+  # Param-group names: lowercase alphanumerics/hyphens, must begin with a letter. Sanitize the cluster-derived prefix.
+  pg_prefix_cleaned = replace(lower("${var.qovery_cluster_name}-${replace(var.db_name, "_", "-")}"), "/[^a-z0-9-]/", "")
+  pg_name_prefix    = can(regex("^[a-z]", local.pg_prefix_cleaned)) ? "${local.pg_prefix_cleaned}-" : "pg-${local.pg_prefix_cleaned}-"
 }
 
 # Parameter group: grant privileges to the master user so it can create
 # triggers/functions (MySQL's log_bin_trust_function_creators).
 resource "aws_db_parameter_group" "mysql" {
-  name_prefix = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-"
+  name_prefix = local.pg_name_prefix
   family      = "mysql8.4"
 
   parameter {
@@ -41,7 +48,8 @@ resource "aws_db_instance" "this" {
   allocated_storage = var.allocated_storage
   storage_type      = var.storage_type
   storage_encrypted = var.storage_encrypted
-  iops              = var.disk_iops == 0 ? null : var.disk_iops
+  # gp2 doesn't support provisioned IOPS — AWS rejects iops unless storage is io1/io2/gp3.
+  iops = var.disk_iops == 0 || !contains(["io1", "io2", "gp3"], var.storage_type) ? null : var.disk_iops
 
   db_name  = var.db_name
   username = var.db_username

@@ -2,8 +2,11 @@
 # don't collide on an existing snapshot id. Combined with ignore_changes on
 # final_snapshot_identifier (below), this keeps plans clean — timestamp() rotates every plan.
 locals {
-  final_snap_timestamp = replace(timestamp(), "/[- TZ:]/", "")
-  final_snapshot_name  = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snap_timestamp}"
+  final_snapshot_timestamp = replace(timestamp(), "/[- TZ:]/", "")
+  final_snapshot_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snapshot_timestamp}"
+  # AWS requires the snapshot id to begin with a letter and contain only alphanumerics/hyphens.
+  final_snapshot_cleaned  = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
+  final_snapshot_name = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
 }
 
 resource "aws_db_instance" "this" {
@@ -17,7 +20,8 @@ resource "aws_db_instance" "this" {
   allocated_storage = var.allocated_storage
   storage_type      = var.storage_type
   storage_encrypted = var.storage_encrypted
-  iops              = var.disk_iops == 0 ? null : var.disk_iops
+  # gp2 doesn't support provisioned IOPS — AWS rejects iops unless storage is io1/io2/gp3.
+  iops = var.disk_iops == 0 || !contains(["io1", "io2", "gp3"], var.storage_type) ? null : var.disk_iops
 
   db_name  = var.db_name
   username = var.db_username
