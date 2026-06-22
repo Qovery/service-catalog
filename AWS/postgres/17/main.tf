@@ -2,11 +2,11 @@
 # don't collide on an existing snapshot id. Combined with ignore_changes on
 # final_snapshot_identifier (below), this keeps plans clean — timestamp() rotates every plan.
 locals {
-  final_snap_timestamp = replace(timestamp(), "/[- TZ:]/", "")
-  final_snap_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snap_timestamp}"
+  final_snapshot_timestamp = replace(timestamp(), "/[- TZ:]/", "")
+  final_snapshot_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snapshot_timestamp}"
   # AWS requires the snapshot id to begin with a letter and contain only alphanumerics/hyphens.
-  final_snap_cleaned  = replace(local.final_snap_raw, "/[^a-zA-Z0-9-]/", "")
-  final_snapshot_name = can(regex("^[a-zA-Z]", local.final_snap_cleaned)) ? local.final_snap_cleaned : "snap-${local.final_snap_cleaned}"
+  final_snapshot_cleaned  = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
+  final_snapshot_name = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
 }
 
 resource "aws_db_instance" "this" {
