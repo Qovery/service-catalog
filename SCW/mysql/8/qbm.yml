@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-mysql"
-  version: "1.2.0"
+  version: "1.2.1"
   description: "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -95,10 +95,11 @@ spec:
       type: "string"
       required: false
       default: "lssd"
-      description: "Volume backend type (lssd = local SSD, bssd = block SSD)"
+      description: "Volume backend type (lssd = local SSD; sbs_5k/sbs_15k = block SSD at 5k/15k IOPS)"
       allowedValues:
         - "lssd"
-        - "bssd"
+        - "sbs_5k"
+        - "sbs_15k"
     - name: "volume_size_gb"
       type: "number"
       required: false

@@ -91,11 +91,11 @@ variable "node_type" {
 variable "volume_type" {
   type        = string
   default     = "lssd"
-  description = "Volume backend type: lssd (local SSD) or bssd (block SSD)"
+  description = "Volume backend type: lssd (local SSD), sbs_5k or sbs_15k (block SSD, 5k/15k IOPS)"
 
   validation {
-    condition     = contains(["lssd", "bssd"], var.volume_type)
-    error_message = "volume_type must be one of: lssd, bssd."
+    condition     = contains(["lssd", "sbs_5k", "sbs_15k"], var.volume_type)
+    error_message = "volume_type must be one of: lssd, sbs_5k, sbs_15k."
   }
 }
 

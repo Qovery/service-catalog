@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-18T14:54:42Z",
+  "generatedAt": "2026-06-22T09:53:47Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/1.2.0"
+          "latestTag": "AWS/mysql/8/1.2.1"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/1.2.0"
+          "latestTag": "AWS/postgres/17/1.2.1"
         }
       ]
     },
@@ -109,7 +109,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.2.0"
+          "latestTag": "SCW/mysql/8/1.2.1"
         }
       ]
     },
@@ -146,7 +146,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.2.0"
+          "latestTag": "SCW/postgres/16/1.2.1"
         }
       ]
     }
