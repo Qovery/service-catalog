@@ -3,8 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.1.0"
-  description: "S3 bucket with encryption, versioning, and lifecycle rules"
+  version: "1.1.1"
+  description: "S3 bucket with encryption, versioning, and public-access blocking"
   icon: "app://qovery-console/s3"
   serviceFamily: "s3"
   categories:
@@ -44,7 +44,7 @@ spec:
       type: "string"
       required: true
       description: "Globally unique bucket name. Auto-lowercased. 3–63 chars, letters/digits/hyphens only, must start and end with a letter or digit. Underscores are not allowed."
-      pattern: "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+      pattern: "^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]$"
       minLength: 3
       maxLength: 63
     - name: "versioning"

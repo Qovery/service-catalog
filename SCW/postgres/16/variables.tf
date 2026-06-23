@@ -140,7 +140,14 @@ variable "acl_allowed_cidr" {
   description = "Single CIDR allowed to reach the instance (only used when publicly_accessible)."
 
   validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$", var.acl_allowed_cidr))
-    error_message = "acl_allowed_cidr must be a valid CIDR (e.g. 10.0.0.0/8)."
+    # Reject out-of-range octets (>255) and prefixes (>32).
+    condition     = can(regex("^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])/(3[0-2]|[12]?[0-9])$", var.acl_allowed_cidr))
+    error_message = "acl_allowed_cidr must be a valid IPv4 CIDR with octets 0-255 and a prefix 0-32 (e.g. 10.0.0.0/8)."
+  }
+
+  validation {
+    # Don't expose the database to the entire internet — force an explicit, narrower CIDR.
+    condition     = !var.publicly_accessible || var.acl_allowed_cidr != "0.0.0.0/0"
+    error_message = "acl_allowed_cidr must not be 0.0.0.0/0 when publicly_accessible is true; specify a narrower CIDR."
   }
 }

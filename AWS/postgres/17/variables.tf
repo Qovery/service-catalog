@@ -71,8 +71,9 @@ variable "port" {
   description = "Database port"
 
   validation {
-    condition     = var.port >= 1024 && var.port <= 65535
-    error_message = "port must be between 1024 and 65535."
+    # RDS reserves ports below 1150.
+    condition     = var.port >= 1150 && var.port <= 65535
+    error_message = "port must be between 1150 and 65535."
   }
 }
 
@@ -124,6 +125,18 @@ variable "disk_iops" {
   validation {
     condition     = var.disk_iops >= 0 && var.disk_iops <= 256000
     error_message = "disk_iops must be between 0 and 256000."
+  }
+
+  validation {
+    # io1/io2 have no baseline — AWS requires an explicit provisioned IOPS value.
+    condition     = !contains(["io1", "io2"], var.storage_type) || var.disk_iops > 0
+    error_message = "disk_iops must be greater than 0 when storage_type is io1 or io2."
+  }
+
+  validation {
+    # gp3 only accepts custom IOPS at >= 400 GiB; below that AWS forces the baseline and rejects iops.
+    condition     = var.storage_type != "gp3" || var.disk_iops == 0 || var.allocated_storage >= 400
+    error_message = "disk_iops can only be set for gp3 when allocated_storage is at least 400 GiB; leave it 0 below that."
   }
 }
 

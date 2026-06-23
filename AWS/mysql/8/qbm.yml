@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "1.2.2"
+  version: "1.2.3"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -18,7 +18,8 @@ spec:
     provider: AWS
     terraform:
       version: "1.9.7"
-      allowedValues: ["1.5.7", "1.9.7", "1.13.3"]
+      # variable validation, which requires TF 1.9+.
+      allowedValues: ["1.9.7", "1.13.3"]
       overridable: true
     credentials:
       default: cluster
@@ -36,6 +37,7 @@ spec:
   contextVariables:
     - name: "region"
       source: "cluster.region"
+      overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
 
@@ -66,8 +68,8 @@ spec:
       type: "number"
       required: false
       default: "3306"
-      description: "Database port"
-      min: 1024
+      description: "Database port (RDS reserves ports below 1150)"
+      min: 1150
       max: 65535
     - name: "instance_class"
       type: "string"
@@ -89,7 +91,7 @@ spec:
       type: "number"
       required: false
       default: "20"
-      description: "Allocated storage in GiB (min 20, max 65536 for gp3)"
+      description: "Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384)"
       min: 20
       max: 65536
     - name: "storage_type"
@@ -185,9 +187,33 @@ spec:
       type: "number"
       required: false
       default: "7"
-      description: "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 31, or a multiple of 31 up to 731."
-      min: 7
-      max: 731
+      description: "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 731, or a multiple of 31."
+      allowedValues:
+        - "7"
+        - "31"
+        - "62"
+        - "93"
+        - "124"
+        - "155"
+        - "186"
+        - "217"
+        - "248"
+        - "279"
+        - "310"
+        - "341"
+        - "372"
+        - "403"
+        - "434"
+        - "465"
+        - "496"
+        - "527"
+        - "558"
+        - "589"
+        - "620"
+        - "651"
+        - "682"
+        - "713"
+        - "731"
     - name: "ca_cert_identifier"
       type: "string"
       required: false
