@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-managed-postgresql"
-  version: "1.2.1"
+  version: "1.2.2"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -58,7 +58,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: true
-      description: "Database username. Letters, digits, underscores; must start with a letter; max 63 chars."
+      description: "Database username. Letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: rdb_admin, postgres, or any name starting with 'pg_'."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63

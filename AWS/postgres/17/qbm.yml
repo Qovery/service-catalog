@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "1.2.1"
+  version: "1.2.2"
   description: "AWS RDS PostgreSQL 17 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -51,7 +51,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: true
-      description: "Master username. Letters, digits, underscores; must start with a letter; max 63 chars."
+      description: "Master username. Letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63

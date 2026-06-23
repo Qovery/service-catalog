@@ -53,6 +53,12 @@ variable "db_username" {
     condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
     error_message = "db_username must start with a letter and contain only letters, digits, and underscores."
   }
+
+  validation {
+    # Scaleway managed PostgreSQL reserved user names (rdb_admin is Scaleway's internal admin)
+    condition     = !contains(["rdb_admin", "postgres"], lower(var.db_username)) && !startswith(lower(var.db_username), "pg_")
+    error_message = "db_username must not be a reserved word. Reserved names: rdb_admin, postgres, and any name starting with 'pg_'."
+  }
 }
 
 variable "db_password" {
