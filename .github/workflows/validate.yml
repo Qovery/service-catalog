@@ -106,9 +106,9 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|patch|core)(\([^)]+\))?: .+'; then
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|patch|chore)(\([^)]+\))?: .+'; then
             echo "ERROR: invalid PR title: \"$PR_TITLE\""
-            echo "       expected: feat|fix|patch|core(subject): message"
+            echo "       expected: feat|fix|patch|chore(subject): message"
             exit 1
           fi
           echo "PR title is valid."

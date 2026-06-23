@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-mysql"
-  version: "1.2.1"
+  version: "1.2.2"
   description: "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -58,7 +58,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: true
-      description: "Database username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit)."
+      description: "Database username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: rdb_admin, mysql."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,31}$"
       minLength: 1
       maxLength: 32

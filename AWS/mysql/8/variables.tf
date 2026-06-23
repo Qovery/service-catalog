@@ -39,6 +39,12 @@ variable "db_username" {
     condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
     error_message = "db_username must start with a letter and contain only letters, digits, and underscores."
   }
+
+  validation {
+    # AWS RDS MySQL reserved master user names (docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html)
+    condition     = !contains(["admin", "rdsadmin", "mysql"], lower(var.db_username))
+    error_message = "db_username must not be a reserved word. Reserved names: admin, rdsadmin, mysql."
+  }
 }
 
 variable "db_password" {
