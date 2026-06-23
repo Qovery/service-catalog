@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-23T07:17:00Z",
+  "generatedAt": "2026-06-23T13:21:58Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/1.2.2"
+          "latestTag": "AWS/mysql/8/1.2.3"
         }
       ]
     },
@@ -36,14 +36,14 @@
       "majorVersions": [
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/1.2.2"
+          "latestTag": "AWS/postgres/17/1.2.3"
         }
       ]
     },
     {
       "name": "aws-s3",
       "kind": "ServiceBlueprint",
-      "description": "S3 bucket with encryption, versioning, and lifecycle rules",
+      "description": "S3 bucket with encryption, versioning, and public-access blocking",
       "icon": "app://qovery-console/s3",
       "categories": [
         "storage",
@@ -54,7 +54,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.1.0"
+          "latestTag": "AWS/s3/default/1.1.1"
         }
       ]
     },
@@ -109,7 +109,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.2.2"
+          "latestTag": "SCW/mysql/8/1.2.3"
         }
       ]
     },
@@ -127,7 +127,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.1.0"
+          "latestTag": "SCW/object-storage/default/1.1.1"
         }
       ]
     },
@@ -146,7 +146,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.2.2"
+          "latestTag": "SCW/postgres/16/1.2.3"
         }
       ]
     }

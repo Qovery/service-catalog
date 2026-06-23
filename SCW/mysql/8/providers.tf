@@ -1,5 +1,6 @@
 terraform {
-  required_version = ">= 1.5"
+  # Cross-variable validation (acl_allowed_cidr referencing publicly_accessible) requires TF 1.9+.
+  required_version = ">= 1.9"
 
   required_providers {
     scaleway = {

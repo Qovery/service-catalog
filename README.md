@@ -105,7 +105,7 @@ How the underlying terraform service authenticates against the cloud provider.
 credentials:
   default: cluster # cluster | env
   allowedValues: ["cluster", "env"] # optional; frontend dropdown
-  overridable: true # optional; default true
+  overridable: true # optional; default false (omit = pinned to default)
 ```
 
 | Mode      | Behavior                                                                                                            |

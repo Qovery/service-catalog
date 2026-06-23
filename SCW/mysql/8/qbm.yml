@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-mysql"
-  version: "1.2.2"
+  version: "1.2.3"
   description: "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -18,7 +18,8 @@ spec:
     provider: SCW
     terraform:
       version: "1.9.7"
-      allowedValues: ["1.5.7", "1.9.7", "1.13.3"]
+      # variable validation, which requires TF 1.9+.
+      allowedValues: ["1.9.7", "1.13.3"]
       overridable: true
     credentials:
       default: cluster
@@ -131,8 +132,8 @@ spec:
       type: "string"
       required: false
       default: "0.0.0.0/0"
-      description: "Single CIDR allowed to reach the instance. Only used when publicly_accessible is true. Use the console for multi-CIDR allowlists."
-      pattern: "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
+      description: "Single CIDR allowed to reach the instance. Only used when publicly_accessible is true; must not be 0.0.0.0/0 when public. Use the console for multi-CIDR allowlists."
+      pattern: "^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])/(3[0-2]|[12]?[0-9])$"
 
   outputs:
     - name: "endpoint_ip"
