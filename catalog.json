@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-06-23T13:21:58Z",
+  "generatedAt": "2026-06-29T15:24:32Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -24,7 +24,7 @@
     {
       "name": "aws-rds-postgresql",
       "kind": "ServiceBlueprint",
-      "description": "AWS RDS PostgreSQL 17 instance with configurable size, storage, backups, maintenance, monitoring, and network",
+      "description": "AWS RDS PostgreSQL 14 instance with configurable size, storage, backups, maintenance, monitoring, and network",
       "icon": "app://qovery-console/postgresql",
       "categories": [
         "database",
@@ -35,8 +35,20 @@
       "serviceFamily": "postgres",
       "majorVersions": [
         {
+          "serviceVersion": "14",
+          "latestTag": "AWS/postgres/14/1.0.0"
+        },
+        {
+          "serviceVersion": "15",
+          "latestTag": "AWS/postgres/15/1.0.0"
+        },
+        {
+          "serviceVersion": "16",
+          "latestTag": "AWS/postgres/16/1.0.0"
+        },
+        {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/1.2.3"
+          "latestTag": "AWS/postgres/17/1.2.4"
         }
       ]
     },

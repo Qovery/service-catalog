@@ -21,7 +21,7 @@ resource "aws_db_instance" "this" {
   identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
 
   engine         = "postgres"
-  engine_version = "17"
+  engine_version = "15"
   instance_class = var.instance_class
   port           = var.port
 
@@ -78,8 +78,6 @@ resource "aws_db_instance" "this" {
 
   lifecycle {
     ignore_changes = [
-      # Adoption: never mutate a live DB's running version. Catalog hard-codes the major per
-      # version dir; adopted instances may run a different minor (e.g. 8.0 vs 8.4) or major.
       engine_version,
       # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
       final_snapshot_identifier,
