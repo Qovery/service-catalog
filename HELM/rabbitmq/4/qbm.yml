@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-rabbitmq"
-  version: "1.1.0"
+  version: "1.1.1"
   description: "RabbitMQ message broker via Bitnami Helm chart"
   icon: "app://qovery-console/rabbitmq"
   serviceFamily: "rabbitmq"
@@ -17,7 +17,7 @@ spec:
     chart:
       repository: "https://charts.bitnami.com/bitnami"
       name: "rabbitmq"
-      version: "15.4.6"
+      version: "16.0.14"
     arguments: []
     allowClusterWideResources: false
 
