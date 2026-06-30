@@ -3,8 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "1.2.4"
-  description: "AWS RDS PostgreSQL 17 instance with configurable size, storage, backups, maintenance, monitoring, and network"
+  version: "1.0.0"
+  description: "AWS RDS PostgreSQL 14 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
   categories:
@@ -18,7 +18,6 @@ spec:
     provider: AWS
     terraform:
       version: "1.9.7"
-      # variable validation, which requires TF 1.9+.
       allowedValues: ["1.9.7", "1.13.3"]
       overridable: true
     credentials:
