@@ -78,7 +78,12 @@ resource "aws_db_instance" "this" {
 
   lifecycle {
     ignore_changes = [
+      # Adoption: never mutate a live DB's running version. Catalog hard-codes the major per
+      # version dir; adopted instances may run a different minor (e.g. 8.0 vs 8.4) or major.
       engine_version,
+      # Adoption: master password is write-only — AWS never returns it, so an import always shows
+      # a spurious "password will be set" change. Ignore it so adoption never rotates the live password.
+      password,
       # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
       final_snapshot_identifier,
       # No list type in qbm.yml — defer to a manifest schema extension
