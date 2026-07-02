@@ -92,6 +92,10 @@ resource "aws_db_instance" "this" {
       parameter_group_name,
       # Will turn into a managed input when the storage autoscale feature is added
       max_allocated_storage,
+      # Adoption: enhanced monitoring needs a cluster-specific IAM role ARN the native path
+      # resolved via a data source; not reproducible as a static default, so leave it as-is.
+      monitoring_interval,
+      monitoring_role_arn,
     ]
   }
 }

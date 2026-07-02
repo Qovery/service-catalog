@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -119,7 +119,7 @@ spec:
     - name: "multi_az"
       type: "bool"
       required: false
-      default: "false"
+      default: "true"
       description: "Enable Multi-AZ deployment"
     - name: "publicly_accessible"
       type: "bool"
@@ -139,7 +139,7 @@ spec:
     - name: "allow_major_version_upgrade"
       type: "bool"
       required: false
-      default: "false"
+      default: "true"
       description: "Allow major engine version upgrades on apply"
     - name: "auto_minor_version_upgrade"
       type: "bool"
@@ -159,7 +159,7 @@ spec:
     - name: "backup_retention_period"
       type: "number"
       required: false
-      default: "7"
+      default: "14"
       description: "Days to retain automated backups (0 disables)"
       min: 0
       max: 35
@@ -181,7 +181,7 @@ spec:
     - name: "performance_insights_enabled"
       type: "bool"
       required: false
-      default: "false"
+      default: "true"
       description: "Enable RDS Performance Insights"
     - name: "performance_insights_retention_period"
       type: "number"
