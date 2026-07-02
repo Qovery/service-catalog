@@ -97,22 +97,6 @@ jobs:
           terraform init -backend=false
           terraform validate
 
-  check-commit-messages:
-    name: Check PR title format
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Validate PR title
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|patch|chore)(\([^)]+\))?: .+'; then
-            echo "ERROR: invalid PR title: \"$PR_TITLE\""
-            echo "       expected: feat|fix|patch|chore(subject): message"
-            exit 1
-          fi
-          echo "PR title is valid."
-
   check-version-bump:
     name: Check version bump
     runs-on: ubuntu-latest
