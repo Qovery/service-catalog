@@ -18,7 +18,7 @@ spec:
     provider: AWS
     terraform:
       version: "1.9.7"
-      # variable validation, which requires TF 1.9+.
+      # Pinned to 1.9+: catalog uses cross-variable validation (a variable's validation references another).
       allowedValues: ["1.9.7", "1.13.3"]
       overridable: true
     credentials:

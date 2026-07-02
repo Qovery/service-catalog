@@ -81,8 +81,9 @@ resource "aws_db_instance" "this" {
       # Adoption: never mutate a live DB's running version. Catalog hard-codes the major per
       # version dir; adopted instances may run a different minor (e.g. 8.0 vs 8.4) or major.
       engine_version,
-      # Adoption: master password is write-only — AWS never returns it, so an import always shows
-      # a spurious "password will be set" change. Ignore it so adoption never rotates the live password.
+      # Master password is write-only (AWS never returns it) → on import the state is empty and any
+      # configured value shows a perpetual diff, so ignore to keep adoption plans clean. ignore_changes
+      # can't be conditional, so rotation isn't managed here either — rotate out-of-band.
       password,
       # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
       final_snapshot_identifier,
@@ -92,10 +93,6 @@ resource "aws_db_instance" "this" {
       parameter_group_name,
       # Will turn into a managed input when the storage autoscale feature is added
       max_allocated_storage,
-      # Adoption: enhanced monitoring needs a cluster-specific IAM role ARN the native path
-      # resolved via a data source; not reproducible as a static default, so leave it as-is.
-      monitoring_interval,
-      monitoring_role_arn,
     ]
   }
 }
