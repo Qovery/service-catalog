@@ -1,0 +1,22 @@
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [main]
+
+jobs:
+  check-pr-title:
+    name: Check PR title format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|patch|chore)(\([^)]+\))?: .+'; then
+            echo "ERROR: invalid PR title: \"$PR_TITLE\""
+            echo "       expected: feat|fix|patch|chore(subject): message"
+            exit 1
+          fi
+          echo "PR title is valid."

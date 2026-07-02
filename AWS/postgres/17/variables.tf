@@ -150,7 +150,7 @@ variable "disk_iops" {
 
 variable "multi_az" {
   type        = bool
-  default     = false
+  default     = true
   description = "Enable Multi-AZ deployment"
 }
 
@@ -174,7 +174,7 @@ variable "apply_changes_now" {
 
 variable "allow_major_version_upgrade" {
   type        = bool
-  default     = false
+  default     = true
   description = "Allow major engine version upgrades on apply"
 }
 
@@ -198,7 +198,7 @@ variable "preferred_backup_window" {
 
 variable "backup_retention_period" {
   type        = number
-  default     = 7
+  default     = 14
   description = "Days to retain automated backups (0 disables)"
 
   validation {
@@ -227,7 +227,7 @@ variable "copy_tags_to_snapshot" {
 
 variable "performance_insights_enabled" {
   type        = bool
-  default     = false
+  default     = true
   description = "Enable RDS Performance Insights"
 }
 

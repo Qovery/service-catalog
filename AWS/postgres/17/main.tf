@@ -81,6 +81,10 @@ resource "aws_db_instance" "this" {
       # Adoption: never mutate a live DB's running version. Catalog hard-codes the major per
       # version dir; adopted instances may run a different minor (e.g. 8.0 vs 8.4) or major.
       engine_version,
+      # Master password is write-only (AWS never returns it) → on import the state is empty and any
+      # configured value shows a perpetual diff, so ignore to keep adoption plans clean. ignore_changes
+      # can't be conditional, so rotation isn't managed here either — rotate out-of-band.
+      password,
       # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
       final_snapshot_identifier,
       # No list type in qbm.yml — defer to a manifest schema extension
