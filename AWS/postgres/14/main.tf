@@ -93,6 +93,9 @@ resource "aws_db_instance" "this" {
       parameter_group_name,
       # Will turn into a managed input when the storage autoscale feature is added
       max_allocated_storage,
+      # Preserve existing AWS tags on adoption: the native path tags managed RDS with cluster_id
+      # (used by the YACE CloudWatch exporter for DB metrics); overwriting them would break metrics.
+      tags,
     ]
   }
 }
