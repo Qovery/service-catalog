@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-07T12:22:31Z",
+  "generatedAt": "2026-07-07T12:38:32Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -158,7 +158,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.2.3"
+          "latestTag": "SCW/postgres/16/1.2.4"
         }
       ]
     }

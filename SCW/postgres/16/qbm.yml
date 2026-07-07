@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-managed-postgresql"
-  version: "1.2.3"
+  version: "1.2.4"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
