@@ -12,6 +12,56 @@ variable "qovery_cluster_name" {
   type        = string
 }
 
+# Qovery-injected infra tags (the engine sets them via base64 TF_VAR_qovery_*). Empty default so the
+# module still plans if absent. Emitted as cost/identification tags on the bucket.
+variable "qovery_cluster_id" {
+  description = "Qovery cluster short id (engine kubernetes_cluster_id)."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_cluster_long_id" {
+  description = "Qovery cluster long id."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_client_id" {
+  description = "Qovery organization (client) short id."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_environment_id" {
+  description = "Qovery environment short id."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_environment_long_id" {
+  description = "Qovery environment long id."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_project_id" {
+  description = "Qovery project short id."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_project_long_id" {
+  description = "Qovery project long id."
+  type        = string
+  default     = ""
+}
+
+variable "qovery_aws_apn_id" {
+  description = "AWS Partner Network id (AWS Marketplace measurement)."
+  type        = string
+  default     = ""
+}
+
 # -----------------------------------------------------------------------------
 # User Variables
 # -----------------------------------------------------------------------------

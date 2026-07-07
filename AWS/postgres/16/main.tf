@@ -74,6 +74,18 @@ resource "aws_db_instance" "this" {
     Blueprint     = "aws-rds-postgresql"
     ClusterName   = var.qovery_cluster_name
     ServiceFamily = "postgres"
+
+    # Native-parity tags injected by the engine via TF_VAR_qovery_*. cluster_id is what the YACE
+    # CloudWatch exporter filters on for DB metrics; the rest mirror the native database_tags.
+    cluster_id            = var.qovery_cluster_id
+    cluster_long_id       = var.qovery_cluster_long_id
+    region                = var.region
+    q_client_id           = var.qovery_client_id
+    q_environment_id      = var.qovery_environment_id
+    q_environment_long_id = var.qovery_environment_long_id
+    q_project_id          = var.qovery_project_id
+    q_project_long_id     = var.qovery_project_long_id
+    "aws-apn-id"          = var.qovery_aws_apn_id
   }
 
   lifecycle {
@@ -93,6 +105,9 @@ resource "aws_db_instance" "this" {
       parameter_group_name,
       # Will turn into a managed input when the storage autoscale feature is added
       max_allocated_storage,
+      # Preserve existing AWS tags on adoption: the native path tags managed RDS with cluster_id
+      # (used by the YACE CloudWatch exporter for DB metrics); overwriting them would break metrics.
+      tags,
     ]
   }
 }

@@ -5,8 +5,8 @@ locals {
   final_snapshot_timestamp = replace(timestamp(), "/[- TZ:]/", "")
   final_snapshot_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snapshot_timestamp}"
   # AWS requires the snapshot id to begin with a letter and contain only alphanumerics/hyphens.
-  final_snapshot_cleaned  = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
-  final_snapshot_name = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
+  final_snapshot_cleaned = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
+  final_snapshot_name    = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
 
   # Param-group names: lowercase alphanumerics/hyphens, must begin with a letter. Sanitize the cluster-derived prefix.
   pg_prefix_cleaned = replace(lower("${var.qovery_cluster_name}-${replace(var.db_name, "_", "-")}"), "/[^a-z0-9-]/", "")
@@ -37,8 +37,16 @@ resource "aws_db_parameter_group" "mysql" {
   }
 }
 
+# Adopt an existing RDS instance when import_identifier is set (migration), else create.
+import {
+  for_each = var.import_identifier != "" ? toset([var.import_identifier]) : toset([])
+  to       = aws_db_instance.this
+  id       = each.value
+}
+
 resource "aws_db_instance" "this" {
-  identifier = replace(lower(var.db_name), "_", "-")
+  # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
+  identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
 
   engine         = "mysql"
   engine_version = "8.4"
@@ -95,16 +103,36 @@ resource "aws_db_instance" "this" {
     Blueprint     = "aws-rds-mysql"
     ClusterName   = var.qovery_cluster_name
     ServiceFamily = "mysql"
+
+    # Native-parity tags injected by the engine via TF_VAR_qovery_*. cluster_id is what the YACE
+    # CloudWatch exporter filters on for DB metrics; the rest mirror the native database_tags.
+    cluster_id            = var.qovery_cluster_id
+    cluster_long_id       = var.qovery_cluster_long_id
+    region                = var.region
+    q_client_id           = var.qovery_client_id
+    q_environment_id      = var.qovery_environment_id
+    q_environment_long_id = var.qovery_environment_long_id
+    q_project_id          = var.qovery_project_id
+    q_project_long_id     = var.qovery_project_long_id
+    "aws-apn-id"          = var.qovery_aws_apn_id
   }
 
   lifecycle {
     ignore_changes = [
+      # Adoption: never mutate a live DB's running version.
+      engine_version,
+      # Master password is write-only (AWS never returns it) — ignore so adoption plans stay clean.
+      password,
       # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
       final_snapshot_identifier,
       # No list type in qbm.yml — defer to a manifest schema extension
       enabled_cloudwatch_logs_exports,
+      # On adoption keep the live instance's param group; the blueprint's is still applied on create.
+      parameter_group_name,
       # Will turn into a managed input when the storage autoscale feature is added
       max_allocated_storage,
+      # Preserve existing AWS tags on adoption (native cluster_id drives YACE metrics); set on create.
+      tags,
     ]
   }
 }
