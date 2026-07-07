@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-07T12:38:32Z",
+  "generatedAt": "2026-07-07T12:49:19Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/1.2.3"
+          "latestTag": "AWS/mysql/8/1.2.4"
         }
       ]
     },
@@ -121,7 +121,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.2.3"
+          "latestTag": "SCW/mysql/8/1.2.4"
         }
       ]
     },

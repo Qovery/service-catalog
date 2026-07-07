@@ -10,6 +10,13 @@ locals {
     "cluster:${var.qovery_cluster_name}",
     "region:${var.region}",
     "instance:${var.instance_name}",
+
+    # Native-parity Qovery context tags — values injected by the engine via TF_VAR_qovery_*.
+    # Mirrors the engine's native Scaleway tag set (lib/scaleway/services/mysql).
+    "cluster_id:${var.qovery_cluster_id}",
+    "q_client_id:${var.qovery_client_id}",
+    "q_environment_id:${var.qovery_environment_id}",
+    "q_project_id:${var.qovery_project_id}",
   ]
 }
 
