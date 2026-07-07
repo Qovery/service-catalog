@@ -9,6 +9,57 @@ variable "qovery_cluster_name" {
   description = "Qovery cluster name, used as a prefix for resource naming"
 }
 
+# Qovery-injected infra tags (the engine sets them via base64 TF_VAR_qovery_*). Empty default so the
+# module still plans if absent. Used only in aws_db_instance tags — notably cluster_id, which the YACE
+# CloudWatch exporter filters on for DB metrics; the rest mirror the native database_tags for parity.
+variable "qovery_cluster_id" {
+  type        = string
+  default     = ""
+  description = "Qovery cluster short id (engine kubernetes_cluster_id); YACE matches RDS metrics on it."
+}
+
+variable "qovery_cluster_long_id" {
+  type        = string
+  default     = ""
+  description = "Qovery cluster long id."
+}
+
+variable "qovery_client_id" {
+  type        = string
+  default     = ""
+  description = "Qovery organization (client) short id."
+}
+
+variable "qovery_environment_id" {
+  type        = string
+  default     = ""
+  description = "Qovery environment short id."
+}
+
+variable "qovery_environment_long_id" {
+  type        = string
+  default     = ""
+  description = "Qovery environment long id."
+}
+
+variable "qovery_project_id" {
+  type        = string
+  default     = ""
+  description = "Qovery project short id."
+}
+
+variable "qovery_project_long_id" {
+  type        = string
+  default     = ""
+  description = "Qovery project long id."
+}
+
+variable "qovery_aws_apn_id" {
+  type        = string
+  default     = ""
+  description = "AWS Partner Network id (AWS Marketplace measurement)."
+}
+
 # Adoption-only: set to the live RDS identifier to import an existing instance
 # instead of creating one. Empty = normal create. See docs/db-blueprint-adoption-migration.md.
 variable "import_identifier" {
