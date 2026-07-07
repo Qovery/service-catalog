@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-07T12:49:19Z",
+  "generatedAt": "2026-07-07T13:00:32Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -66,7 +66,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.1.1"
+          "latestTag": "AWS/s3/default/1.1.2"
         }
       ]
     },
@@ -139,7 +139,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.1.1"
+          "latestTag": "SCW/object-storage/default/1.1.2"
         }
       ]
     },

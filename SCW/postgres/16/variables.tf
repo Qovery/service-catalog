@@ -9,8 +9,6 @@ variable "qovery_cluster_name" {
   description = "Qovery cluster name, used as a prefix for resource naming"
 }
 
-# Qovery-injected infra tags (the engine sets them via TF_VAR_qovery_*). Empty default so the module
-# still plans if absent. Emitted as native-parity tags on the RDB instance.
 variable "qovery_cluster_id" {
   type        = string
   default     = ""

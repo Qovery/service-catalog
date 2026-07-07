@@ -10,6 +10,17 @@ resource "aws_s3_bucket" "this" {
     ManagedBy   = "terraform"
     Service     = "s3"
     ClusterName = var.qovery_cluster_name
+
+    # Native-parity Qovery context tags — values injected by the engine via TF_VAR_qovery_*.
+    cluster_id            = var.qovery_cluster_id
+    cluster_long_id       = var.qovery_cluster_long_id
+    region                = var.region
+    q_client_id           = var.qovery_client_id
+    q_environment_id      = var.qovery_environment_id
+    q_environment_long_id = var.qovery_environment_long_id
+    q_project_id          = var.qovery_project_id
+    q_project_long_id     = var.qovery_project_long_id
+    "aws-apn-id"          = var.qovery_aws_apn_id
   }
 }
 

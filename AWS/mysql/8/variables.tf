@@ -9,9 +9,6 @@ variable "qovery_cluster_name" {
   description = "Qovery cluster name, used as a prefix for resource naming"
 }
 
-# Qovery-injected infra tags (the engine sets them via base64 TF_VAR_qovery_*). Empty default so the
-# module still plans if absent. Used only in aws_db_instance tags — notably cluster_id, which the YACE
-# CloudWatch exporter filters on for DB metrics; the rest mirror the native database_tags for parity.
 variable "qovery_cluster_id" {
   type        = string
   default     = ""
