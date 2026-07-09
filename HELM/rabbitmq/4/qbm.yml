@@ -3,8 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-rabbitmq"
-  version: "1.1.1"
-  description: "RabbitMQ message broker via Bitnami Helm chart"
+  version: "2.0.0"
+  description: "RabbitMQ message broker via the community groundhog2k Helm chart (official docker.io/rabbitmq image)"
   icon: "app://qovery-console/rabbitmq"
   serviceFamily: "rabbitmq"
   categories:
@@ -15,9 +15,9 @@ spec:
   engine:
     type: helm
     chart:
-      repository: "https://charts.bitnami.com/bitnami"
+      repository: "https://groundhog2k.github.io/helm-charts/"
       name: "rabbitmq"
-      version: "16.0.14"
+      version: "2.3.5"
     arguments: []
     allowClusterWideResources: false
 
@@ -47,8 +47,8 @@ spec:
     - name: "memory_limit"
       type: "string"
       required: false
-      default: "256Mi"
-      description: "Memory limit for RabbitMQ pods. Must be a valid Kubernetes quantity (e.g. 256Mi, 512Mi, 1Gi)."
+      default: "512Mi"
+      description: "Memory limit for RabbitMQ pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
 
   outputs:
