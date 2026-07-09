@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-09T09:43:10Z",
+  "generatedAt": "2026-07-10T08:56:30Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -91,7 +91,7 @@
     {
       "name": "helm-redis",
       "kind": "ServiceBlueprint",
-      "description": "Redis cache via Bitnami Helm chart",
+      "description": "Redis cache via the community groundhog2k Helm chart (official docker.io/redis image)",
       "icon": "app://qovery-console/redis",
       "categories": [
         "cache",
@@ -100,10 +100,6 @@
       "provider": "HELM",
       "serviceFamily": "redis",
       "majorVersions": [
-        {
-          "serviceVersion": "7",
-          "latestTag": "HELM/redis/7/1.1.0"
-        },
         {
           "serviceVersion": "8",
           "latestTag": "HELM/redis/8/1.0.0"

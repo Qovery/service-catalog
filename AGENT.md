@@ -18,12 +18,12 @@ A catalog of **blueprints** — pre-built definitions Qovery uses to provision c
 
 Files per blueprint:
 
-| File | Terraform / OpenTofu | Helm |
-| --- | --- | --- |
-| `qbm.yml` | required | required |
-| `main.tf` / `variables.tf` / `outputs.tf` / `providers.tf` | required | — |
-| `values.yaml` | — | required (Helm values template) |
-| `README.md` | required | required |
+| File                                                       | Terraform / OpenTofu | Helm                            |
+| ---------------------------------------------------------- | -------------------- | ------------------------------- |
+| `qbm.yml`                                                  | required             | required                        |
+| `main.tf` / `variables.tf` / `outputs.tf` / `providers.tf` | required             | —                               |
+| `values.yaml`                                              | —                    | required (Helm values template) |
+| `README.md`                                                | required             | required                        |
 
 ## `metadata.version` — MUST bump on every change (CI: `check-version-bump`)
 
@@ -34,6 +34,10 @@ Files per blueprint:
   - **patch** (`x.y.z`) — fix / docs / non-behavioral.
 - A brand-new blueprint directory starts at `1.0.0`.
 - On merge to `main`, CI (`auto-tag`) creates a tag/release `{PROVIDER}/{service}/{major}/{metadata.version}` (e.g. `HELM/redis/8/1.0.0`).
+
+### Retiring a blueprint major
+
+`auto-tag` only ever _creates_ tags. To fully retire a major (e.g. Redis 7 → 8), use `mise run retire-blueprint <path>` (e.g. `HELM/redis/7`) — it removes the directory, regenerates `catalog.json` (staged for a PR), and deletes the tags + GitHub releases (applied immediately). It is DESTRUCTIVE and dry-run unless `CONFIRM=yes`. **Deleting a tag makes any service still pinned to it undeployable** (services reference the blueprint by immutable git tag and the engine re-fetches it on every deploy) — first check dependents (`SELECT * FROM blueprint WHERE tag LIKE '<path>/%'` in q-core) and migrate them.
 
 ## `catalog.json` — MUST be regenerated and committed (CI: `check-catalog`)
 
@@ -70,4 +74,4 @@ Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): mov
 
 ## Commit / PR messages
 
-Keep them synthetic, for senior + SRE readers with no business context. Explain the *why*, not just the *what*. Do not add AI attribution / co-author lines.
+Keep them synthetic, for developers and SRE readers with no business context. Explain the _why_, not just the _what_.
