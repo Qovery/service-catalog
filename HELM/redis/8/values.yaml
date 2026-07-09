@@ -1,0 +1,13 @@
+# Standalone (haMode disabled by default). Official docker.io/redis image.
+# NOTE: the official image reads no password env var — requirepass must be set in
+# redis.conf, which this chart renders into a ConfigMap (not a Secret). Acceptable
+# for a non-persistent dev cache; do not use for sensitive production data.
+redisConfig: |
+  requirepass {{ password }}
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "{{ memory_limit }}"
+  limits:
+    memory: "{{ memory_limit }}"

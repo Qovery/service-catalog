@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-07T13:00:32Z",
+  "generatedAt": "2026-07-09T09:43:10Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -73,7 +73,7 @@
     {
       "name": "helm-rabbitmq",
       "kind": "ServiceBlueprint",
-      "description": "RabbitMQ message broker via Bitnami Helm chart",
+      "description": "RabbitMQ message broker via the community groundhog2k Helm chart (official docker.io/rabbitmq image)",
       "icon": "app://qovery-console/rabbitmq",
       "categories": [
         "messaging",
@@ -84,7 +84,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "HELM/rabbitmq/4/1.1.1"
+          "latestTag": "HELM/rabbitmq/4/2.0.0"
         }
       ]
     },
@@ -103,6 +103,10 @@
         {
           "serviceVersion": "7",
           "latestTag": "HELM/redis/7/1.1.0"
+        },
+        {
+          "serviceVersion": "8",
+          "latestTag": "HELM/redis/8/1.0.0"
         }
       ]
     },

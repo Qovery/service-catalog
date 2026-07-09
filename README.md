@@ -22,10 +22,10 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 ### Helm (Kubernetes)
 
-| Service  | Path               | Description                                    |
-| -------- | ------------------ | ---------------------------------------------- |
-| Redis    | `HELM/redis/7/`    | Redis cache via Bitnami Helm chart             |
-| RabbitMQ | `HELM/rabbitmq/4/` | RabbitMQ message broker via Bitnami Helm chart |
+| Service  | Path               | Description                                                     |
+| -------- | ------------------ | --------------------------------------------------------------- |
+| Redis    | `HELM/redis/8/`    | Redis 8 cache via community groundhog2k Helm chart              |
+| RabbitMQ | `HELM/rabbitmq/4/` | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
 
 ## Directory Structure
 
