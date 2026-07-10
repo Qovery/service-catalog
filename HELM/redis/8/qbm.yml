@@ -3,8 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-redis"
-  version: "1.1.0"
-  description: "Redis cache via Bitnami Helm chart"
+  version: "1.0.0"
+  description: "Redis cache via the community groundhog2k Helm chart (official docker.io/redis image)"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
   categories:
@@ -15,9 +15,9 @@ spec:
   engine:
     type: helm
     chart:
-      repository: "https://charts.bitnami.com/bitnami"
+      repository: "https://groundhog2k.github.io/helm-charts/"
       name: "redis"
-      version: "25.3.11"
+      version: "2.4.1"
     arguments: []
     allowClusterWideResources: false
 
@@ -25,8 +25,8 @@ spec:
     - name: "memory_limit"
       type: "string"
       required: false
-      default: "256Mi"
-      description: "Memory limit for Redis pods. Must be a valid Kubernetes quantity (e.g. 256Mi, 512Mi, 1Gi)."
+      default: "512Mi"
+      description: "Memory limit for Redis pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "password"
       type: "string"

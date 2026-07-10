@@ -1,12 +1,18 @@
 replicaCount: {{ replica_count }}
 
-auth:
-  username: "{{ username }}"
+authentication:
+  user: "{{ username }}"
   password: "{{ password }}"
+  # Reuse the sensitive password as the inter-node Erlang cookie — stable across pods, no hardcoded secret
+  erlangCookie: "{{ password }}"
 
 resources:
+  requests:
+    cpu: "250m"
+    memory: "{{ memory_limit }}"
   limits:
     memory: "{{ memory_limit }}"
 
-persistence:
-  enabled: false
+# Cluster the replicas via k8s peer discovery (StatefulSet + headless service); harmless at replica_count 1
+k8sPeerDiscoveryPlugin:
+  enabled: true

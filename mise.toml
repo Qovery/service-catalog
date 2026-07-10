@@ -6,3 +6,70 @@ run = """
 cargo run --release --manifest-path tools/catalog-gen/Cargo.toml -- \
   generate --root . --output catalog.json
 """
+
+# Fully retire a blueprint major: remove its directory, regenerate catalog.json,
+# and delete its git tags + GitHub releases. Example:
+#   mise run retire-blueprint HELM/redis/7
+# DESTRUCTIVE: deleting the tags makes any Qovery service still pinned to one of
+# them undeployable (the engine fetches qbm.yml/values.yaml from the catalog by
+# tag). Dry-run by default; re-run with CONFIRM=yes to apply.
+# The directory removal + catalog.json are only STAGED (never pushed to main) —
+# commit them on a branch and open a PR. The tag/release deletions are ref ops
+# applied immediately to the remote.
+[tasks.retire-blueprint]
+description = "Retire a blueprint major: remove dir + regen catalog + delete tags/releases (DESTRUCTIVE, dry-run unless CONFIRM=yes)"
+usage = 'arg "<blueprint>" help="Blueprint path prefix, e.g. HELM/redis/7"'
+run = """
+set -euo pipefail
+PREFIX="${usage_blueprint:-${1:-}}"
+REMOTE="${REMOTE:-origin}"
+
+if [ -z "$PREFIX" ]; then
+  echo "usage: mise run retire-blueprint <PROVIDER/service/major>   (e.g. HELM/redis/7)" >&2
+  exit 2
+fi
+
+DIR_STATE="not present"
+[ -d "$PREFIX" ] && DIR_STATE="present (will be removed)"
+
+# Authoritative tag list from the remote (local tags may be stale/missing). Strip peeled ^{} refs.
+TAGS="$(git ls-remote --tags "$REMOTE" "refs/tags/${PREFIX}/*" \
+  | sed 's#.*refs/tags/##; /\\^{}$/d' | sort -uV)"
+
+echo "Retire blueprint: ${PREFIX}"
+echo "  directory: ${DIR_STATE}"
+echo "  tags on ${REMOTE}:"
+if [ -n "$TAGS" ]; then echo "$TAGS" | sed 's/^/    /'; else echo "    (none)"; fi
+
+if [ ! -d "$PREFIX" ] && [ -z "$TAGS" ]; then
+  echo "Nothing to retire."
+  exit 0
+fi
+
+if [ "${CONFIRM:-no}" != "yes" ]; then
+  echo ""
+  echo "DRY RUN. Would remove the directory (staged for a branch/PR), regenerate catalog.json,"
+  echo "and delete the tags + GitHub releases on '${REMOTE}' and locally."
+  echo "WARNING: deleting the tags makes any Qovery service still pinned to them FAIL to deploy."
+  echo "First confirm nothing references them (q-core: SELECT * FROM blueprint WHERE tag LIKE '${PREFIX}/%'),"
+  echo "migrate those services, then re-run: CONFIRM=yes mise run retire-blueprint ${PREFIX}"
+  exit 0
+fi
+
+# 1. Remove the directory + regenerate catalog.json (repo content — staged, NOT pushed to main).
+if [ -d "$PREFIX" ]; then
+  git rm -r --quiet "$PREFIX"
+  cargo run --release --manifest-path tools/catalog-gen/Cargo.toml -- generate --root . --output catalog.json
+  git add catalog.json
+  echo "removed ${PREFIX}/ and regenerated catalog.json (staged — commit on a branch and open a PR)"
+fi
+
+# 2. Delete tags + releases (ref ops applied immediately to the remote).
+for t in $TAGS; do
+  gh release delete "$t" --yes --cleanup-tag >/dev/null 2>&1 || true   # release + its remote tag
+  git push "$REMOTE" --delete "$t" >/dev/null 2>&1 || true             # remote tag (if no release existed)
+  git tag -d "$t" >/dev/null 2>&1 || true                             # local tag
+  echo "deleted tag $t"
+done
+echo "Done. Commit the staged directory/catalog removal on a branch and open a PR."
+"""
