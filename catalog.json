@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-10T08:56:30Z",
+  "generatedAt": "2026-07-16T14:04:28Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -84,7 +84,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "HELM/rabbitmq/4/2.0.0"
+          "latestTag": "HELM/rabbitmq/4/2.0.1"
         }
       ]
     },
