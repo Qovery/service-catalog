@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-rabbitmq"
-  version: "2.0.0"
+  version: "2.0.1"
   description: "RabbitMQ message broker via the community groundhog2k Helm chart (official docker.io/rabbitmq image)"
   icon: "app://qovery-console/rabbitmq"
   serviceFamily: "rabbitmq"

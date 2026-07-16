@@ -1,10 +1,13 @@
 replicaCount: {{ replica_count }}
 
 authentication:
-  user: "{{ username }}"
-  password: "{{ password }}"
+  user:
+    value: "{{ username }}"
+  password:
+    value: "{{ password }}"
   # Reuse the sensitive password as the inter-node Erlang cookie — stable across pods, no hardcoded secret
-  erlangCookie: "{{ password }}"
+  erlangCookie:
+    value: "{{ password }}"
 
 resources:
   requests:
