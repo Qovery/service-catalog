@@ -116,3 +116,9 @@ variable "force_destroy" {
   type        = bool
   default     = false
 }
+
+variable "bucket_policy" {
+  description = "Attach the default bucket policy"
+  type        = bool
+  default     = true
+}

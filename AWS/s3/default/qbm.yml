@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.1.2"
+  version: "1.2.0"
   description: "S3 bucket with encryption, versioning, and public-access blocking"
   icon: "app://qovery-console/s3"
   serviceFamily: "s3"
@@ -62,6 +62,11 @@ spec:
       required: false
       default: "false"
       description: "Allow bucket deletion even if it contains objects"
+    - name: "bucket_policy"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Attach the default bucket policy"
 
   outputs:
     - name: "bucket_arn"
