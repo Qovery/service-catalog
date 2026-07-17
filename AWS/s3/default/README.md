@@ -10,6 +10,7 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 | `versioning`    | bool   | no       |           | `true`  | Enable object versioning                                                                                                                                                                                                   |
 | `encryption`    | bool   | no       |           | `true`  | Enable AES-256 server-side encryption                                                                                                                                                                                      |
 | `force_destroy` | bool   | no       |           | `false` | Allow bucket deletion even if it contains objects                                                                                                                                                                          |
+| `bucket_policy` | bool   | no       |           | `true` | Attach the default bucket policy                                                                                                                                                                                            |
 
 ## Outputs
 
@@ -43,6 +44,7 @@ The credentials used to deploy this blueprint must allow the actions below. Reso
         "s3:GetBucketTagging",
         "s3:PutBucketTagging",
         "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy",
         "s3:GetBucketAcl",
         "s3:GetBucketCORS",
         "s3:GetBucketWebsite",
