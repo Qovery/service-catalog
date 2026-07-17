@@ -84,7 +84,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "HELM/rabbitmq/4/2.0.0"
+          "latestTag": "HELM/rabbitmq/4/2.0.1"
         }
       ]
     },
