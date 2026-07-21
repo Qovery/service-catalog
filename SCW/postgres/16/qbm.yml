@@ -45,21 +45,21 @@ spec:
     - name: "instance_name"
       type: "string"
       required: true
-      description: "Letters, digits, hyphens, and underscores; must start with a letter or digit; max 100 chars."
+      description: "Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
       pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$"
       minLength: 1
       maxLength: 100
     - name: "db_name"
       type: "string"
       required: true
-      description: "Letters, digits, and underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
+      description: "Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
     - name: "db_username"
       type: "string"
       required: true
-      description: "Letters, digits, and underscores; must start with a letter; max 63 chars. Reserved names: rdb_admin, postgres, or any name starting with 'pg_'."
+      description: "Letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: rdb_admin, postgres, or any name starting with 'pg_'."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
@@ -75,7 +75,6 @@ spec:
       type: "string"
       required: false
       default: "PostgreSQL-16"
-      description: "Version provisioned by Scaleway."
       allowedValues:
         - "PostgreSQL-16"
         - "PostgreSQL-15"
@@ -84,7 +83,6 @@ spec:
       type: "string"
       required: false
       default: "DB-DEV-S"
-      description: "Controls the allocated compute and memory."
       allowedValues:
         - "DB-DEV-S"
         - "DB-DEV-M"
@@ -98,7 +96,7 @@ spec:
       type: "string"
       required: false
       default: "lssd"
-      description: "lssd uses local SSD; sbs_5k and sbs_15k use block SSD at 5k and 15k IOPS."
+      description: "lssd = local SSD; sbs_5k/sbs_15k = block SSD at 5k/15k IOPS"
       allowedValues:
         - "lssd"
         - "sbs_5k"

@@ -26,7 +26,7 @@ spec:
       type: "string"
       required: false
       default: "512Mi"
-      description: "For Redis pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
+      description: "Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "password"
       type: "string"

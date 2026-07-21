@@ -33,7 +33,7 @@ spec:
       type: "string"
       required: false
       default: "user"
-      description: "Default account. Use letters, digits, hyphens, underscores, and dots only."
+      description: "Use letters, digits, hyphens, underscores, and dots only."
       pattern: "^[a-zA-Z0-9._-]+$"
       minLength: 1
       maxLength: 64
@@ -48,7 +48,7 @@ spec:
       type: "string"
       required: false
       default: "512Mi"
-      description: "For RabbitMQ pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
+      description: "Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
 
   outputs:

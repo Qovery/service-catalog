@@ -43,7 +43,7 @@ spec:
     - name: "bucket_name"
       type: "string"
       required: true
-      description: "Must be globally unique. Auto-lowercased. 3–63 chars; letters, digits, and hyphens only; must start and end with a letter or digit. Underscores are not allowed."
+      description: "Globally unique. Auto-lowercased. 3–63 chars, letters/digits/hyphens only, must start and end with a letter or digit. Underscores are not allowed."
       pattern: "^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]$"
       minLength: 3
       maxLength: 63
@@ -51,7 +51,6 @@ spec:
       type: "string"
       required: false
       default: "private"
-      description: "Controls read and write access."
       allowedValues:
         - "private"
         - "public-read"

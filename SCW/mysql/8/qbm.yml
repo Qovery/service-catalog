@@ -45,21 +45,21 @@ spec:
     - name: "instance_name"
       type: "string"
       required: true
-      description: "Letters, digits, hyphens, and underscores; must start with a letter or digit; max 100 chars."
+      description: "Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
       pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$"
       minLength: 1
       maxLength: 100
     - name: "db_name"
       type: "string"
       required: true
-      description: "Letters, digits, and underscores only; must start with a letter; max 64 chars. Hyphens are not allowed."
+      description: "Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,63}$"
       minLength: 1
       maxLength: 64
     - name: "db_username"
       type: "string"
       required: true
-      description: "Letters, digits, and underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names: rdb_admin, mysql."
+      description: "Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: rdb_admin, mysql."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,31}$"
       minLength: 1
       maxLength: 32
@@ -75,14 +75,12 @@ spec:
       type: "string"
       required: false
       default: "MySQL-8"
-      description: "Version provisioned by Scaleway."
       allowedValues:
         - "MySQL-8"
     - name: "node_type"
       type: "string"
       required: false
       default: "DB-DEV-S"
-      description: "Controls the allocated compute and memory."
       allowedValues:
         - "DB-DEV-S"
         - "DB-DEV-M"
@@ -96,7 +94,7 @@ spec:
       type: "string"
       required: false
       default: "lssd"
-      description: "lssd uses local SSD; sbs_5k and sbs_15k use block SSD at 5k and 15k IOPS."
+      description: "lssd = local SSD; sbs_5k/sbs_15k = block SSD at 5k/15k IOPS"
       allowedValues:
         - "lssd"
         - "sbs_5k"
