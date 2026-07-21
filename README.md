@@ -2,6 +2,8 @@
 
 Pre-built blueprints for provisioning cloud resources and Kubernetes services through the Qovery platform.
 
+<!-- test: demo PR, safe to close without merging -->
+
 ## Available Blueprints
 
 ### AWS (Terraform)
