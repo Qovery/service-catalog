@@ -1,4 +1,4 @@
-# AGENT.md
+# AGENTS.md
 
 Operating rules for agents (and humans) editing this repo. These mirror what CI enforces (`.github/workflows/`) — break them and the PR fails. Read this before touching any blueprint.
 
@@ -30,7 +30,7 @@ Files per blueprint:
 - It is an **independent semver for the blueprint**, unrelated to the directory's software-major number. `HELM/rabbitmq/4` can be at `metadata.version: 2.0.0`.
 - Any change to a blueprint's files **must** bump `metadata.version` vs `origin/main`, or CI fails.
   - **major** (`x.0.0`) — breaking: chart/provider swap, removed/renamed variable, incompatible default that forces recreation.
-  - **minor** (`x.y.0`) — backward-compatible feature: new optional variable, new output, or an existing optional variable becoming required (the default value is unchanged, so already-explicit callers are unaffected).
+  - **minor** (`x.y.0`) — backward-compatible feature: new optional variable, new output.
   - **patch** (`x.y.z`) — fix / docs / non-behavioral.
 - A brand-new blueprint directory starts at `1.0.0`.
 - On merge to `main`, CI (`auto-tag`) creates a tag/release `{PROVIDER}/{service}/{major}/{metadata.version}` (e.g. `HELM/redis/8/1.0.0`).
