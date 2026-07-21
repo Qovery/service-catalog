@@ -30,7 +30,7 @@ Files per blueprint:
 - It is an **independent semver for the blueprint**, unrelated to the directory's software-major number. `HELM/rabbitmq/4` can be at `metadata.version: 2.0.0`.
 - Any change to a blueprint's files **must** bump `metadata.version` vs `origin/main`, or CI fails.
   - **major** (`x.0.0`) — breaking: chart/provider swap, removed/renamed variable, incompatible default that forces recreation.
-  - **minor** (`x.y.0`) — backward-compatible feature: new optional variable, new output.
+  - **minor** (`x.y.0`) — backward-compatible feature: new optional variable, new output, or an existing optional variable becoming required (the default value is unchanged, so already-explicit callers are unaffected).
   - **patch** (`x.y.z`) — fix / docs / non-behavioral.
 - A brand-new blueprint directory starts at `1.0.0`.
 - On merge to `main`, CI (`auto-tag`) creates a tag/release `{PROVIDER}/{service}/{major}/{metadata.version}` (e.g. `HELM/redis/8/1.0.0`).
@@ -59,6 +59,10 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 - `spec.engine.type` ∈ `terraform | opentofu | helm`; `terraform`/`opentofu` require a `version`; `helm` requires a `chart` `{repository, name, version}`.
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
+
+## Keep `README.md` in sync with `qbm.yml`
+
+Not CI-enforced, but expected on every PR: if a variable's `required` flag, default, type, or description changes in `qbm.yml`, update the matching row in `README.md`'s `## Variables` tables — including moving the row between the `### Required` table and its sizing/optional table when `required` flips. The `### Required` tables have no `Default` column; when a variable that still ships a `default:` in `qbm.yml` becomes required, fold that default into the description as "Default suggestion: `<value>`" rather than dropping it.
 
 ## PR title (CI: `pr-title`)
 
