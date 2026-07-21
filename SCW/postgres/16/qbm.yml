@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-managed-postgresql"
-  version: "1.2.4"
+  version: "1.3.0"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -82,7 +82,7 @@ spec:
         - "PostgreSQL-14"
     - name: "node_type"
       type: "string"
-      required: false
+      required: true
       default: "DB-DEV-S"
       description: "Scaleway node type"
       allowedValues:
@@ -105,7 +105,7 @@ spec:
         - "sbs_15k"
     - name: "volume_size_gb"
       type: "number"
-      required: false
+      required: true
       default: "5"
       description: "Volume size in GB (min 5, max 10000)"
       min: 5
