@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-redis"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Redis cache via the community groundhog2k Helm chart (official docker.io/redis image)"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -26,13 +26,13 @@ spec:
       type: "string"
       required: false
       default: "512Mi"
-      description: "Memory limit for Redis pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
+      description: "Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "password"
       type: "string"
       required: true
       sensitive: true
-      description: "Redis authentication password (min 10 chars recommended)."
+      description: "Min 10 chars recommended."
       minLength: 10
       maxLength: 128
 

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-07-21T13:11:19Z",
+  "generatedAt": "2026-07-21T14:51:35Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/1.3.0"
+          "latestTag": "AWS/mysql/8/1.3.1"
         }
       ]
     },
@@ -36,19 +36,19 @@
       "majorVersions": [
         {
           "serviceVersion": "14",
-          "latestTag": "AWS/postgres/14/1.1.0"
+          "latestTag": "AWS/postgres/14/1.1.1"
         },
         {
           "serviceVersion": "15",
-          "latestTag": "AWS/postgres/15/1.1.0"
+          "latestTag": "AWS/postgres/15/1.1.1"
         },
         {
           "serviceVersion": "16",
-          "latestTag": "AWS/postgres/16/1.1.0"
+          "latestTag": "AWS/postgres/16/1.1.1"
         },
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/1.3.0"
+          "latestTag": "AWS/postgres/17/1.3.1"
         }
       ]
     },
@@ -66,7 +66,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.1.2"
+          "latestTag": "AWS/s3/default/1.1.3"
         }
       ]
     },
@@ -84,7 +84,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "HELM/rabbitmq/4/2.0.1"
+          "latestTag": "HELM/rabbitmq/4/2.0.2"
         }
       ]
     },
@@ -102,7 +102,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "HELM/redis/8/1.0.0"
+          "latestTag": "HELM/redis/8/1.0.1"
         }
       ]
     },
@@ -121,7 +121,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.3.0"
+          "latestTag": "SCW/mysql/8/1.3.1"
         }
       ]
     },
@@ -139,7 +139,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.1.2"
+          "latestTag": "SCW/object-storage/default/1.1.3"
         }
       ]
     },
@@ -158,7 +158,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.3.0"
+          "latestTag": "SCW/postgres/16/1.3.1"
         }
       ]
     }
