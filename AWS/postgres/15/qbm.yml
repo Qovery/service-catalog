@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "AWS RDS PostgreSQL 15 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -45,14 +45,14 @@ spec:
     - name: "db_name"
       type: "string"
       required: true
-      description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
+      description: "Letters, digits, and underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
     - name: "db_username"
       type: "string"
       required: true
-      description: "Master username. Letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
+      description: "Used as the master account. Letters, digits, and underscores; must start with a letter; max 63 chars. Reserved names: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
@@ -60,7 +60,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: 'Master password. 8–128 chars. Must not contain /, @, ", or spaces.'
+      description: '8–128 chars. Must not contain /, @, ", or spaces.'
       pattern: '^[^/@" ]+$'
       minLength: 8
       maxLength: 128
@@ -75,7 +75,7 @@ spec:
       type: "string"
       required: false
       default: "db.t3.micro"
-      description: "RDS instance class"
+      description: "Determines the instance compute and memory capacity."
       allowedValues:
         - "db.t3.micro"
         - "db.t3.small"
@@ -98,7 +98,7 @@ spec:
       type: "string"
       required: false
       default: "gp3"
-      description: "EBS storage type"
+      description: "EBS volume technology to use."
       allowedValues:
         - "gp2"
         - "gp3"
@@ -130,7 +130,7 @@ spec:
       type: "string"
       required: false
       default: ""
-      description: "Optional DB subnet group. Empty = AWS default for the VPC."
+      description: "Leave empty to use the AWS default for the VPC."
     - name: "apply_changes_now"
       type: "bool"
       required: false
@@ -150,12 +150,12 @@ spec:
       type: "string"
       required: false
       default: "Tue:02:00-Tue:04:00"
-      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+      description: "UTC; format ddd:hh24:mi-ddd:hh24:mi."
     - name: "preferred_backup_window"
       type: "string"
       required: false
       default: "00:00-01:00"
-      description: "Daily backup window (UTC), format hh24:mi-hh24:mi"
+      description: "UTC; format hh24:mi-hh24:mi."
     - name: "backup_retention_period"
       type: "number"
       required: false
@@ -218,7 +218,7 @@ spec:
       type: "string"
       required: false
       default: "rds-ca-rsa2048-g1"
-      description: "CA certificate identifier used by the DB instance"
+      description: "Used by the DB instance."
     - name: "monitoring_interval"
       type: "number"
       required: false
@@ -236,12 +236,12 @@ spec:
       type: "string"
       required: false
       default: ""
-      description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+      description: "Required for enhanced monitoring when monitoring_interval > 0."
     - name: "option_group_name"
       type: "string"
       required: false
       default: ""
-      description: "Optional option group name. Empty = AWS default."
+      description: "Leave empty to use the AWS default."
     - name: "deletion_protection"
       type: "bool"
       required: false
