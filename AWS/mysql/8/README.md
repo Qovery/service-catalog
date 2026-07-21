@@ -15,14 +15,14 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | `db_name`     | string |           | MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed. |
 | `db_username` | string |           | Master username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit).                     |
 | `db_password` | string | yes       | Master password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                                 |
+| `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
+| `allocated_storage` | number |           | Allocated storage in GiB (min 20, max 65536). Default suggestion: `20`.                             |
 
 ### Instance & storage
 
 | Name                | Type   | Default       | Description                                                    |
 | ------------------- | ------ | ------------- | -------------------------------------------------------------- |
-| `instance_class`    | string | `db.t3.micro` | RDS instance class                                             |
 | `port`              | number | `3306`        | Database port                                                  |
-| `allocated_storage` | number | `20`          | Allocated storage in GiB (min 20, max 65536)                   |
 | `storage_type`      | string | `gp3`         | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                   |
 | `storage_encrypted` | bool   | `true`        | Encrypt storage at rest                                        |
 | `disk_iops`         | number | `0`           | Provisioned IOPS (io1/io2 or gp3 ≥400 GiB). `0` = AWS default. |

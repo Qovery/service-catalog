@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "1.0.2"
+  version: "1.1.0"
   description: "AWS RDS PostgreSQL 14 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -73,7 +73,7 @@ spec:
       max: 65535
     - name: "instance_class"
       type: "string"
-      required: false
+      required: true
       default: "db.t3.micro"
       description: "RDS instance class"
       allowedValues:
@@ -89,7 +89,7 @@ spec:
         - "db.r5.xlarge"
     - name: "allocated_storage"
       type: "number"
-      required: false
+      required: true
       default: "20"
       description: "Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384)"
       min: 20

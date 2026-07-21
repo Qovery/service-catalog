@@ -24,15 +24,15 @@ This removes the resource from state without touching the user in Scaleway; the 
 | `db_name`       | string |           | MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed. |
 | `db_username`   | string |           | Database username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit).                   |
 | `db_password`   | string | yes       | Database user password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                          |
+| `node_type`      | string |          | Scaleway node type (e.g. `DB-DEV-S`, `DB-GP-XS`). Default suggestion: `DB-DEV-S`.         |
+| `volume_size_gb` | number |          | Volume size in GB (min 5, max 10000). Default suggestion: `5`.                     |
 
 ### Engine & sizing
 
 | Name             | Type   | Default    | Description                                               |
 | ---------------- | ------ | ---------- | --------------------------------------------------------- |
 | `engine_version` | string | `MySQL-8`  | Engine version.                                           |
-| `node_type`      | string | `DB-DEV-S` | Scaleway node type (e.g. `DB-DEV-S`, `DB-GP-XS`).         |
 | `volume_type`    | string | `lssd`     | Volume backend: `lssd` (local SSD) or `bssd` (block SSD). |
-| `volume_size_gb` | number | `5`        | Volume size in GB (min 5, max 10000).                     |
 | `is_ha_cluster`  | bool   | `false`    | Enable HA cluster mode (multi-node, automatic failover).  |
 
 ### Backups, logging & ACL
