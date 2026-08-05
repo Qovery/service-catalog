@@ -210,7 +210,13 @@ variable "publicly_accessible" {
 variable "db_subnet_group_name" {
   type        = string
   default     = ""
-  description = "Optional DB subnet group. Empty = AWS default for the VPC."
+  description = "Optional DB subnet group override. Empty = the Qovery cluster DB subnet group."
+}
+
+variable "security_group_ids" {
+  type        = string
+  default     = ""
+  description = "Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group."
 }
 
 variable "apply_changes_now" {
