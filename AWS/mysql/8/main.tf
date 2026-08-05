@@ -44,6 +44,48 @@ import {
   id       = each.value
 }
 
+# Attach to the Qovery cluster network by default, mirroring the native managed
+# database template (engine: aws/services/*/main.j2.tf). Cluster bootstrap tags
+# the cluster VPC with ClusterId = <cluster short id> and creates an RDS subnet
+# group named after the VPC id. Lookups are skipped when the user overrides the
+# value or when adopting an existing instance: both attributes are
+# Optional+Computed in the AWS provider, so null keeps the live values.
+data "aws_vpc" "cluster" {
+  count = var.db_subnet_group_name == "" && var.import_identifier == "" ? 1 : 0
+
+  filter {
+    name   = "tag:ClusterId"
+    values = [var.qovery_cluster_id]
+  }
+}
+
+data "aws_security_group" "cluster_workers" {
+  count = var.security_group_ids == "" && var.import_identifier == "" ? 1 : 0
+
+  filter {
+    name   = "tag:Name"
+    values = ["qovery-${var.qovery_cluster_id}-sg-workers", "qovery-eks-workers"]
+  }
+
+  filter {
+    name   = "tag:kubernetes.io/cluster/qovery-${var.qovery_cluster_id}"
+    values = ["owned"]
+  }
+}
+
+locals {
+  db_subnet_group_name = (
+    var.db_subnet_group_name != "" ? var.db_subnet_group_name
+    : var.import_identifier != "" ? null
+    : data.aws_vpc.cluster[0].id
+  )
+  vpc_security_group_ids = (
+    var.security_group_ids != "" ? [for id in split(",", var.security_group_ids) : trimspace(id)]
+    : var.import_identifier != "" ? null
+    : [data.aws_security_group.cluster_workers[0].id]
+  )
+}
+
 resource "aws_db_instance" "this" {
   # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
   identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
@@ -67,9 +109,10 @@ resource "aws_db_instance" "this" {
   ca_cert_identifier   = var.ca_cert_identifier
 
   # Network
-  multi_az             = var.multi_az
-  publicly_accessible  = var.publicly_accessible
-  db_subnet_group_name = var.db_subnet_group_name == "" ? null : var.db_subnet_group_name
+  multi_az               = var.multi_az
+  publicly_accessible    = var.publicly_accessible
+  db_subnet_group_name   = local.db_subnet_group_name
+  vpc_security_group_ids = local.vpc_security_group_ids
 
   # Maintenance / upgrades
   apply_immediately           = var.apply_changes_now

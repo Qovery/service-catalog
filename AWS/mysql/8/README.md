@@ -29,11 +29,14 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 
 ### Network
 
-| Name                   | Type   | Default | Description                                                |
-| ---------------------- | ------ | ------- | ---------------------------------------------------------- |
-| `multi_az`             | bool   | `false` | Enable Multi-AZ deployment                                 |
-| `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                 |
-| `db_subnet_group_name` | string | `""`    | Optional DB subnet group. Empty = AWS default for the VPC. |
+| Name                   | Type   | Default | Description                                                                                              |
+| ---------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------- |
+| `multi_az`             | bool   | `false` | Enable Multi-AZ deployment                                                                               |
+| `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                                                               |
+| `db_subnet_group_name` | string | `""`    | Optional DB subnet group override. Empty = the Qovery cluster DB subnet group.                           |
+| `security_group_ids`   | string | `""`    | Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group. |
+
+By default the instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve; set `db_subnet_group_name` and `security_group_ids` explicitly in that case.
 
 ### Maintenance & upgrades
 
