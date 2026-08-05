@@ -44,12 +44,12 @@ import {
   id       = each.value
 }
 
-# Attach to the Qovery cluster network by default, mirroring the native managed
-# database template (engine: aws/services/*/main.j2.tf). Cluster bootstrap tags
-# the cluster VPC with ClusterId = <cluster short id> and creates an RDS subnet
-# group named after the VPC id. Lookups are skipped when the user overrides the
-# value or when adopting an existing instance: both attributes are
-# Optional+Computed in the AWS provider, so null keeps the live values.
+# Attach to the Qovery cluster network by default, like native managed
+# databases. Cluster bootstrap tags the cluster VPC with
+# ClusterId = <cluster short id> and creates an RDS subnet group named after
+# the VPC id. Lookups are skipped when the user overrides the value or when
+# adopting an existing instance: both attributes are Optional+Computed in the
+# AWS provider, so null keeps the live values.
 data "aws_vpc" "cluster" {
   count = var.db_subnet_group_name == "" && var.import_identifier == "" ? 1 : 0
 
