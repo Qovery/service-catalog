@@ -349,3 +349,42 @@ variable "dedicated_log_volume" {
   default     = false
   description = "Provision a dedicated EBS volume for database logs"
 }
+
+# Read replicas — same-region, read-only copies of the primary. Point analytics tools
+# (Metabase, Superset, BI dashboards, ad-hoc reporting) at the replica endpoints to keep
+# heavy read traffic off the primary. AWS replicates asynchronously, so replicas are
+# eventually consistent — fine for analytics, not for read-after-write.
+variable "read_replica_count" {
+  type        = number
+  default     = 0
+  description = "Number of same-region read replicas to create (0 disables). RDS PostgreSQL allows up to 15."
+
+  validation {
+    condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15
+    error_message = "read_replica_count must be between 0 and 15."
+  }
+
+  validation {
+    # AWS refuses to create a read replica unless the source has automated backups enabled.
+    condition     = var.read_replica_count == 0 || var.backup_retention_period > 0
+    error_message = "read replicas require automated backups on the primary: set backup_retention_period > 0."
+  }
+}
+
+variable "read_replica_instance_class" {
+  type        = string
+  default     = ""
+  description = "Instance class for read replicas. Empty = same as the primary (instance_class). Analytics workloads often want a larger class here."
+}
+
+variable "read_replica_publicly_accessible" {
+  type        = bool
+  default     = false
+  description = "Expose read replicas to the public internet. Keep false unless an external analytics tool must reach them directly."
+}
+
+variable "read_replica_multi_az" {
+  type        = bool
+  default     = false
+  description = "Enable Multi-AZ for read replicas (higher availability, roughly doubles their cost)."
+}

@@ -1,6 +1,8 @@
-# AWS RDS PostgreSQL 14
+# AWS RDS PostgreSQL 17 — read replica (testing)
 
-Creates an AWS RDS PostgreSQL 14 instance with configurable instance class, storage, backups, maintenance window, monitoring, and network settings. Storage is encrypted by default.
+> **Testing blueprint.** A variant of `AWS/postgres/17` that provisions a read replica by default (`read_replica_count` defaults to `1`). Kept as a separate version directory so the replica behavior can be tried without touching the stable PostgreSQL 17 blueprint.
+
+Creates an AWS RDS PostgreSQL 17 instance **plus a read replica by default** with configurable instance class, storage, backups, maintenance window, monitoring, and network settings. Storage is encrypted by default. Point analytics / BI tools (Metabase, Superset, dashboards) at the replica endpoint (`read_replica_endpoints` output) so heavy reads stay off the primary. Set `read_replica_count = 0` to disable, or raise it (max 15) for more.
 
 The RDS identifier is derived from `db_name` by lowercasing and replacing underscores with hyphens (AWS requirement). The actual PostgreSQL database name is kept as provided.
 

@@ -3,8 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "2.0.0"
-  description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, and network"
+  version: "2.1.0"
+  description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
   categories:
@@ -262,6 +262,28 @@ spec:
       required: false
       default: "false"
       description: "Provision a dedicated EBS volume for database logs (RDS feature)"
+    - name: "read_replica_count"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Number of same-region read replicas (0 disables; max 15). Point analytics tools (Metabase, BI dashboards) at the replica endpoints to offload reads. Requires backup_retention_period > 0."
+      min: 0
+      max: 15
+    - name: "read_replica_instance_class"
+      type: "string"
+      required: false
+      default: ""
+      description: "Instance class for read replicas. Empty = same as the primary. Analytics workloads often want a larger class here."
+    - name: "read_replica_publicly_accessible"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Expose read replicas to the public internet. Keep false unless an external analytics tool must reach them directly."
+    - name: "read_replica_multi_az"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Enable Multi-AZ for read replicas (higher availability, roughly doubles their cost)."
 
   outputs:
     - name: "db_identifier"
@@ -285,3 +307,9 @@ spec:
       description: "RDS instance ARN"
     - name: "db_engine_version_actual"
       description: "Engine version actually running (may include the minor AWS chose)"
+    - name: "read_replica_identifiers"
+      description: "Read replica instance identifiers (empty when read_replica_count = 0)"
+    - name: "read_replica_endpoints"
+      description: "Read replica endpoints (host:port) — point analytics / read-only clients here"
+    - name: "read_replica_addresses"
+      description: "Read replica hostnames"

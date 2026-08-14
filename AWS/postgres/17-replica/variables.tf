@@ -356,8 +356,8 @@ variable "dedicated_log_volume" {
 # eventually consistent — fine for analytics, not for read-after-write.
 variable "read_replica_count" {
   type        = number
-  default     = 0
-  description = "Number of same-region read replicas to create (0 disables). RDS PostgreSQL allows up to 15."
+  default     = 1
+  description = "Number of same-region read replicas to create (0 disables). RDS PostgreSQL allows up to 15. Defaults to 1 for this testing blueprint."
 
   validation {
     condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15

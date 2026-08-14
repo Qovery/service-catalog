@@ -48,3 +48,18 @@ output "db_engine_version_actual" {
   description = "Engine version actually running (may include the minor AWS chose)"
   value       = aws_db_instance.this.engine_version_actual
 }
+
+output "read_replica_identifiers" {
+  description = "Read replica instance identifiers (empty when read_replica_count = 0)"
+  value       = aws_db_instance.read_replica[*].identifier
+}
+
+output "read_replica_endpoints" {
+  description = "Read replica endpoints (host:port) — point analytics / read-only clients here"
+  value       = aws_db_instance.read_replica[*].endpoint
+}
+
+output "read_replica_addresses" {
+  description = "Read replica hostnames"
+  value       = aws_db_instance.read_replica[*].address
+}

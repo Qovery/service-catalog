@@ -154,3 +154,77 @@ resource "aws_db_instance" "this" {
     ]
   }
 }
+
+# Same-region read replicas. Each is an asynchronous read-only copy of the primary; point
+# analytics / BI tools at their endpoints to offload heavy reads. Replicas inherit engine
+# version, storage size, storage type, and encryption from the source — those attributes
+# cannot be set on a same-region replica, so they are intentionally absent here. A replica
+# also has no db_name / username / password of its own (it shares the primary's).
+resource "aws_db_instance" "read_replica" {
+  count = var.read_replica_count
+
+  # Identifier: primary base (already lowercased, underscores → hyphens) capped so the
+  # "-replica-N" suffix keeps the total within the 63-char RDS limit.
+  identifier          = "${substr(replace(lower(var.db_name), "_", "-"), 0, 50)}-replica-${count.index + 1}"
+  replicate_source_db = aws_db_instance.this.identifier
+
+  instance_class = var.read_replica_instance_class != "" ? var.read_replica_instance_class : var.instance_class
+  port           = var.port
+
+  ca_cert_identifier = var.ca_cert_identifier
+
+  # Network. A same-region replica inherits the source's subnet group, so only the security
+  # group and public exposure are set here — same cluster-workers SG the primary attaches to.
+  multi_az               = var.read_replica_multi_az
+  publicly_accessible    = var.read_replica_publicly_accessible
+  vpc_security_group_ids = local.vpc_security_group_ids
+
+  # Maintenance / upgrades — mirror the primary.
+  apply_immediately          = var.apply_changes_now
+  auto_minor_version_upgrade = var.auto_minor_version_upgrade
+  maintenance_window         = var.preferred_maintenance_window
+
+  # Replicas don't take a final snapshot on deletion.
+  skip_final_snapshot   = true
+  copy_tags_to_snapshot = var.copy_tags_to_snapshot
+
+  # Monitoring — mirror the primary.
+  performance_insights_enabled          = var.performance_insights_enabled
+  performance_insights_retention_period = var.performance_insights_enabled ? var.performance_insights_retention_period : null
+  monitoring_interval                   = var.monitoring_interval
+  monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
+
+  deletion_protection = var.deletion_protection
+
+  tags = {
+    Name          = "${var.db_name}-replica-${count.index + 1}"
+    ManagedBy     = "qovery-blueprint"
+    Blueprint     = "aws-rds-postgresql"
+    ClusterName   = var.qovery_cluster_name
+    ServiceFamily = "postgres"
+    Role          = "read-replica"
+
+    # Native-parity tags injected by the engine via TF_VAR_qovery_*. cluster_id is what the YACE
+    # CloudWatch exporter filters on for DB metrics; the rest mirror the native database_tags.
+    cluster_id            = var.qovery_cluster_id
+    cluster_long_id       = var.qovery_cluster_long_id
+    region                = var.region
+    q_client_id           = var.qovery_client_id
+    q_environment_id      = var.qovery_environment_id
+    q_environment_long_id = var.qovery_environment_long_id
+    q_project_id          = var.qovery_project_id
+    q_project_long_id     = var.qovery_project_long_id
+    "aws-apn-id"          = var.qovery_aws_apn_id
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # Same rationale as the primary above.
+      engine_version,
+      enabled_cloudwatch_logs_exports,
+      parameter_group_name,
+      max_allocated_storage,
+      tags,
+    ]
+  }
+}
