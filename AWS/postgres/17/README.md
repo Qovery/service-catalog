@@ -36,6 +36,17 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 
 By default the instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve; set `db_subnet_group_name` and `security_group_ids` explicitly in that case.
 
+### Read replicas
+
+| Name                               | Type   | Default | Description                                                                            |
+| ---------------------------------- | ------ | ------- | -------------------------------------------------------------------------------------- |
+| `read_replica_count`               | number | `0`     | Number of same-region read replicas (0 disables; max 15). Requires backups enabled.    |
+| `read_replica_instance_class`      | string | `""`    | Instance class for replicas. Empty = same as the primary.                              |
+| `read_replica_publicly_accessible` | bool   | `false` | Expose replicas to the public internet.                                                |
+| `read_replica_multi_az`            | bool   | `false` | Enable Multi-AZ for replicas.                                                           |
+
+Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC.
+
 ### Maintenance & upgrades
 
 | Name                           | Type   | Default               | Description                                          |
@@ -88,6 +99,9 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | `db_resource_id`           |           | RDS internal resource ID (used in IAM DB auth ARNs)        |
 | `db_arn`                   |           | RDS instance ARN                                           |
 | `db_engine_version_actual` |           | Engine version actually running (incl. AWS-chosen minor)   |
+| `read_replica_identifiers` |           | Read replica instance identifiers (empty when count = 0)   |
+| `read_replica_endpoints`   |           | Read replica endpoints (host:port) for read-only clients   |
+| `read_replica_addresses`   |           | Read replica hostnames                                     |
 
 ## Lifecycle ignore_changes
 
@@ -110,6 +124,7 @@ The credentials used to deploy this blueprint must allow the actions below. The 
       "Effect": "Allow",
       "Action": [
         "rds:CreateDBInstance",
+        "rds:CreateDBInstanceReadReplica",
         "rds:DeleteDBInstance",
         "rds:ModifyDBInstance",
         "rds:DescribeDBInstances",
