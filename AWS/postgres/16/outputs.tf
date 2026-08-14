@@ -63,3 +63,30 @@ output "read_replica_addresses" {
   description = "Read replica hostnames"
   value       = aws_db_instance.read_replica[*].address
 }
+
+# Per-replica host / port / identifier as maps with numbered keys. Terraform can't name
+# output blocks dynamically, so the dynamic part lives in the map keys: exactly one entry
+# per replica, in order, empty ({}) when read_replica_count = 0.
+output "read_replica_hosts" {
+  description = "Map of read replica hostnames keyed read_replica_host_1, read_replica_host_2, ... (empty when read_replica_count = 0)"
+  value = {
+    for i, r in aws_db_instance.read_replica :
+    "read_replica_host_${i + 1}" => r.address
+  }
+}
+
+output "read_replica_ports" {
+  description = "Map of read replica ports keyed read_replica_port_1, read_replica_port_2, ... (empty when read_replica_count = 0)"
+  value = {
+    for i, r in aws_db_instance.read_replica :
+    "read_replica_port_${i + 1}" => r.port
+  }
+}
+
+output "read_replica_ids" {
+  description = "Map of read replica instance identifiers keyed read_replica_identifier_1, read_replica_identifier_2, ... (empty when read_replica_count = 0)"
+  value = {
+    for i, r in aws_db_instance.read_replica :
+    "read_replica_identifier_${i + 1}" => r.identifier
+  }
+}
