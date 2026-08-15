@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "2.1.0"
+  version: "2.2.0"
   description: "AWS RDS PostgreSQL 14 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -313,3 +313,9 @@ spec:
       description: "Read replica endpoints (host:port) — point analytics / read-only clients here"
     - name: "read_replica_addresses"
       description: "Read replica hostnames"
+    - name: "read_replica_hosts"
+      description: "Map of read replica hostnames keyed read_replica_host_1, read_replica_host_2, ... (empty when read_replica_count = 0)"
+    - name: "read_replica_ports"
+      description: "Map of read replica ports keyed read_replica_port_1, read_replica_port_2, ... (empty when read_replica_count = 0)"
+    - name: "read_replica_ids"
+      description: "Map of read replica instance identifiers keyed read_replica_identifier_1, read_replica_identifier_2, ... (empty when read_replica_count = 0)"
