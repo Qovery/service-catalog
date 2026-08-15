@@ -225,6 +225,12 @@ resource "aws_db_instance" "read_replica" {
       parameter_group_name,
       max_allocated_storage,
       tags,
+      # A same-region replica inherits encryption from the source and never sets
+      # storage_encrypted here, but the provider stores it as true in state and then reads
+      # config as null on the next plan — a phantom true->null diff that force-replaces the
+      # replica on every apply (hashicorp/terraform-provider-aws#31325). Encryption is
+      # immutable on a replica, so ignoring the attribute is correct and stops the churn.
+      storage_encrypted,
     ]
   }
 }
