@@ -102,9 +102,9 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | `read_replica_identifiers` |           | Read replica instance identifiers (empty when count = 0)   |
 | `read_replica_endpoints`   |           | Read replica endpoints (host:port) for read-only clients   |
 | `read_replica_addresses`   |           | Read replica hostnames                                     |
-| `read_replica_hosts`       |           | Map of hostnames keyed `read_replica_host_1`, `_2`, …      |
-| `read_replica_ports`       |           | Map of ports keyed `read_replica_port_1`, `_2`, …          |
-| `read_replica_ids`         |           | Map of identifiers keyed `read_replica_identifier_1`, …    |
+| `read_replica_host_1..5`       |       | Per-replica hostname, one output each (empty if not provisioned) |
+| `read_replica_port_1..5`       |       | Per-replica port, one output each (empty if not provisioned)     |
+| `read_replica_identifier_1..5` |       | Per-replica instance identifier, one output each                 |
 
 ## Lifecycle ignore_changes
 
