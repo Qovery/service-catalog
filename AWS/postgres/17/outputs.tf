@@ -64,29 +64,81 @@ output "read_replica_addresses" {
   value       = aws_db_instance.read_replica[*].address
 }
 
-# Per-replica host / port / identifier as maps with numbered keys. Terraform can't name
-# output blocks dynamically, so the dynamic part lives in the map keys: exactly one entry
-# per replica, in order, empty ({}) when read_replica_count = 0.
-output "read_replica_hosts" {
-  description = "Map of read replica hostnames keyed read_replica_host_1, read_replica_host_2, ... (empty when read_replica_count = 0)"
-  value = {
-    for i, r in aws_db_instance.read_replica :
-    "read_replica_host_${i + 1}" => r.address
-  }
+# Per-replica host / port / identifier as individual outputs so each surfaces as its own
+# env var (READ_REPLICA_HOST_1, ...) instead of a JSON map. Terraform can't name output
+# blocks dynamically, so they're pre-declared for up to 5 replicas; slots beyond the
+# current read_replica_count return "" (try() falls back when the index doesn't exist).
+output "read_replica_host_1" {
+  description = "Read replica 1 hostname (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[0].address, "")
 }
 
-output "read_replica_ports" {
-  description = "Map of read replica ports keyed read_replica_port_1, read_replica_port_2, ... (empty when read_replica_count = 0)"
-  value = {
-    for i, r in aws_db_instance.read_replica :
-    "read_replica_port_${i + 1}" => r.port
-  }
+output "read_replica_host_2" {
+  description = "Read replica 2 hostname (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[1].address, "")
 }
 
-output "read_replica_ids" {
-  description = "Map of read replica instance identifiers keyed read_replica_identifier_1, read_replica_identifier_2, ... (empty when read_replica_count = 0)"
-  value = {
-    for i, r in aws_db_instance.read_replica :
-    "read_replica_identifier_${i + 1}" => r.identifier
-  }
+output "read_replica_host_3" {
+  description = "Read replica 3 hostname (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[2].address, "")
+}
+
+output "read_replica_host_4" {
+  description = "Read replica 4 hostname (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[3].address, "")
+}
+
+output "read_replica_host_5" {
+  description = "Read replica 5 hostname (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[4].address, "")
+}
+
+output "read_replica_port_1" {
+  description = "Read replica 1 port (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[0].port, "")
+}
+
+output "read_replica_port_2" {
+  description = "Read replica 2 port (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[1].port, "")
+}
+
+output "read_replica_port_3" {
+  description = "Read replica 3 port (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[2].port, "")
+}
+
+output "read_replica_port_4" {
+  description = "Read replica 4 port (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[3].port, "")
+}
+
+output "read_replica_port_5" {
+  description = "Read replica 5 port (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[4].port, "")
+}
+
+output "read_replica_identifier_1" {
+  description = "Read replica 1 instance identifier (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[0].identifier, "")
+}
+
+output "read_replica_identifier_2" {
+  description = "Read replica 2 instance identifier (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[1].identifier, "")
+}
+
+output "read_replica_identifier_3" {
+  description = "Read replica 3 instance identifier (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[2].identifier, "")
+}
+
+output "read_replica_identifier_4" {
+  description = "Read replica 4 instance identifier (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[3].identifier, "")
+}
+
+output "read_replica_identifier_5" {
+  description = "Read replica 5 instance identifier (empty if not provisioned)"
+  value       = try(aws_db_instance.read_replica[4].identifier, "")
 }
