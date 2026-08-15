@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-15T09:14:06Z",
+  "generatedAt": "2026-08-15T17:31:32Z",
   "blueprints": [
     {
       "name": "aws-rds-mysql",
@@ -52,7 +52,7 @@
         },
         {
           "serviceVersion": "17-replica",
-          "latestTag": "AWS/postgres/17-replica/1.1.0"
+          "latestTag": "AWS/postgres/17-replica/1.2.0"
         }
       ]
     },
