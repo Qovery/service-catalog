@@ -1,0 +1,100 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "planetscale-database"
+  version: "1.0.0"
+  description: "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider"
+  icon: "app://qovery-console/planetscale"
+  serviceFamily: "mysql"
+  categories:
+    - "database"
+    - "mysql"
+    - "planetscale"
+
+spec:
+  engine:
+    type: terraform
+    provider: PLANETSCALE
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "planetscale_service_token_id"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "PlanetScale service token ID"
+    - name: "planetscale_service_token"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "PlanetScale service token"
+    - name: "organization"
+      type: "string"
+      required: true
+      description: "PlanetScale organization name"
+    - name: "database_name"
+      type: "string"
+      required: true
+      description: "Database name. Created implicitly with the first branch (destroying the last branch destroys the database)."
+      pattern: "^[a-zA-Z0-9_-]{1,64}$"
+    - name: "branch_name"
+      type: "string"
+      required: false
+      default: "main"
+      description: "Production branch name to create in the database"
+    - name: "cluster_size"
+      type: "string"
+      required: false
+      default: ""
+      description: "Vitess production cluster size (e.g. PS-10, PS-20). Empty = provider/plan default."
+    - name: "region"
+      type: "string"
+      required: false
+      default: ""
+      description: "PlanetScale region slug for the branch (e.g. us-east). Empty = organization default."
+    - name: "role"
+      type: "string"
+      required: false
+      default: "readwriter"
+      description: "Access role for the generated password"
+      allowedValues:
+        - "reader"
+        - "writer"
+        - "readwriter"
+        - "admin"
+
+  outputs:
+    - name: "database_name"
+      description: "Database name"
+    - name: "branch_name"
+      description: "Production branch name"
+    - name: "mysql_address"
+      description: "MySQL address for the branch"
+    - name: "mysql_edge_address"
+      description: "MySQL edge address for the branch"
+    - name: "access_host_url"
+      description: "Connection host for the generated password"
+    - name: "username"
+      description: "Generated database username"
+    - name: "password"
+      description: "Generated database password (only available at creation time)"
+      sensitive: true
+    - name: "connection_uri"
+      description: "Ready-to-use MySQL connection URI with credentials embedded"
+      sensitive: true

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T20:57:55Z",
+  "generatedAt": "2026-08-20T20:59:11Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -178,6 +178,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "MONGODB/atlas/default/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "planetscale-database",
+      "kind": "ServiceBlueprint",
+      "description": "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider",
+      "icon": "app://qovery-console/planetscale",
+      "categories": [
+        "database",
+        "mysql",
+        "planetscale"
+      ],
+      "provider": "PLANETSCALE",
+      "serviceFamily": "mysql",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "PLANETSCALE/database/default/1.0.0"
         }
       ]
     },
