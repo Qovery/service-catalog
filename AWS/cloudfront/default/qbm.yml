@@ -1,0 +1,160 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-cloudfront"
+  version: "1.0.0"
+  description: "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions"
+  icon: "app://qovery-console/cloudfront"
+  serviceFamily: "cdn"
+  categories:
+    - "cdn"
+    - "aws"
+    - "cloudfront"
+
+spec:
+  engine:
+    type: terraform
+    provider: AWS
+    terraform:
+      version: "1.9.7"
+      # Pinned to 1.9+: the blueprint uses cross-variable validation (aliases references acm_certificate_arn).
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
+  variables:
+    - name: "origin_domain_name"
+      type: "string"
+      required: true
+      description: "Origin hostname CloudFront pulls from (e.g. an ALB, app host, or S3 website endpoint). Bare hostname, no scheme or path."
+    - name: "comment"
+      type: "string"
+      required: false
+      default: "Managed by Qovery blueprint"
+      description: "Distribution comment shown in the AWS console"
+    - name: "enabled"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Whether the distribution accepts end-user requests"
+    - name: "is_ipv6_enabled"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Enable IPv6 for the distribution"
+    - name: "default_root_object"
+      type: "string"
+      required: false
+      default: ""
+      description: "Object returned for requests to the root URL (e.g. index.html). Empty = none."
+    - name: "price_class"
+      type: "string"
+      required: false
+      default: "PriceClass_100"
+      description: "Edge location price class"
+      allowedValues:
+        - "PriceClass_100"
+        - "PriceClass_200"
+        - "PriceClass_All"
+    - name: "origin_protocol_policy"
+      type: "string"
+      required: false
+      default: "https-only"
+      description: "How CloudFront connects to the origin"
+      allowedValues:
+        - "http-only"
+        - "https-only"
+        - "match-viewer"
+    - name: "origin_http_port"
+      type: "number"
+      required: false
+      default: "80"
+      description: "Origin HTTP port"
+    - name: "origin_https_port"
+      type: "number"
+      required: false
+      default: "443"
+      description: "Origin HTTPS port"
+    - name: "viewer_protocol_policy"
+      type: "string"
+      required: false
+      default: "redirect-to-https"
+      description: "How viewers connect to CloudFront"
+      allowedValues:
+        - "allow-all"
+        - "https-only"
+        - "redirect-to-https"
+    - name: "min_ttl"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Minimum cache TTL in seconds"
+    - name: "default_ttl"
+      type: "number"
+      required: false
+      default: "3600"
+      description: "Default cache TTL in seconds"
+    - name: "max_ttl"
+      type: "number"
+      required: false
+      default: "86400"
+      description: "Maximum cache TTL in seconds (must be >= min_ttl)"
+    - name: "aliases"
+      type: "string"
+      required: false
+      default: ""
+      description: "Comma-separated custom domain names (CNAMEs). Requires acm_certificate_arn. Empty = use the default *.cloudfront.net domain."
+    - name: "acm_certificate_arn"
+      type: "string"
+      required: false
+      default: ""
+      description: "ACM certificate ARN for the custom domains. Must be in us-east-1. Empty = default CloudFront certificate."
+    - name: "geo_restriction_type"
+      type: "string"
+      required: false
+      default: "none"
+      description: "Geo restriction mode"
+      allowedValues:
+        - "none"
+        - "whitelist"
+        - "blacklist"
+    - name: "geo_restriction_locations"
+      type: "string"
+      required: false
+      default: ""
+      description: "Comma-separated ISO 3166-1-alpha-2 country codes (e.g. US,FR). Required when geo_restriction_type is not none."
+
+  outputs:
+    - name: "distribution_id"
+      description: "CloudFront distribution ID"
+    - name: "distribution_arn"
+      description: "CloudFront distribution ARN"
+    - name: "domain_name"
+      description: "CloudFront domain name (the *.cloudfront.net hostname to point traffic at)"
+    - name: "url"
+      description: "Full HTTPS URL of the distribution (https://<domain_name>)"
+    - name: "hosted_zone_id"
+      description: "CloudFront hosted zone ID (use for a Route53 alias record)"
+    - name: "status"
+      description: "Distribution deployment status"
+    - name: "etag"
+      description: "Current version identifier (ETag) of the distribution"
