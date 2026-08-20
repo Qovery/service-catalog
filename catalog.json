@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T20:59:11Z",
+  "generatedAt": "2026-08-20T21:18:34Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -123,6 +123,44 @@
         {
           "serviceVersion": "default",
           "latestTag": "CLOUDFLARE/workers/default/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "helm-datadog",
+      "kind": "ServiceBlueprint",
+      "description": "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart",
+      "icon": "app://qovery-console/datadog",
+      "categories": [
+        "monitoring",
+        "observability",
+        "datadog"
+      ],
+      "provider": "HELM",
+      "serviceFamily": "monitoring",
+      "majorVersions": [
+        {
+          "serviceVersion": "7",
+          "latestTag": "HELM/datadog/7/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "helm-newrelic",
+      "kind": "ServiceBlueprint",
+      "description": "New Relic Kubernetes monitoring (infrastructure agent, kube-state-metrics, events, optional logs) via the official nri-bundle Helm chart",
+      "icon": "app://qovery-console/newrelic",
+      "categories": [
+        "monitoring",
+        "observability",
+        "newrelic"
+      ],
+      "provider": "HELM",
+      "serviceFamily": "monitoring",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "HELM/newrelic/default/1.0.0"
         }
       ]
     },

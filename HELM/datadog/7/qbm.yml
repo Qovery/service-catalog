@@ -1,0 +1,77 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "helm-datadog"
+  version: "1.0.0"
+  description: "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart"
+  icon: "app://qovery-console/datadog"
+  serviceFamily: "monitoring"
+  categories:
+    - "monitoring"
+    - "observability"
+    - "datadog"
+
+spec:
+  engine:
+    type: helm
+    chart:
+      repository: "https://helm.datadoghq.com"
+      name: "datadog"
+      version: "3.240.0"
+    arguments: []
+    # Datadog deploys a per-node DaemonSet plus ClusterRole/ClusterRoleBinding and a
+    # cluster agent — all cluster-scoped resources.
+    allowClusterWideResources: true
+
+  variables:
+    - name: "datadog_api_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Datadog API key (Organization Settings → API Keys)"
+    - name: "datadog_site"
+      type: "string"
+      required: false
+      default: "datadoghq.com"
+      description: "Datadog site your account belongs to"
+      allowedValues:
+        - "datadoghq.com"
+        - "us3.datadoghq.com"
+        - "us5.datadoghq.com"
+        - "datadoghq.eu"
+        - "ap1.datadoghq.com"
+        - "ddog-gov.com"
+    - name: "cluster_name"
+      type: "string"
+      required: false
+      default: "qovery-cluster"
+      description: "Cluster name tag applied to all Datadog telemetry (lowercase RFC1123, e.g. prod-eu)"
+      pattern: "^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$"
+    - name: "enable_logs"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Collect container logs from all pods"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "enable_apm"
+      type: "string"
+      required: false
+      default: "false"
+      description: "Enable the APM trace-agent port for application tracing"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "agent_memory"
+      type: "string"
+      required: false
+      default: "512Mi"
+      description: "Memory request/limit for the node agent container (valid Kubernetes quantity)"
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
+
+  outputs:
+    - name: "datadog_cluster_agent_service"
+      description: "In-cluster Datadog cluster-agent service name"
+      sensitive: false
