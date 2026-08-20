@@ -1,7 +1,26 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-15T18:54:28Z",
+  "generatedAt": "2026-08-20T16:47:53Z",
   "blueprints": [
+    {
+      "name": "aws-cloudfront",
+      "kind": "ServiceBlueprint",
+      "description": "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions",
+      "icon": "app://qovery-console/cloudfront",
+      "categories": [
+        "cdn",
+        "aws",
+        "cloudfront"
+      ],
+      "provider": "AWS",
+      "serviceFamily": "cdn",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "AWS/cloudfront/default/1.0.0"
+        }
+      ]
+    },
     {
       "name": "aws-rds-mysql",
       "kind": "ServiceBlueprint",
