@@ -1,0 +1,108 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "timescale-cloud-service"
+  version: "1.0.0"
+  description: "Provision a Timescale Cloud (TimescaleDB/Postgres) service with configurable CPU, memory, and HA replicas, via the Timescale Terraform provider"
+  icon: "app://qovery-console/timescaledb"
+  serviceFamily: "timescaledb"
+  categories:
+    - "database"
+    - "postgresql"
+    - "timescaledb"
+
+spec:
+  engine:
+    type: terraform
+    provider: TIMESCALE
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "timescale_project_id"
+      type: "string"
+      required: true
+      description: "Timescale Cloud project ID"
+    - name: "timescale_access_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Timescale Cloud client credentials — access key"
+    - name: "timescale_secret_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Timescale Cloud client credentials — secret key"
+    - name: "service_name"
+      type: "string"
+      required: true
+      description: "Timescale service name (1-128 chars)"
+    - name: "region_code"
+      type: "string"
+      required: false
+      default: "us-east-1"
+      description: "Region for the service (AWS-style code, e.g. us-east-1, eu-west-1)"
+    - name: "milli_cpu"
+      type: "number"
+      required: false
+      default: "500"
+      description: "CPU allocation in milli-CPU. Must pair with memory_gb per Timescale's allowed sizes."
+      allowedValues:
+        - "500"
+        - "1000"
+        - "2000"
+        - "4000"
+        - "8000"
+        - "16000"
+        - "32000"
+    - name: "memory_gb"
+      type: "number"
+      required: false
+      default: "2"
+      description: "Memory in GB. Timescale pairs this with milli_cpu (500m/2GB, 1000m/4GB, 2000m/8GB, ...)."
+      allowedValues:
+        - "2"
+        - "4"
+        - "8"
+        - "16"
+        - "32"
+        - "64"
+        - "128"
+    - name: "ha_replicas"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Number of high-availability replicas (0-2)"
+      min: 0
+      max: 2
+
+  outputs:
+    - name: "service_id"
+      description: "Timescale service ID"
+    - name: "hostname"
+      description: "Service hostname"
+    - name: "port"
+      description: "Service port"
+    - name: "username"
+      description: "Master database username"
+    - name: "password"
+      description: "Master database password"
+      sensitive: true
+    - name: "connection_uri"
+      description: "Ready-to-use PostgreSQL connection URI with credentials embedded (database: tsdb, TLS required)"
+      sensitive: true
