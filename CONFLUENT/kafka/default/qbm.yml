@@ -1,0 +1,97 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "confluent-kafka"
+  version: "1.0.0"
+  description: "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider"
+  icon: "app://qovery-console/kafka"
+  serviceFamily: "kafka"
+  categories:
+    - "streaming"
+    - "kafka"
+    - "confluent"
+
+spec:
+  engine:
+    type: terraform
+    provider: CONFLUENT
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "confluent_cloud_api_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Confluent Cloud API key (Cloud-level, used by the provider)"
+    - name: "confluent_cloud_api_secret"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Confluent Cloud API secret"
+    - name: "environment_name"
+      type: "string"
+      required: false
+      default: "qovery"
+      description: "Confluent environment display name to create"
+    - name: "cluster_name"
+      type: "string"
+      required: true
+      description: "Kafka cluster display name (max 64 chars)"
+    - name: "availability"
+      type: "string"
+      required: false
+      default: "SINGLE_ZONE"
+      description: "Cluster availability"
+      allowedValues:
+        - "SINGLE_ZONE"
+        - "MULTI_ZONE"
+    - name: "cloud"
+      type: "string"
+      required: false
+      default: "AWS"
+      description: "Cloud provider hosting the cluster"
+      allowedValues:
+        - "AWS"
+        - "AZURE"
+        - "GCP"
+    - name: "region"
+      type: "string"
+      required: false
+      default: "us-east-2"
+      description: "Cloud region for the cluster (e.g. us-east-2 for AWS)"
+    - name: "service_account_name"
+      type: "string"
+      required: false
+      default: "qovery-app"
+      description: "Service account display name for the generated client API key"
+
+  outputs:
+    - name: "environment_id"
+      description: "Confluent environment ID"
+    - name: "cluster_id"
+      description: "Kafka cluster ID (lkc-...)"
+    - name: "bootstrap_endpoint"
+      description: "Kafka bootstrap endpoint (connect target)"
+    - name: "rest_endpoint"
+      description: "Kafka REST proxy endpoint"
+    - name: "kafka_api_key"
+      description: "Client Kafka API key (SASL username)"
+    - name: "kafka_api_secret"
+      description: "Client Kafka API secret (SASL password)"
+      sensitive: true

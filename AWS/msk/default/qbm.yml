@@ -1,0 +1,68 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-msk"
+  version: "1.0.0"
+  description: "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network"
+  icon: "app://qovery-console/kafka"
+  serviceFamily: "msk"
+  categories:
+    - "streaming"
+    - "kafka"
+    - "aws"
+
+spec:
+  engine:
+    type: terraform
+    provider: AWS
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
+  variables:
+    - name: "cluster_name"
+      type: "string"
+      required: true
+      description: "MSK Serverless cluster name (letters, digits, dots, hyphens, underscores; max 64)"
+      pattern: "^[a-zA-Z0-9._-]{1,64}$"
+    - name: "subnet_ids"
+      type: "string"
+      required: false
+      default: ""
+      description: "Optional comma-separated subnet IDs override. Empty = auto-discover the Qovery cluster VPC subnets."
+    - name: "security_group_ids"
+      type: "string"
+      required: false
+      default: ""
+      description: "Optional comma-separated security group IDs override. Empty = the Qovery cluster workers security group."
+
+  outputs:
+    - name: "cluster_arn"
+      description: "MSK Serverless cluster ARN"
+    - name: "cluster_name"
+      description: "MSK Serverless cluster name"
+    - name: "cluster_uuid"
+      description: "MSK cluster UUID (used in IAM resource ARNs)"
+    - name: "bootstrap_brokers_sasl_iam"
+      description: "Bootstrap broker endpoints for SASL/IAM clients (connect target)"

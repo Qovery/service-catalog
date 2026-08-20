@@ -1,0 +1,79 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aiven-kafka"
+  version: "1.0.0"
+  description: "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider"
+  icon: "app://qovery-console/kafka"
+  serviceFamily: "kafka"
+  categories:
+    - "streaming"
+    - "kafka"
+    - "aiven"
+
+spec:
+  engine:
+    type: terraform
+    provider: AIVEN
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "aiven_api_token"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Aiven API token (personal or application token)"
+    - name: "project"
+      type: "string"
+      required: true
+      description: "Existing Aiven project name the service is created in"
+    - name: "service_name"
+      type: "string"
+      required: true
+      description: "Aiven service name (immutable; lowercase letters, digits, hyphens; max 64)"
+      pattern: "^[a-z][a-z0-9-]{0,63}$"
+    - name: "cloud_name"
+      type: "string"
+      required: false
+      default: "aws-eu-west-1"
+      description: "Aiven cloud/region, formatted <provider>-<region> (e.g. aws-eu-west-1)"
+    - name: "plan"
+      type: "string"
+      required: false
+      default: "startup-2"
+      description: "Aiven service plan / sizing tier (e.g. startup-2, business-4, premium-8)"
+    - name: "kafka_version"
+      type: "string"
+      required: false
+      default: "3.9"
+      description: "Apache Kafka version"
+
+  outputs:
+    - name: "service_uri"
+      description: "Full Kafka connection URI"
+      sensitive: true
+    - name: "host"
+      description: "Kafka broker host (bootstrap)"
+    - name: "port"
+      description: "Kafka broker port"
+    - name: "username"
+      description: "SASL username"
+    - name: "password"
+      description: "SASL password"
+      sensitive: true
