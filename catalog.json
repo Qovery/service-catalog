@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T20:57:01Z",
+  "generatedAt": "2026-08-20T20:57:33Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -234,6 +234,25 @@
         {
           "serviceVersion": "16",
           "latestTag": "SCW/postgres/16/1.3.0"
+        }
+      ]
+    },
+    {
+      "name": "temporal-cloud-namespace",
+      "kind": "ServiceBlueprint",
+      "description": "Provision a Temporal Cloud namespace (regions, retention, client auth) via the Temporal Cloud Terraform provider",
+      "icon": "app://qovery-console/temporal",
+      "categories": [
+        "workflow",
+        "temporal",
+        "orchestration"
+      ],
+      "provider": "TEMPORAL",
+      "serviceFamily": "workflow",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "TEMPORAL/cloud/default/1.0.0"
         }
       ]
     }
