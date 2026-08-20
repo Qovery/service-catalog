@@ -1,7 +1,26 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T21:29:58Z",
+  "generatedAt": "2026-08-20T21:37:26Z",
   "blueprints": [
+    {
+      "name": "aiven-kafka",
+      "kind": "ServiceBlueprint",
+      "description": "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider",
+      "icon": "app://qovery-console/kafka",
+      "categories": [
+        "streaming",
+        "kafka",
+        "aiven"
+      ],
+      "provider": "AIVEN",
+      "serviceFamily": "kafka",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "AIVEN/kafka/default/1.0.0"
+        }
+      ]
+    },
     {
       "name": "aws-cloudfront",
       "kind": "ServiceBlueprint",
@@ -18,6 +37,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "AWS/cloudfront/default/1.0.1"
+        }
+      ]
+    },
+    {
+      "name": "aws-msk",
+      "kind": "ServiceBlueprint",
+      "description": "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network",
+      "icon": "app://qovery-console/kafka",
+      "categories": [
+        "streaming",
+        "kafka",
+        "aws"
+      ],
+      "provider": "AWS",
+      "serviceFamily": "msk",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "AWS/msk/default/1.0.0"
         }
       ]
     },
@@ -123,6 +161,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "CLOUDFLARE/workers/default/1.0.1"
+        }
+      ]
+    },
+    {
+      "name": "confluent-kafka",
+      "kind": "ServiceBlueprint",
+      "description": "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider",
+      "icon": "app://qovery-console/kafka",
+      "categories": [
+        "streaming",
+        "kafka",
+        "confluent"
+      ],
+      "provider": "CONFLUENT",
+      "serviceFamily": "kafka",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "CONFLUENT/kafka/default/1.0.0"
         }
       ]
     },
@@ -235,6 +292,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "PLANETSCALE/database/default/1.0.1"
+        }
+      ]
+    },
+    {
+      "name": "redpanda-kafka",
+      "kind": "ServiceBlueprint",
+      "description": "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider",
+      "icon": "app://qovery-console/kafka",
+      "categories": [
+        "streaming",
+        "kafka",
+        "redpanda"
+      ],
+      "provider": "REDPANDA",
+      "serviceFamily": "kafka",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "REDPANDA/kafka/default/1.0.0"
         }
       ]
     },

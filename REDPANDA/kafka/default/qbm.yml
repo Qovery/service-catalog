@@ -1,0 +1,68 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "redpanda-kafka"
+  version: "1.0.0"
+  description: "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider"
+  icon: "app://qovery-console/kafka"
+  serviceFamily: "kafka"
+  categories:
+    - "streaming"
+    - "kafka"
+    - "redpanda"
+
+spec:
+  engine:
+    type: terraform
+    provider: REDPANDA
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "redpanda_client_id"
+      type: "string"
+      required: true
+      description: "Redpanda Cloud service-account client ID"
+    - name: "redpanda_client_secret"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Redpanda Cloud service-account client secret"
+    - name: "resource_group_name"
+      type: "string"
+      required: false
+      default: "qovery"
+      description: "Redpanda resource group name to create"
+    - name: "cluster_name"
+      type: "string"
+      required: true
+      description: "Serverless cluster name (max 60 chars)"
+    - name: "serverless_region"
+      type: "string"
+      required: true
+      description: "Redpanda serverless region (e.g. us-east-1, eu-central-1). Must be a region Redpanda Serverless supports."
+
+  outputs:
+    - name: "cluster_id"
+      description: "Redpanda serverless cluster ID"
+    - name: "cluster_api_url"
+      description: "Redpanda cluster dataplane API URL"
+    - name: "kafka_seed_brokers"
+      description: "Kafka bootstrap/seed broker endpoints (connect target)"
+    - name: "console_url"
+      description: "Redpanda Console URL"
