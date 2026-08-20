@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T20:57:33Z",
+  "generatedAt": "2026-08-20T20:57:55Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -253,6 +253,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "TEMPORAL/cloud/default/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "timescale-cloud-service",
+      "kind": "ServiceBlueprint",
+      "description": "Provision a Timescale Cloud (TimescaleDB/Postgres) service with configurable CPU, memory, and HA replicas, via the Timescale Terraform provider",
+      "icon": "app://qovery-console/timescaledb",
+      "categories": [
+        "database",
+        "postgresql",
+        "timescaledb"
+      ],
+      "provider": "TIMESCALE",
+      "serviceFamily": "timescaledb",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "TIMESCALE/cloud/default/1.0.0"
         }
       ]
     }
