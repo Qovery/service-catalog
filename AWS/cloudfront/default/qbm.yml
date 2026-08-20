@@ -3,10 +3,10 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-cloudfront"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions"
   icon: "app://qovery-console/cloudfront"
-  serviceFamily: "cdn"
+  serviceFamily: "cloudfront"
   categories:
     - "cdn"
     - "aws"

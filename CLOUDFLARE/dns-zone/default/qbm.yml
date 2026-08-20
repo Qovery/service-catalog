@@ -3,10 +3,10 @@ kind: ServiceBlueprint
 
 metadata:
   name: "cloudflare-dns-zone"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
-  serviceFamily: "dns"
+  serviceFamily: "dns-zone"
   categories:
     - "dns"
     - "cloudflare"

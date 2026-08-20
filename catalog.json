@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T21:18:34Z",
+  "generatedAt": "2026-08-20T21:29:58Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -13,11 +13,11 @@
         "cloudfront"
       ],
       "provider": "AWS",
-      "serviceFamily": "cdn",
+      "serviceFamily": "cloudfront",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/cloudfront/default/1.0.0"
+          "latestTag": "AWS/cloudfront/default/1.0.1"
         }
       ]
     },
@@ -99,11 +99,11 @@
         "cloudflare"
       ],
       "provider": "CLOUDFLARE",
-      "serviceFamily": "dns",
+      "serviceFamily": "dns-zone",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "CLOUDFLARE/dns-zone/default/1.0.0"
+          "latestTag": "CLOUDFLARE/dns-zone/default/1.0.1"
         }
       ]
     },
@@ -118,11 +118,11 @@
         "serverless"
       ],
       "provider": "CLOUDFLARE",
-      "serviceFamily": "edge",
+      "serviceFamily": "workers",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "CLOUDFLARE/workers/default/1.0.0"
+          "latestTag": "CLOUDFLARE/workers/default/1.0.1"
         }
       ]
     },
@@ -137,11 +137,11 @@
         "datadog"
       ],
       "provider": "HELM",
-      "serviceFamily": "monitoring",
+      "serviceFamily": "datadog",
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "HELM/datadog/7/1.0.0"
+          "latestTag": "HELM/datadog/7/1.0.1"
         }
       ]
     },
@@ -156,11 +156,11 @@
         "newrelic"
       ],
       "provider": "HELM",
-      "serviceFamily": "monitoring",
+      "serviceFamily": "newrelic",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "HELM/newrelic/default/1.0.0"
+          "latestTag": "HELM/newrelic/default/1.0.1"
         }
       ]
     },
@@ -211,11 +211,11 @@
         "atlas"
       ],
       "provider": "MONGODB",
-      "serviceFamily": "mongodb",
+      "serviceFamily": "atlas",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "MONGODB/atlas/default/1.0.0"
+          "latestTag": "MONGODB/atlas/default/1.0.1"
         }
       ]
     },
@@ -230,11 +230,11 @@
         "planetscale"
       ],
       "provider": "PLANETSCALE",
-      "serviceFamily": "mysql",
+      "serviceFamily": "database",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "PLANETSCALE/database/default/1.0.0"
+          "latestTag": "PLANETSCALE/database/default/1.0.1"
         }
       ]
     },
@@ -305,11 +305,11 @@
         "orchestration"
       ],
       "provider": "TEMPORAL",
-      "serviceFamily": "workflow",
+      "serviceFamily": "cloud",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "TEMPORAL/cloud/default/1.0.0"
+          "latestTag": "TEMPORAL/cloud/default/1.0.1"
         }
       ]
     },
@@ -324,11 +324,11 @@
         "timescaledb"
       ],
       "provider": "TIMESCALE",
-      "serviceFamily": "timescaledb",
+      "serviceFamily": "cloud",
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "TIMESCALE/cloud/default/1.0.0"
+          "latestTag": "TIMESCALE/cloud/default/1.0.1"
         }
       ]
     }
