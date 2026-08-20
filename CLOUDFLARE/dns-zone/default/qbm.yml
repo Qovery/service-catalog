@@ -1,0 +1,102 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "cloudflare-dns-zone"
+  version: "1.0.0"
+  description: "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider"
+  icon: "app://qovery-console/cloudflare"
+  serviceFamily: "dns"
+  categories:
+    - "dns"
+    - "cloudflare"
+
+spec:
+  engine:
+    type: terraform
+    provider: CLOUDFLARE
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 1800
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "cloudflare_api_token"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Cloudflare API token with Zone edit permission (and account-level zone create permission)"
+    - name: "account_id"
+      type: "string"
+      required: true
+      description: "Cloudflare account ID that will own the zone"
+    - name: "zone_name"
+      type: "string"
+      required: true
+      description: "Domain to manage (e.g. example.com). Must already be registered; this manages its DNS zone, it does not register it."
+    - name: "zone_type"
+      type: "string"
+      required: false
+      default: "full"
+      description: "Zone setup type: full (Cloudflare hosts DNS) or partial (CNAME/partner setup)"
+      allowedValues:
+        - "full"
+        - "partial"
+    - name: "record_name"
+      type: "string"
+      required: false
+      default: ""
+      description: "Optional DNS record name (e.g. www, @, or a full host). Empty = create no record."
+    - name: "record_type"
+      type: "string"
+      required: false
+      default: "A"
+      description: "DNS record type"
+      allowedValues:
+        - "A"
+        - "AAAA"
+        - "CNAME"
+        - "TXT"
+        - "MX"
+        - "NS"
+    - name: "record_content"
+      type: "string"
+      required: false
+      default: ""
+      description: "DNS record value (IP, hostname, or text). Required when record_name is set."
+    - name: "record_ttl"
+      type: "number"
+      required: false
+      default: "1"
+      description: "DNS record TTL in seconds (1 = automatic). Must be 1 when record_proxied is true."
+    - name: "record_proxied"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Whether the record is proxied through Cloudflare (orange cloud). Only valid for A/AAAA/CNAME."
+
+  outputs:
+    - name: "zone_id"
+      description: "Cloudflare zone ID"
+    - name: "zone_name"
+      description: "Managed domain name"
+    - name: "name_servers"
+      description: "Cloudflare-assigned name servers to set at your registrar (full zones only)"
+    - name: "status"
+      description: "Zone activation status"
+    - name: "verification_key"
+      description: "TXT verification value for partial (CNAME) setups"
+    - name: "record_id"
+      description: "Created DNS record ID (empty when no record is configured)"

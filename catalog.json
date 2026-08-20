@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T16:47:53Z",
+  "generatedAt": "2026-08-20T20:55:52Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -86,6 +86,43 @@
         {
           "serviceVersion": "default",
           "latestTag": "AWS/s3/default/1.1.2"
+        }
+      ]
+    },
+    {
+      "name": "cloudflare-dns-zone",
+      "kind": "ServiceBlueprint",
+      "description": "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider",
+      "icon": "app://qovery-console/cloudflare",
+      "categories": [
+        "dns",
+        "cloudflare"
+      ],
+      "provider": "CLOUDFLARE",
+      "serviceFamily": "dns",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "CLOUDFLARE/dns-zone/default/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "cloudflare-workers",
+      "kind": "ServiceBlueprint",
+      "description": "Deploy a Cloudflare Worker script (with an optional route) via the Cloudflare Terraform provider",
+      "icon": "app://qovery-console/cloudflare",
+      "categories": [
+        "edge",
+        "cloudflare",
+        "serverless"
+      ],
+      "provider": "CLOUDFLARE",
+      "serviceFamily": "edge",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "CLOUDFLARE/workers/default/1.0.0"
         }
       ]
     },
