@@ -1,0 +1,30 @@
+# Datadog Agent chart values. Secrets and toggles are interpolated by Qovery.
+datadog:
+  apiKey: {{ datadog_api_key }}
+  site: {{ datadog_site }}
+  clusterName: {{ cluster_name }}
+  logs:
+    enabled: {{ enable_logs }}
+    containerCollectAll: {{ enable_logs }}
+  apm:
+    portEnabled: {{ enable_apm }}
+
+# Per-node agent DaemonSet — resources explicitly set (don't rely on chart defaults).
+agents:
+  containers:
+    agent:
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "{{ agent_memory }}"
+        limits:
+          memory: "{{ agent_memory }}"
+
+# Cluster agent (cluster-level metrics, orchestrator, external metrics).
+clusterAgent:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      memory: "256Mi"

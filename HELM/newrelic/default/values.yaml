@@ -1,0 +1,29 @@
+# New Relic nri-bundle values. Secrets and toggles are interpolated by Qovery.
+global:
+  licenseKey: {{ newrelic_license_key }}
+  cluster: {{ cluster_name }}
+  lowDataMode: {{ low_data_mode }}
+
+# Core per-node infrastructure agent (uses New Relic's tuned sub-chart resource defaults).
+newrelic-infrastructure:
+  enabled: true
+
+nri-metadata-injection:
+  enabled: true
+
+nri-kube-events:
+  enabled: {{ enable_kube_events }}
+
+# Optional pod-log shipping (Fluent Bit DaemonSet).
+newrelic-logging:
+  enabled: {{ enable_logging }}
+
+# kube-state-metrics defaults to unbounded resources in the bundle — set them explicitly.
+kube-state-metrics:
+  enabled: true
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "{{ ksm_memory }}"
+    limits:
+      memory: "{{ ksm_memory }}"

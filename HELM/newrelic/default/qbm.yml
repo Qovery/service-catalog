@@ -1,0 +1,66 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "helm-newrelic"
+  version: "1.0.0"
+  description: "New Relic Kubernetes monitoring (infrastructure agent, kube-state-metrics, events, optional logs) via the official nri-bundle Helm chart"
+  icon: "app://qovery-console/newrelic"
+  serviceFamily: "monitoring"
+  categories:
+    - "monitoring"
+    - "observability"
+    - "newrelic"
+
+spec:
+  engine:
+    type: helm
+    chart:
+      repository: "https://helm-charts.newrelic.com"
+      name: "nri-bundle"
+      version: "8.0.18"
+    arguments: []
+    # nri-bundle deploys DaemonSets and cluster-scoped RBAC across several sub-charts.
+    allowClusterWideResources: true
+
+  variables:
+    - name: "newrelic_license_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "New Relic ingest license key"
+    - name: "cluster_name"
+      type: "string"
+      required: true
+      description: "Cluster name reported to New Relic (letters, digits, hyphens, underscores; max 64)"
+      pattern: "^[a-zA-Z0-9_-]{1,64}$"
+    - name: "low_data_mode"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Reduce data ingest (drops some high-cardinality data) to control cost"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "enable_kube_events"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Collect Kubernetes events (nri-kube-events)"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "enable_logging"
+      type: "string"
+      required: false
+      default: "false"
+      description: "Deploy the New Relic logging DaemonSet (Fluent Bit) to ship pod logs"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "ksm_memory"
+      type: "string"
+      required: false
+      default: "128Mi"
+      description: "Memory request/limit for kube-state-metrics (valid Kubernetes quantity)"
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
