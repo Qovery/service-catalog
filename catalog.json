@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-20T20:55:52Z",
+  "generatedAt": "2026-08-20T20:57:01Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -159,6 +159,25 @@
         {
           "serviceVersion": "8",
           "latestTag": "HELM/redis/8/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "mongodb-atlas-cluster",
+      "kind": "ServiceBlueprint",
+      "description": "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider",
+      "icon": "app://qovery-console/mongodb",
+      "categories": [
+        "database",
+        "mongodb",
+        "atlas"
+      ],
+      "provider": "MONGODB",
+      "serviceFamily": "mongodb",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "MONGODB/atlas/default/1.0.0"
         }
       ]
     },

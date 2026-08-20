@@ -1,0 +1,117 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "mongodb-atlas-cluster"
+  version: "1.0.0"
+  description: "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider"
+  icon: "app://qovery-console/mongodb"
+  serviceFamily: "mongodb"
+  categories:
+    - "database"
+    - "mongodb"
+    - "atlas"
+
+spec:
+  engine:
+    type: terraform
+    provider: MONGODB
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  variables:
+    - name: "atlas_public_key"
+      type: "string"
+      required: true
+      description: "MongoDB Atlas programmatic API key — public key"
+    - name: "atlas_private_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "MongoDB Atlas programmatic API key — private key"
+    - name: "project_id"
+      type: "string"
+      required: true
+      description: "Existing MongoDB Atlas project ID the cluster is created in"
+    - name: "cluster_name"
+      type: "string"
+      required: true
+      description: "Cluster name (letters, digits, hyphens; max 64 chars)"
+      pattern: "^[a-zA-Z0-9-]{1,64}$"
+    - name: "provider_name"
+      type: "string"
+      required: false
+      default: "AWS"
+      description: "Backing cloud provider for the cluster"
+      allowedValues:
+        - "AWS"
+        - "GCP"
+        - "AZURE"
+    - name: "region_name"
+      type: "string"
+      required: false
+      default: "US_EAST_1"
+      description: "Atlas region name for the backing provider (e.g. US_EAST_1 for AWS)"
+    - name: "instance_size"
+      type: "string"
+      required: false
+      default: "M10"
+      description: "Dedicated cluster instance size (M10 and up). Shared tiers (M0/M2/M5) are not supported."
+    - name: "mongo_db_major_version"
+      type: "string"
+      required: false
+      default: "7.0"
+      description: "MongoDB major version (e.g. 6.0, 7.0, 8.0)"
+    - name: "backup_enabled"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Enable cloud backup for the cluster"
+    - name: "db_username"
+      type: "string"
+      required: true
+      description: "Database user to create (SCRAM auth, readWriteAnyDatabase)"
+    - name: "db_password"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Password for the database user (min 8 chars)"
+    - name: "ip_access_list_cidr"
+      type: "string"
+      required: false
+      default: "0.0.0.0/0"
+      description: "CIDR allowed to reach the cluster. Defaults to 0.0.0.0/0 (open); restrict in production."
+
+  outputs:
+    - name: "cluster_id"
+      description: "Atlas cluster ID"
+    - name: "cluster_name"
+      description: "Cluster name"
+    - name: "connection_string_standard"
+      description: "Standard connection string (mongodb://)"
+    - name: "connection_string_srv"
+      description: "SRV connection string (mongodb+srv://) — insert the db user credentials"
+    - name: "mongo_db_version"
+      description: "Running MongoDB version"
+    - name: "db_username"
+      description: "Created database username"
+    - name: "db_password"
+      description: "Database user password"
+      sensitive: true
+    - name: "connection_uri"
+      description: "Ready-to-use SRV connection URI with the db user credentials embedded"
+      sensitive: true
