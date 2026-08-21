@@ -6,7 +6,7 @@ metadata:
   version: "1.0.0"
   description: "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider"
   icon: "app://qovery-console/kafka"
-  serviceFamily: "kafka"
+  serviceFamily: "aiven-kafka"
   categories:
     - "streaming"
     - "kafka"
@@ -15,7 +15,7 @@ metadata:
 spec:
   engine:
     type: terraform
-    provider: AIVEN
+    provider: EXTERNAL
     terraform:
       version: "1.9.7"
       allowedValues: ["1.9.7", "1.13.3"]

@@ -3,10 +3,10 @@ kind: ServiceBlueprint
 
 metadata:
   name: "mongodb-atlas-cluster"
-  version: "1.0.1"
+  version: "1.0.0"
   description: "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider"
   icon: "app://qovery-console/mongodb"
-  serviceFamily: "atlas"
+  serviceFamily: "mongodb-atlas"
   categories:
     - "database"
     - "mongodb"
@@ -15,7 +15,7 @@ metadata:
 spec:
   engine:
     type: terraform
-    provider: MONGODB
+    provider: EXTERNAL
     terraform:
       version: "1.9.7"
       allowedValues: ["1.9.7", "1.13.3"]
