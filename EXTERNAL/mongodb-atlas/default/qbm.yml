@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "mongodb-atlas-cluster"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider"
   icon: "app://qovery-console/mongodb"
   serviceFamily: "mongodb-atlas"
@@ -37,12 +37,12 @@ spec:
     - name: "atlas_public_key"
       type: "string"
       required: true
-      description: "MongoDB Atlas programmatic API key — public key"
+      description: "MongoDB Atlas programmatic API key - public key"
     - name: "atlas_private_key"
       type: "string"
       required: true
       sensitive: true
-      description: "MongoDB Atlas programmatic API key — private key"
+      description: "MongoDB Atlas programmatic API key - private key"
     - name: "project_id"
       type: "string"
       required: true
@@ -104,7 +104,7 @@ spec:
     - name: "connection_string_standard"
       description: "Standard connection string (mongodb://)"
     - name: "connection_string_srv"
-      description: "SRV connection string (mongodb+srv://) — insert the db user credentials"
+      description: "SRV connection string (mongodb+srv://) - insert the db user credentials"
     - name: "mongo_db_version"
       description: "Running MongoDB version"
     - name: "db_username"

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-21T08:43:46Z",
+  "generatedAt": "2026-08-21T09:05:58Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -198,7 +198,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/mongodb-atlas/default/1.0.0"
+          "latestTag": "EXTERNAL/mongodb-atlas/default/1.0.1"
         }
       ]
     },
@@ -274,7 +274,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.0"
+          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.1"
         }
       ]
     },
