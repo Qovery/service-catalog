@@ -3,10 +3,10 @@ kind: ServiceBlueprint
 
 metadata:
   name: "timescale-cloud-service"
-  version: "1.0.1"
+  version: "1.0.0"
   description: "Provision a Timescale Cloud (TimescaleDB/Postgres) service with configurable CPU, memory, and HA replicas, via the Timescale Terraform provider"
   icon: "app://qovery-console/timescaledb"
-  serviceFamily: "cloud"
+  serviceFamily: "timescale-cloud"
   categories:
     - "database"
     - "postgresql"
@@ -15,7 +15,7 @@ metadata:
 spec:
   engine:
     type: terraform
-    provider: TIMESCALE
+    provider: EXTERNAL
     terraform:
       version: "1.9.7"
       allowedValues: ["1.9.7", "1.13.3"]

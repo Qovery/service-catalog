@@ -6,7 +6,7 @@ metadata:
   version: "1.0.0"
   description: "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider"
   icon: "app://qovery-console/kafka"
-  serviceFamily: "kafka"
+  serviceFamily: "confluent-kafka"
   categories:
     - "streaming"
     - "kafka"
@@ -15,7 +15,7 @@ metadata:
 spec:
   engine:
     type: terraform
-    provider: CONFLUENT
+    provider: EXTERNAL
     terraform:
       version: "1.9.7"
       allowedValues: ["1.9.7", "1.13.3"]
