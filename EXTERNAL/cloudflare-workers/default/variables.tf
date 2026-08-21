@@ -31,7 +31,7 @@ variable "script_name" {
 
 variable "script_content" {
   type        = string
-  default     = "addEventListener(\"fetch\", (event) => { event.respondWith(new Response(\"Hello from a Qovery-managed Cloudflare Worker\")); });"
+  default     = "addEventListener('fetch', (event) => { event.respondWith(new Response('Hello from a Qovery-managed Cloudflare Worker')); });"
   description = "Worker script source. Defaults to a hello-world service-worker script."
 }
 
