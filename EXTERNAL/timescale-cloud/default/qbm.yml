@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "timescale-cloud-service"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Provision a Timescale Cloud (TimescaleDB/Postgres) service with configurable CPU, memory, and HA replicas, via the Timescale Terraform provider"
   icon: "app://qovery-console/timescaledb"
   serviceFamily: "timescale-cloud"
@@ -42,12 +42,12 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Timescale Cloud client credentials — access key"
+      description: "Timescale Cloud client credentials - access key"
     - name: "timescale_secret_key"
       type: "string"
       required: true
       sensitive: true
-      description: "Timescale Cloud client credentials — secret key"
+      description: "Timescale Cloud client credentials - secret key"
     - name: "service_name"
       type: "string"
       required: true
