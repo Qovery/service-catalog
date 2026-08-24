@@ -659,6 +659,34 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                 }
             }
 
+            // EXTERNAL blueprints have no cluster cloud credentials to reuse (see AGENTS.md).
+            // Checked for every engine type: helm needs no credentials block, but if one is
+            // present it must not point at cluster either.
+            if vd.provider == "EXTERNAL" {
+                let is_iac = matches!(engine_type, Some("terraform") | Some("opentofu"));
+                let default_mode = creds.and_then(|c| c.default.as_deref());
+                if is_iac && default_mode != Some("env") {
+                    errors.push(format!(
+                        "{}: EXTERNAL blueprints require spec.engine.credentials.default = env",
+                        vd.full_path
+                    ));
+                } else if default_mode == Some("cluster") {
+                    errors.push(format!(
+                        "{}: EXTERNAL blueprints must not use 'cluster' in spec.engine.credentials.default",
+                        vd.full_path
+                    ));
+                }
+                if creds
+                    .and_then(|c| c.allowed_values.as_ref())
+                    .is_some_and(|values| values.iter().any(|mode| mode == "cluster"))
+                {
+                    errors.push(format!(
+                        "{}: EXTERNAL blueprints must not allow 'cluster' in spec.engine.credentials.allowedValues",
+                        vd.full_path
+                    ));
+                }
+            }
+
             match engine_type {
                 Some("terraform") | Some("opentofu") => {
                     match engine_provider {
@@ -673,24 +701,6 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                             vd.full_path, p, vd.provider
                         )),
                         Some(_) => {}
-                    }
-                    // EXTERNAL blueprints have no cluster cloud credentials to reuse (see AGENTS.md).
-                    if vd.provider == "EXTERNAL" {
-                        if creds.and_then(|c| c.default.as_deref()) != Some("env") {
-                            errors.push(format!(
-                                "{}: EXTERNAL blueprints require spec.engine.credentials.default = env",
-                                vd.full_path
-                            ));
-                        }
-                        if creds
-                            .and_then(|c| c.allowed_values.as_ref())
-                            .is_some_and(|values| values.iter().any(|mode| mode == "cluster"))
-                        {
-                            errors.push(format!(
-                                "{}: EXTERNAL blueprints must not allow 'cluster' in spec.engine.credentials.allowedValues",
-                                vd.full_path
-                            ));
-                        }
                     }
                     let version_label = engine_type.unwrap_or("terraform"); // "terraform" or "opentofu"
                     match version_block {
