@@ -187,9 +187,7 @@ const CREDENTIAL_MODES: &[&str] = &["cluster", "env"];
 const BACKEND_MODES: &[&str] = &["qovery", "user_provided"];
 // Top-level provider dirs the platform can parse (q-core BlueprintIacProvider + HELM).
 // Extending this list is a platform change — ship q-core/console support first (see AGENTS.md).
-const PROVIDERS: &[&str] = &[
-    "AWS", "SCW", "GCP", "DO", "AZURE", "OVH", "CIVO", "HETZNER", "ORACLE", "IBM", "EXTERNAL", "HELM",
-];
+const PROVIDERS: &[&str] = &["AWS", "SCW", "GCP", "AZURE", "EXTERNAL", "HELM"];
 
 #[derive(Deserialize)]
 struct VarDecl {
