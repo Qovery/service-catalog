@@ -98,7 +98,7 @@ variable "auth_enabled" {
 variable "transit_encryption_mode" {
   type        = string
   default     = "DISABLED"
-  description = "In-transit (TLS) encryption mode. DISABLED (the default) sends cache traffic and the AUTH string unencrypted over the VPC."
+  description = "In-transit (TLS) encryption mode. DISABLED (the default) sends cache traffic, and (when auth_enabled is true) the AUTH string, unencrypted over the VPC."
 
   validation {
     condition     = contains(["DISABLED", "SERVER_AUTHENTICATION"], var.transit_encryption_mode)
