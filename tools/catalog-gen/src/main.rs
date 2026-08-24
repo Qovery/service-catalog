@@ -185,6 +185,9 @@ struct ValidateUserProvidedBackend {
 
 const CREDENTIAL_MODES: &[&str] = &["cluster", "env"];
 const BACKEND_MODES: &[&str] = &["qovery", "user_provided"];
+// Top-level provider dirs the platform can parse (q-core BlueprintIacProvider + HELM).
+// Extending this list is a platform change — ship q-core/console support first (see AGENTS.md).
+const PROVIDERS: &[&str] = &["AWS", "SCW", "GCP", "AZURE", "EXTERNAL", "HELM"];
 
 #[derive(Deserialize)]
 struct VarDecl {
@@ -536,6 +539,18 @@ fn validate_blueprints(root: &Path) -> Result<()> {
     let version_dirs = discover_version_dirs(root)?;
     let mut errors: Vec<String> = Vec::new();
 
+    let mut unknown_providers = std::collections::BTreeSet::new();
+    for vd in &version_dirs {
+        if !PROVIDERS.contains(&vd.provider.as_str()) && unknown_providers.insert(vd.provider.clone()) {
+            errors.push(format!(
+                "{}: unknown provider dir '{}' — allowed: {}",
+                vd.full_path,
+                vd.provider,
+                PROVIDERS.join(", ")
+            ));
+        }
+    }
+
     for vd in &version_dirs {
         let qbm_path = root.join(&vd.full_path).join("qbm.yml");
         let content = match std::fs::read_to_string(&qbm_path) {
@@ -644,13 +659,48 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                 }
             }
 
+            // EXTERNAL blueprints have no cluster cloud credentials to reuse (see AGENTS.md).
+            // Checked for every engine type: helm needs no credentials block, but if one is
+            // present it must not point at cluster either.
+            if vd.provider == "EXTERNAL" {
+                let is_iac = matches!(engine_type, Some("terraform") | Some("opentofu"));
+                let default_mode = creds.and_then(|c| c.default.as_deref());
+                if is_iac && default_mode != Some("env") {
+                    errors.push(format!(
+                        "{}: EXTERNAL blueprints require spec.engine.credentials.default = env",
+                        vd.full_path
+                    ));
+                } else if default_mode == Some("cluster") {
+                    errors.push(format!(
+                        "{}: EXTERNAL blueprints must not use 'cluster' in spec.engine.credentials.default",
+                        vd.full_path
+                    ));
+                }
+                if creds
+                    .and_then(|c| c.allowed_values.as_ref())
+                    .is_some_and(|values| values.iter().any(|mode| mode == "cluster"))
+                {
+                    errors.push(format!(
+                        "{}: EXTERNAL blueprints must not allow 'cluster' in spec.engine.credentials.allowedValues",
+                        vd.full_path
+                    ));
+                }
+            }
+
             match engine_type {
                 Some("terraform") | Some("opentofu") => {
-                    if engine_provider.is_none() {
-                        errors.push(format!(
+                    match engine_provider {
+                        None => errors.push(format!(
                             "{}: spec.engine.provider required when engine.type is terraform/opentofu",
                             vd.full_path
-                        ));
+                        )),
+                        // catalog.json takes provider from spec.engine.provider while the manifest
+                        // fetch path is built from the directory — a mismatch 404s in the console.
+                        Some(p) if p != &vd.provider => errors.push(format!(
+                            "{}: spec.engine.provider '{}' does not match top-level directory '{}'",
+                            vd.full_path, p, vd.provider
+                        )),
+                        Some(_) => {}
                     }
                     let version_label = engine_type.unwrap_or("terraform"); // "terraform" or "opentofu"
                     match version_block {

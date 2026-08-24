@@ -6,11 +6,13 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 ### AWS (Terraform)
 
-| Service    | Path               | Description                              |
-| ---------- | ------------------ | ---------------------------------------- |
-| S3         | `AWS/s3/default/`  | S3 bucket with encryption and versioning |
-| PostgreSQL | `AWS/postgres/17/` | RDS PostgreSQL 17 instance               |
-| MySQL      | `AWS/mysql/8/`     | RDS MySQL 8.4 instance                   |
+| Service    | Path                     | Description                                          |
+| ---------- | ------------------------ | ---------------------------------------------------- |
+| S3         | `AWS/s3/default/`        | S3 bucket with encryption and versioning             |
+| PostgreSQL | `AWS/postgres/17/`       | RDS PostgreSQL 17 instance                           |
+| MySQL      | `AWS/mysql/8/`           | RDS MySQL 8.4 instance                               |
+| CloudFront | `AWS/cloudfront/default/`| CloudFront CDN distribution in front of an HTTP/S origin |
+| MSK        | `AWS/msk/default/`       | MSK Serverless (managed Kafka) with SASL/IAM auth    |
 
 ### Scaleway (Terraform)
 
@@ -22,10 +24,29 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 ### Helm (Kubernetes)
 
-| Service  | Path               | Description                                                     |
-| -------- | ------------------ | --------------------------------------------------------------- |
-| Redis    | `HELM/redis/8/`    | Redis 8 cache via community groundhog2k Helm chart              |
-| RabbitMQ | `HELM/rabbitmq/4/` | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
+| Service   | Path                     | Description                                                     |
+| --------- | ------------------------ | --------------------------------------------------------------- |
+| Redis     | `HELM/redis/8/`          | Redis 8 cache via community groundhog2k Helm chart              |
+| RabbitMQ  | `HELM/rabbitmq/4/`       | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
+| Datadog   | `HELM/datadog/7/`        | Datadog Agent (metrics, logs, optional APM) via official chart  |
+| New Relic | `HELM/newrelic/default/` | New Relic Kubernetes monitoring via official nri-bundle chart   |
+
+### External (Terraform)
+
+Third-party services not tied to the cluster's cloud provider — shown for every cloud in the console.
+They authenticate through their own sensitive variables (`credentials` mode is `env`, never `cluster`).
+
+| Service          | Path                                | Description                                    |
+| ---------------- | ----------------------------------- | ---------------------------------------------- |
+| Aiven Kafka      | `EXTERNAL/aiven-kafka/default/`     | Managed Kafka on Aiven                         |
+| Cloudflare DNS   | `EXTERNAL/cloudflare-dns-zone/default/` | Cloudflare DNS zone and records            |
+| Cloudflare Workers | `EXTERNAL/cloudflare-workers/default/` | Cloudflare Worker script with optional route |
+| Confluent Kafka  | `EXTERNAL/confluent-kafka/default/` | Managed Kafka on Confluent Cloud               |
+| MongoDB Atlas    | `EXTERNAL/mongodb-atlas/default/`   | MongoDB Atlas cluster                          |
+| PlanetScale      | `EXTERNAL/planetscale/default/`     | PlanetScale MySQL database                     |
+| Redpanda Kafka   | `EXTERNAL/redpanda-kafka/default/`  | Managed Kafka-compatible Redpanda cluster      |
+| Temporal Cloud   | `EXTERNAL/temporal-cloud/default/`  | Temporal Cloud namespace                       |
+| Timescale Cloud  | `EXTERNAL/timescale-cloud/default/` | Timescale Cloud service                        |
 
 ## Directory Structure
 
@@ -76,7 +97,7 @@ spec:
 | Field                       | Required                   | Type              | Allowed values                              |
 | --------------------------- | -------------------------- | ----------------- | ------------------------------------------- |
 | `type`                      | yes                        | string            | `terraform` \| `opentofu` \| `helm`         |
-| `provider`                  | yes (terraform / opentofu) | string            | `AWS` \| `GCP` \| `AZURE` \| `SCW`          |
+| `provider`                  | yes (terraform / opentofu) | string            | `AWS` \| `GCP` \| `AZURE` \| `SCW` \| `EXTERNAL` — must match the top-level directory |
 | `terraform`                 | yes if `type=terraform`    | block             | see below                                   |
 | `opentofu`                  | yes if `type=opentofu`     | block             | same shape as `terraform`                   |
 | `chart`                     | yes if `type=helm`         | block             | `{repository, name, version}`               |

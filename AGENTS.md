@@ -12,7 +12,8 @@ A catalog of **blueprints** — pre-built definitions Qovery uses to provision c
 {PROVIDER}/{service}/{software-major-version}/
 ```
 
-- `PROVIDER` — `AWS`, `SCW`, `HELM` (Helm has no cloud provider).
+- `PROVIDER` — `AWS`, `SCW`, `GCP`, `AZURE`, `HELM` (Helm has no cloud provider), `EXTERNAL` (third-party services not tied to the cluster's cloud provider — Cloudflare, MongoDB Atlas, Kafka SaaS…; the console shows them for every cloud).
+- `EXTERNAL` blueprints **must** use `credentials.default: env` and must not list `cluster` in `credentials.allowedValues` — there are no cluster cloud credentials to reuse. CI enforces this.
 - `software-major-version` — the **major version of the software being deployed**, NOT the blueprint's semver. Examples: `AWS/postgres/17` (PostgreSQL 17), `HELM/redis/8` (Redis 8), `HELM/rabbitmq/4` (RabbitMQ 4), `AWS/s3/default` (no meaningful version → `default`).
 - **A new software major = a new directory.** Bumping Redis 7 → 8 means creating `HELM/redis/8/`, not editing `HELM/redis/7/`. Do not repurpose an existing version dir for a different major.
 
