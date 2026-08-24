@@ -18,21 +18,31 @@ jobs:
 
       - name: Delete remote rc tags for this PR
         run: |
-          # Tags are {PROVIDER}/{service}/{major}/{version}-rc.{PR}.{attempt}; match this PR only.
+          set -euo pipefail
+
+          # Tags are {PROVIDER}/{service}/{major}/{version}-rc.{PR}.{short_sha}; match this PR only.
           SUFFIX="-rc.${{ github.event.pull_request.number }}."
-          TAGS=$(git ls-remote --tags origin \
+          mapfile -t TAGS < <(git ls-remote --tags origin \
             | awk '{print $2}' \
             | sed 's|^refs/tags/||' \
             | grep -v '\^{}$' \
             | grep -F "$SUFFIX" || true)
 
-          if [ -z "$TAGS" ]; then
+          if [ "${#TAGS[@]}" -eq 0 ]; then
             echo "No prerelease tags to delete for PR #${{ github.event.pull_request.number }}."
             exit 0
           fi
 
-          echo "$TAGS" | while read -r tag; do
-            [ -n "$tag" ] || continue
+          # Delete in one push so a single rejection fails the job. Without this the tags pile up
+          # silently: the repo's "Only admins can delete tags" ruleset covers ~ALL tags with no
+          # bypass actors, so unless it excludes the rc pattern, GITHUB_TOKEN cannot delete these.
+          REFS=()
+          for tag in "${TAGS[@]}"; do
             echo "Deleting $tag"
-            git push origin ":refs/tags/$tag"
+            REFS+=(":refs/tags/$tag")
           done
+
+          if ! git push origin "${REFS[@]}"; then
+            echo "::error::Could not delete prerelease tags. Check that the repository tag ruleset excludes the '-rc.' pattern."
+            exit 1
+          fi

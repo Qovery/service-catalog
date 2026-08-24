@@ -79,7 +79,8 @@ struct PrereleaseArgs {
     /// Base ref to diff against; only blueprints changed since this ref are tagged
     #[arg(long, default_value = "origin/main")]
     base_ref: String,
-    /// Prerelease suffix appended to metadata.version, e.g. "rc.42.1" -> AWS/postgres/17/3.1.0-rc.42.1
+    /// Prerelease suffix appended to metadata.version. Must identify the commit so the tag never
+    /// needs a force update, e.g. "rc.42.a1b2c3d" -> AWS/postgres/17/3.1.0-rc.42.a1b2c3d
     #[arg(long)]
     suffix: String,
     /// Remote to push tags to
@@ -1195,7 +1196,7 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         return Ok(());
     }
 
-    let mut new_tags: Vec<String> = Vec::new();
+    let mut tags: Vec<String> = Vec::new();
     for dir in &changed {
         let qbm_path = root.join(dir).join("qbm.yml");
         let content = std::fs::read_to_string(&qbm_path)
@@ -1209,26 +1210,40 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         };
 
         let tag = format!("{}/{}-{}", dir, version, args.suffix);
-        // Re-runs of the same workflow attempt must not fail on an existing tag.
-        run_git(&root, &["tag", "-f", &tag])?;
-        eprintln!("Tagged {}", tag);
-        new_tags.push(tag);
+        // Never `tag -f`: the repo's tag ruleset forbids non-fast-forward updates. Callers pass a
+        // suffix that identifies the commit, so an existing tag already points at this content.
+        //
+        // Resolve the ref rather than matching `git tag -l` output: on a case-insensitive
+        // filesystem a new `AWS/...` tag lands in this repo's legacy lowercase `aws/...` ref
+        // directory, so the listing reports a name that never string-matches what we built.
+        let tag_ref = format!("refs/tags/{}", tag);
+        let exists = !run_git_or_empty(&root, &["rev-parse", "-q", "--verify", &tag_ref])
+            .trim()
+            .is_empty();
+        if exists {
+            eprintln!("Tag {} already exists, skipping", tag);
+        } else {
+            run_git(&root, &["tag", &tag])?;
+            eprintln!("Tagged {}", tag);
+        }
+        tags.push(tag);
     }
 
-    if new_tags.is_empty() {
+    if tags.is_empty() {
         eprintln!("No taggable blueprints found — nothing to prerelease.");
         return Ok(());
     }
 
     if !args.no_push {
-        // Push only these refs, never `--tags`: that would leak unrelated local tags.
-        let mut push_args: Vec<&str> = vec!["push", "--force", &args.remote];
-        push_args.extend(new_tags.iter().map(String::as_str));
+        // Push these refs explicitly, never `--tags` (that would leak unrelated local tags) and
+        // never `--force`. Re-pushing an unchanged tag is a no-op; a mismatch should fail loudly.
+        let mut push_args: Vec<&str> = vec!["push", &args.remote];
+        push_args.extend(tags.iter().map(String::as_str));
         run_git(&root, &push_args)?;
     }
 
     // stdout is the machine-readable list; progress goes to stderr.
-    for tag in &new_tags {
+    for tag in &tags {
         println!("{}", tag);
     }
 

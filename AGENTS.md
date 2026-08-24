@@ -38,19 +38,35 @@ Files per blueprint:
 ### Testing a blueprint change before merge (CI: `pr-prerelease`)
 
 Every PR from a branch on this repo gets prerelease tags for the blueprints it changed:
-`{PROVIDER}/{service}/{major}/{metadata.version}-rc.{PR}.{run_attempt}` (e.g.
-`AWS/postgres/17/3.1.0-rc.42.1`). CI comments them on the PR once validation passes.
+`{PROVIDER}/{service}/{major}/{metadata.version}-rc.{PR}.{short_sha}` (e.g.
+`AWS/postgres/17/3.1.0-rc.42.a1b2c3d`). CI comments them on the PR, with ready-to-paste requests,
+once validation passes. The SHA makes a tag identify its content: unique per commit, idempotent
+across workflow re-runs, and never force-updated — which the tag ruleset forbids.
 
-To test one, create or update a blueprint on a **test organization** passing that tag explicitly —
-`tag` is a per-request field, so no catalog browsing is involved:
+To test one, create or update a blueprint on a **test organization** passing that tag explicitly.
+`tag` is a per-request field on both endpoints, and q-core validates only its shape (4 segments,
+`^[A-Za-z0-9_.-]+$`) before reading `qbm.yml` at that git ref — `catalog.json` is never consulted:
 
 ```sh
-POST /api/blueprint/{id}/update/preview   { "tag": "AWS/postgres/17/3.1.0-rc.42.1", ... }
+POST /api/environment/{environmentId}/blueprint?deploy=true
+  { "name": "rc-test", "icon": "", "tag": "AWS/postgres/17/3.1.0-rc.42.a1b2c3d", "variables": [] }
+
+POST /api/blueprint/{blueprintId}/update/preview
+  { "name": "rc-test", "icon": "", "tag": "AWS/postgres/17/3.1.0-rc.42.a1b2c3d", "variables": {} }
 ```
 
-This works because the engine clones the catalog by git tag and treats the 4th segment as a label
-only — nothing cross-checks it against `qbm.yml`'s `metadata.version`. The tags are deliberately
-never released (`auto-tag` only releases tags on `main`'s HEAD) and are deleted when the PR closes.
+Two limits worth knowing:
+
+- **This is API-only.** The Console's blueprint picker lists `catalog.json` from `main`, which has
+  no rc tags, so the blueprint will not show up there. There is no `qovery` CLI path either — the
+  CLI's `blueprint` commands are RDE-portal, a different feature.
+- **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
+  from the catalog on `main` and will be wrong if the PR changed variables.
+
+The tags are never released (`auto-tag` only releases tags pointing at `main`'s HEAD). They are
+deleted when the PR closes — which requires the repository tag ruleset to exclude the `-rc.`
+pattern; it covers `~ALL` tags with no bypass actors, so without that exclusion `GITHUB_TOKEN`
+cannot delete them and the cleanup job fails.
 
 To dry-run locally: `catalog-gen prerelease --base-ref origin/main --suffix rc.local --no-push`.
 On macOS, git's loose refs are case-insensitive, so a local run can collide with this repo's legacy

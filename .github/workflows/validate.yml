@@ -178,13 +178,17 @@ jobs:
 
       - id: prerelease
         name: Tag changed blueprints with an rc suffix
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           chmod +x bin/catalog-gen
-          # run_attempt keeps re-runs of the same PR from reusing a tag that already deployed.
+          # The suffix carries the head SHA so a tag identifies its content: unique per commit,
+          # idempotent across workflow re-runs, and never needing a force update — which the
+          # repo's tag ruleset forbids anyway.
           bin/catalog-gen prerelease \
             --root . \
             --base-ref origin/main \
-            --suffix "rc.${{ github.event.pull_request.number }}.${{ github.run_attempt }}" \
+            --suffix "rc.${{ github.event.pull_request.number }}.${HEAD_SHA:0:7}" \
             > tags.txt
           {
             echo 'tags<<TAGS_EOF'
@@ -198,18 +202,45 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAGS: ${{ steps.prerelease.outputs.tags }}
         run: |
+          FIRST_TAG=$(echo "$TAGS" | head -n1)
           {
-            echo "### Test these blueprints before merging"
+            echo "### Test this blueprint before merging"
             echo
-            echo "Prerelease tags were pushed for this PR. Create or update a blueprint with one of"
-            echo "them on a **test organization** — the engine clones the catalog by tag, so this"
-            echo "deploys exactly what is on this branch."
+            echo "Prerelease tags for this PR:"
             echo
             echo '```'
             echo "$TAGS"
             echo '```'
             echo
-            echo "These tags are deleted when the PR closes, and are never turned into a release."
+            echo "The engine clones the catalog by git tag, so deploying one of these runs exactly"
+            echo "what is on this branch. Use a **test organization**, not production."
+            echo
+            echo "**New service** — creates and deploys it:"
+            echo
+            echo '```sh'
+            echo 'curl -X POST "https://api.qovery.com/environment/$ENVIRONMENT_ID/blueprint?deploy=true" \'
+            echo '  -H "Authorization: Bearer $QOVERY_API_TOKEN" \'
+            echo '  -H "Content-Type: application/json" \'
+            echo "  -d '{\"name\":\"rc-test\",\"icon\":\"\",\"tag\":\"$FIRST_TAG\",\"variables\":[]}'"
+            echo '```'
+            echo
+            echo "**Existing blueprint service** — preview the diff, then apply and deploy:"
+            echo
+            echo '```sh'
+            echo 'curl -X POST "https://api.qovery.com/blueprint/$BLUEPRINT_ID/update/preview" \'
+            echo '  -H "Authorization: Bearer $QOVERY_API_TOKEN" \'
+            echo '  -H "Content-Type: application/json" \'
+            echo "  -d '{\"name\":\"rc-test\",\"icon\":\"\",\"tag\":\"$FIRST_TAG\",\"variables\":{}}'"
+            echo '```'
+            echo
+            echo "Two things to know:"
+            echo
+            echo "- These blueprints do **not** appear in the Console picker. It lists \`catalog.json\`"
+            echo "  from \`main\`, which has no rc tags — so this is an API-only flow."
+            echo "- Pass \`variables\` matching **this branch's** \`qbm.yml\`, not main's. The Console's"
+            echo "  variable form is built from main and will be wrong if this PR changed them."
+            echo
+            echo "These tags are never turned into a release, and are deleted when the PR closes."
           } > comment.md
           gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
 
