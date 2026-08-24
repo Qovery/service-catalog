@@ -35,6 +35,27 @@ Files per blueprint:
 - A brand-new blueprint directory starts at `1.0.0`.
 - On merge to `main`, CI (`auto-tag`) creates a tag/release `{PROVIDER}/{service}/{major}/{metadata.version}` (e.g. `HELM/redis/8/1.0.0`).
 
+### Testing a blueprint change before merge (CI: `pr-prerelease`)
+
+Every PR from a branch on this repo gets prerelease tags for the blueprints it changed:
+`{PROVIDER}/{service}/{major}/{metadata.version}-rc.{PR}.{run_attempt}` (e.g.
+`AWS/postgres/17/3.1.0-rc.42.1`). CI comments them on the PR once validation passes.
+
+To test one, create or update a blueprint on a **test organization** passing that tag explicitly —
+`tag` is a per-request field, so no catalog browsing is involved:
+
+```sh
+POST /api/blueprint/{id}/update/preview   { "tag": "AWS/postgres/17/3.1.0-rc.42.1", ... }
+```
+
+This works because the engine clones the catalog by git tag and treats the 4th segment as a label
+only — nothing cross-checks it against `qbm.yml`'s `metadata.version`. The tags are deliberately
+never released (`auto-tag` only releases tags on `main`'s HEAD) and are deleted when the PR closes.
+
+To dry-run locally: `catalog-gen prerelease --base-ref origin/main --suffix rc.local --no-push`.
+On macOS, git's loose refs are case-insensitive, so a local run can collide with this repo's legacy
+lowercase tags (`aws/...`); CI on Linux is unaffected.
+
 ### Retiring a blueprint major
 
 `auto-tag` only ever _creates_ tags. To fully retire a major (e.g. Redis 7 → 8), use `mise run retire-blueprint <path>` (e.g. `HELM/redis/7`) — it removes the directory, regenerates `catalog.json` (staged for a PR), and deletes the tags + GitHub releases (applied immediately). It is DESTRUCTIVE and dry-run unless `CONFIRM=yes`. **Deleting a tag makes any service still pinned to it undeployable** (services reference the blueprint by immutable git tag and the engine re-fetches it on every deploy) — first check dependents (`SELECT * FROM blueprint WHERE tag LIKE '<path>/%'` in q-core) and migrate them.

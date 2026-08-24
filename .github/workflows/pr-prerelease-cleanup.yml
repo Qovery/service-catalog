@@ -1,0 +1,38 @@
+name: Clean up PR prerelease tags
+
+# validate.yml does not run on `closed`, so the cleanup lives in its own workflow.
+# Without it every PR leaves its rc tags behind forever.
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  delete-prerelease-tags:
+    name: Delete this PR's prerelease tags
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete remote rc tags for this PR
+        run: |
+          # Tags are {PROVIDER}/{service}/{major}/{version}-rc.{PR}.{attempt}; match this PR only.
+          SUFFIX="-rc.${{ github.event.pull_request.number }}."
+          TAGS=$(git ls-remote --tags origin \
+            | awk '{print $2}' \
+            | sed 's|^refs/tags/||' \
+            | grep -v '\^{}$' \
+            | grep -F "$SUFFIX" || true)
+
+          if [ -z "$TAGS" ]; then
+            echo "No prerelease tags to delete for PR #${{ github.event.pull_request.number }}."
+            exit 0
+          fi
+
+          echo "$TAGS" | while read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "Deleting $tag"
+            git push origin ":refs/tags/$tag"
+          done

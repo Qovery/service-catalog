@@ -30,6 +30,8 @@ enum Commands {
     CheckVersionBump(CheckVersionBumpArgs),
     /// Create git tags for blueprint versions, push them, and create GitHub releases
     AutoTag(AutoTagArgs),
+    /// Tag changed blueprints with a prerelease suffix so a PR branch can be deployed before merge
+    Prerelease(PrereleaseArgs),
 }
 
 #[derive(Parser)]
@@ -68,6 +70,24 @@ struct AutoTagArgs {
     /// Skip `gh release create` (for local dry-run testing)
     #[arg(long)]
     no_release: bool,
+}
+
+#[derive(Parser)]
+struct PrereleaseArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Base ref to diff against; only blueprints changed since this ref are tagged
+    #[arg(long, default_value = "origin/main")]
+    base_ref: String,
+    /// Prerelease suffix appended to metadata.version, e.g. "rc.42.1" -> AWS/postgres/17/3.1.0-rc.42.1
+    #[arg(long)]
+    suffix: String,
+    /// Remote to push tags to
+    #[arg(long, default_value = "origin")]
+    remote: String,
+    /// Skip pushing the tags (for local dry-run testing)
+    #[arg(long)]
+    no_push: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -897,7 +917,8 @@ fn metadata_version_from_yaml(content: &str) -> Option<String> {
 // check-version-bump
 // ---------------------------------------------------------------------------
 
-fn check_version_bump(root: &Path, base_ref: &str) -> Result<()> {
+/// Blueprint directories with at least one file changed since `base_ref`.
+fn changed_blueprint_dirs(root: &Path, base_ref: &str) -> Result<Vec<String>> {
     let diff = run_git(root, &["diff", "--name-only", &format!("{}...HEAD", base_ref)])?;
     let changed_files: Vec<&str> = diff.lines().filter(|l| !l.is_empty()).collect();
 
@@ -914,6 +935,12 @@ fn check_version_bump(root: &Path, base_ref: &str) -> Result<()> {
             changed_blueprints.push(dir.to_string());
         }
     }
+
+    Ok(changed_blueprints)
+}
+
+fn check_version_bump(root: &Path, base_ref: &str) -> Result<()> {
+    let changed_blueprints = changed_blueprint_dirs(root, base_ref)?;
 
     if changed_blueprints.is_empty() {
         println!("No blueprint directories changed.");
@@ -1138,6 +1165,76 @@ fn build_release_notes(root: &Path, tag: &str) -> Result<ReleaseNotes> {
     })
 }
 
+/// Tag each changed blueprint at `{dir}/{metadata.version}-{suffix}` so a PR branch can be
+/// deployed on real Qovery before merge. The engine clones a blueprint by git tag and only uses
+/// the 4th tag segment as a label, so a prerelease tag is a first-class deployable ref.
+///
+/// Deliberately never creates a GitHub release: `auto-tag` only releases tags pointing at main's
+/// HEAD, so these stay invisible to the normal publish flow.
+fn prerelease(args: &PrereleaseArgs) -> Result<()> {
+    let root = args.root.canonicalize().context("Invalid root path")?;
+
+    if args.suffix.trim().is_empty() {
+        anyhow::bail!("--suffix must not be empty");
+    }
+    // The tag has to survive the engine's segment charset and q-core's ^[A-Za-z0-9_.-]+$ check.
+    let suffix_is_tag_safe = args
+        .suffix
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
+    if !suffix_is_tag_safe {
+        anyhow::bail!(
+            "--suffix {:?} must only contain [A-Za-z0-9._-]; anything else breaks the blueprint tag format",
+            args.suffix
+        );
+    }
+
+    let changed = changed_blueprint_dirs(&root, &args.base_ref)?;
+    if changed.is_empty() {
+        eprintln!("No blueprint directories changed — nothing to prerelease.");
+        return Ok(());
+    }
+
+    let mut new_tags: Vec<String> = Vec::new();
+    for dir in &changed {
+        let qbm_path = root.join(dir).join("qbm.yml");
+        let content = std::fs::read_to_string(&qbm_path)
+            .with_context(|| format!("Failed to read {}", qbm_path.display()))?;
+        let version = match metadata_version_from_yaml(&content) {
+            Some(v) if !v.is_empty() => v,
+            _ => {
+                eprintln!("Warning: no metadata.version in {}/qbm.yml, skipping", dir);
+                continue;
+            }
+        };
+
+        let tag = format!("{}/{}-{}", dir, version, args.suffix);
+        // Re-runs of the same workflow attempt must not fail on an existing tag.
+        run_git(&root, &["tag", "-f", &tag])?;
+        eprintln!("Tagged {}", tag);
+        new_tags.push(tag);
+    }
+
+    if new_tags.is_empty() {
+        eprintln!("No taggable blueprints found — nothing to prerelease.");
+        return Ok(());
+    }
+
+    if !args.no_push {
+        // Push only these refs, never `--tags`: that would leak unrelated local tags.
+        let mut push_args: Vec<&str> = vec!["push", "--force", &args.remote];
+        push_args.extend(new_tags.iter().map(String::as_str));
+        run_git(&root, &push_args)?;
+    }
+
+    // stdout is the machine-readable list; progress goes to stderr.
+    for tag in &new_tags {
+        println!("{}", tag);
+    }
+
+    Ok(())
+}
+
 fn auto_tag(args: &AutoTagArgs) -> Result<()> {
     let root = args.root.canonicalize().context("Invalid root path")?;
 
@@ -1279,6 +1376,9 @@ fn main() -> Result<()> {
         }
         Commands::AutoTag(args) => {
             auto_tag(&args)?;
+        }
+        Commands::Prerelease(args) => {
+            prerelease(&args)?;
         }
     }
 
