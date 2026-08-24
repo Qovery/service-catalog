@@ -6,11 +6,13 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 ### AWS (Terraform)
 
-| Service    | Path               | Description                              |
-| ---------- | ------------------ | ---------------------------------------- |
-| S3         | `AWS/s3/default/`  | S3 bucket with encryption and versioning |
-| PostgreSQL | `AWS/postgres/17/` | RDS PostgreSQL 17 instance               |
-| MySQL      | `AWS/mysql/8/`     | RDS MySQL 8.4 instance                   |
+| Service    | Path                     | Description                                          |
+| ---------- | ------------------------ | ---------------------------------------------------- |
+| S3         | `AWS/s3/default/`        | S3 bucket with encryption and versioning             |
+| PostgreSQL | `AWS/postgres/17/`       | RDS PostgreSQL 17 instance                           |
+| MySQL      | `AWS/mysql/8/`           | RDS MySQL 8.4 instance                               |
+| CloudFront | `AWS/cloudfront/default/`| CloudFront CDN distribution in front of an HTTP/S origin |
+| MSK        | `AWS/msk/default/`       | MSK Serverless (managed Kafka) with SASL/IAM auth    |
 
 ### Scaleway (Terraform)
 
@@ -22,10 +24,12 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 
 ### Helm (Kubernetes)
 
-| Service  | Path               | Description                                                     |
-| -------- | ------------------ | --------------------------------------------------------------- |
-| Redis    | `HELM/redis/8/`    | Redis 8 cache via community groundhog2k Helm chart              |
-| RabbitMQ | `HELM/rabbitmq/4/` | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
+| Service   | Path                     | Description                                                     |
+| --------- | ------------------------ | --------------------------------------------------------------- |
+| Redis     | `HELM/redis/8/`          | Redis 8 cache via community groundhog2k Helm chart              |
+| RabbitMQ  | `HELM/rabbitmq/4/`       | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
+| Datadog   | `HELM/datadog/7/`        | Datadog Agent (metrics, logs, optional APM) via official chart  |
+| New Relic | `HELM/newrelic/default/` | New Relic Kubernetes monitoring via official nri-bundle chart   |
 
 ### External (Terraform)
 
