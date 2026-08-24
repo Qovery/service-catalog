@@ -14,6 +14,12 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | CloudFront | `AWS/cloudfront/default/`| CloudFront CDN distribution in front of an HTTP/S origin |
 | MSK        | `AWS/msk/default/`       | MSK Serverless (managed Kafka) with SASL/IAM auth    |
 
+### GCP (Terraform)
+
+| Service | Path             | Description                        |
+| ------- | ---------------- | ----------------------------------- |
+| Redis   | `GCP/redis/7/`   | Memorystore for Redis 7 instance    |
+
 ### Scaleway (Terraform)
 
 | Service        | Path                          | Description                    |
