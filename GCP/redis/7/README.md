@@ -31,6 +31,8 @@ Creates a GCP Memorystore for Redis 7 instance with configurable tier, memory si
 
 By default the instance attaches to the project's **default** VPC network, which is usually *not* the Qovery cluster's VPC. Set `authorized_network` to the cluster's VPC self-link (and `connect_mode`/`reserved_ip_range` as required by that network's setup) so pods in the cluster can reach the instance without extra peering.
 
+**Security note — plaintext by default:** `transit_encryption_mode` defaults to `DISABLED`. Since `auth_enabled` also defaults to `true`, the generated AUTH string and all cache traffic (including the data itself) travel **unencrypted** over the VPC on every connection — anyone able to observe traffic on that network path can capture both. Memorystore instances are never reachable from the public internet, but this offers no protection against other workloads sharing the same VPC. Set `transit_encryption_mode = SERVER_AUTHENTICATION` for anything beyond a trusted, fully isolated environment; clients then need to trust the CA certificate published via `redis_server_ca_certs` and connect over TLS (e.g. `rediss://`), which most Redis client libraries support but require explicit configuration for.
+
 ### Persistence
 
 | Name                  | Type   | Default             | Description                                                     |
@@ -49,9 +51,11 @@ By default the instance attaches to the project's **default** VPC network, which
 
 | Name            | Type   | Default | Description                                                                                                        |
 | --------------- | ------ | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `replica_count` | number | `0`     | Number of cross-zone read replicas (0-5). Only supported when `tier` is `STANDARD_HA`.                            |
+| `replica_count` | number | `0`     | Number of *exposed* cross-zone read replicas (0-5). Only supported when `tier` is `STANDARD_HA`.                  |
 
 Replicas are asynchronous, cross-zone, read-only copies of the primary; point analytics/BI tools at the `redis_read_endpoint` output to keep read traffic off the primary. Setting `replica_count > 0` requires `tier = STANDARD_HA`.
+
+`STANDARD_HA` always allocates a standby node for automatic failover, independent of `replica_count` — GCP requires at least one such node once `STANDARD_HA` is selected. `replica_count = 0` (the default) just means that standby isn't exposed as a readable replica; the blueprint sends GCP the required minimum under the hood. Set `replica_count` to 1-5 to also expose it (or additional nodes) via `redis_read_endpoint`.
 
 ### Misc
 
@@ -87,4 +91,4 @@ The credentials used to deploy this blueprint must be able to manage Memorystore
 }
 ```
 
-`roles/redis.admin` (or the underlying `redis.instances.*` permissions) is sufficient for create, read, update, and delete. If `authorized_network` points at a network in a different project, that project's Redis service agent also needs `roles/compute.networkUser` on the network.
+`roles/redis.admin` (or the underlying `redis.instances.*` permissions) is sufficient for create, read, update, and delete. If `authorized_network` points at a network in a different (Shared VPC host) project, grant `roles/compute.networkUser` on that network to the Memorystore Redis service agent of *this* project — the one hosting the instance (`service-PROJECT_NUMBER@cloud-redis.iam.gserviceaccount.com`, where `PROJECT_NUMBER` is `gcp_project_id`'s project, or the deploy credentials' default project when `gcp_project_id` is empty) — not a service agent from the network's project.

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-24T13:18:18Z",
+  "generatedAt": "2026-08-24T13:58:36Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -293,7 +293,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "GCP/redis/7/1.0.0"
+          "latestTag": "GCP/redis/7/1.0.5"
         }
       ]
     },

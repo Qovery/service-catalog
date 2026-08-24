@@ -69,6 +69,13 @@ variable "memory_size_gb" {
     condition     = var.memory_size_gb >= 1 && var.memory_size_gb <= 300
     error_message = "memory_size_gb must be between 1 and 300."
   }
+
+  validation {
+    # google_redis_instance.memory_size_gb is an integer field; a fractional value here
+    # would otherwise only fail with an opaque provider type-conversion error at apply time.
+    condition     = var.memory_size_gb == floor(var.memory_size_gb)
+    error_message = "memory_size_gb must be a whole number."
+  }
 }
 
 variable "redis_version" {
@@ -91,7 +98,7 @@ variable "auth_enabled" {
 variable "transit_encryption_mode" {
   type        = string
   default     = "DISABLED"
-  description = "In-transit (TLS) encryption mode"
+  description = "In-transit (TLS) encryption mode. DISABLED (the default) sends cache traffic and the AUTH string unencrypted over the VPC."
 
   validation {
     condition     = contains(["DISABLED", "SERVER_AUTHENTICATION"], var.transit_encryption_mode)
@@ -178,16 +185,28 @@ variable "maintenance_start_hour" {
     condition     = var.maintenance_start_hour >= 0 && var.maintenance_start_hour <= 23
     error_message = "maintenance_start_hour must be between 0 and 23."
   }
+
+  validation {
+    # Feeds google.type.TimeOfDay.hours, an integer field.
+    condition     = var.maintenance_start_hour == floor(var.maintenance_start_hour)
+    error_message = "maintenance_start_hour must be a whole number."
+  }
 }
 
 variable "replica_count" {
   type        = number
   default     = 0
-  description = "Number of cross-zone read replicas (0-5). Only supported when tier is STANDARD_HA."
+  description = "Number of exposed cross-zone read replicas (0-5). Only supported when tier is STANDARD_HA. STANDARD_HA always allocates a standby node for failover regardless of this value; 0 just means that node isn't exposed as a readable replica."
 
   validation {
     condition     = var.replica_count >= 0 && var.replica_count <= 5
     error_message = "replica_count must be between 0 and 5."
+  }
+
+  validation {
+    # google_redis_instance.replica_count is an integer field.
+    condition     = var.replica_count == floor(var.replica_count)
+    error_message = "replica_count must be a whole number."
   }
 
   # TF 1.9+ cross-variable validation.

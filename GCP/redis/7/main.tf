@@ -17,6 +17,12 @@ locals {
       q_project_id     = var.qovery_project_id
     } : k => lower(replace(v, "/[^a-zA-Z0-9_-]/", "-"))
   }
+
+  # GCP always requires a standby node once STANDARD_HA is selected: replicaCount must be
+  # exactly 1 when read replicas are disabled, or 1-5 when enabled. 0 is only valid for BASIC.
+  # var.replica_count stays the user-facing "extra read replicas" knob (0 = none exposed);
+  # this floors the value GCP actually receives without changing that contract.
+  gcp_replica_count = var.tier == "STANDARD_HA" ? max(var.replica_count, 1) : 0
 }
 
 resource "google_redis_instance" "this" {
@@ -43,7 +49,7 @@ resource "google_redis_instance" "this" {
   }
 
   # Read replicas are only valid on STANDARD_HA; validated in variables.tf.
-  replica_count      = var.replica_count
+  replica_count      = local.gcp_replica_count
   read_replicas_mode = var.replica_count > 0 ? "READ_REPLICAS_ENABLED" : "READ_REPLICAS_DISABLED"
 
   persistence_config {
