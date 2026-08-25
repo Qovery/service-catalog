@@ -4,6 +4,24 @@
 # pipefail` is a bashism that aborts there with "Illegal option", so callers use `set -eu` and
 # nothing here relies on pipefail.
 
+# auth_header <token>
+#
+# Qovery accepts two kinds of token and they use *different* schemes: a console JWT is sent as
+# `Bearer`, an organization API token as `Token`. Sending the wrong one is a flat 401. The CLI
+# decides by testing whether the first dot-segment is base64 (utils/context.go); a JWT always
+# starts with `eyJ` (base64 of `{"`) and has three segments, which is the same test without
+# needing a base64 binary. Override with QOVERY_AUTH_SCHEME=Bearer|Token if ever needed.
+auth_header() {
+  _scheme="${QOVERY_AUTH_SCHEME:-}"
+  if [ -z "$_scheme" ]; then
+    case "$1" in
+      eyJ*.*.*) _scheme="Bearer" ;;
+      *) _scheme="Token" ;;
+    esac
+  fi
+  printf 'Authorization: %s %s' "$_scheme" "$1"
+}
+
 # call_api <curl args...>
 #
 # Prints the response body (pretty-printed when it is JSON) and returns non-zero on HTTP >= 400.
