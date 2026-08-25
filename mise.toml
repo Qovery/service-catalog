@@ -12,16 +12,17 @@ cargo run --release --manifest-path tools/catalog-gen/Cargo.toml -- \
 #   QOVERY_API_TOKEN=... mise run deploy-service-rc <ENVIRONMENT_ID> AWS/postgres/17/3.1.0-pr45.abc1234-rc '{...}'
 # The tag is passed separately and injected into the payload, so the JSON stays about the service
 # config and there is only one place the tag can be wrong.
+# Tasks run under `sh` (dash on Debian/Ubuntu), so they use `set -eu` rather than `-o pipefail`,
+# which dash rejects outright. `quiet` stops mise echoing the first script line back at the user.
 [tasks.deploy-service-rc]
 description = "Create + deploy a blueprint service from an rc tag (use a TEST organization)"
+quiet = true
 usage = '''
 arg "<environment_id>" help="Target environment uuid"
 arg "<rc_tag>" help="Prerelease tag, e.g. AWS/postgres/17/3.1.0-pr45.abc1234-rc"
 arg "<payload>" help="JSON body: name, icon, variables (tag is injected)"
 '''
 run = """
-# `set -eu`, not `-o pipefail`: mise runs tasks with `sh`, which is dash on Debian/Ubuntu, and
-# dash rejects pipefail with "Illegal option" before a single line executes.
 set -eu
 . "${MISE_CONFIG_ROOT:-.}/tools/qovery-api.sh"
 
@@ -50,14 +51,13 @@ call_api -X POST "${API}/environment/${ENVIRONMENT_ID}/blueprint?deploy=true" \
 #   QOVERY_API_TOKEN=... mise run update-service-rc <BLUEPRINT_ID> AWS/postgres/17/3.1.0-pr45.abc1234-rc '{...}'
 [tasks.update-service-rc]
 description = "Point an existing blueprint service at an rc tag and redeploy (use a TEST organization)"
+quiet = true
 usage = '''
 arg "<blueprint_id>" help="Blueprint uuid of the existing service"
 arg "<rc_tag>" help="Prerelease tag, e.g. AWS/postgres/17/3.1.0-pr45.abc1234-rc"
 arg "<payload>" help="JSON body: name, icon, variables patch map (tag is injected)"
 '''
 run = """
-# `set -eu`, not `-o pipefail`: mise runs tasks with `sh`, which is dash on Debian/Ubuntu, and
-# dash rejects pipefail with "Illegal option" before a single line executes.
 set -eu
 . "${MISE_CONFIG_ROOT:-.}/tools/qovery-api.sh"
 
@@ -156,3 +156,4 @@ for t in $TAGS; do
 done
 echo "Done. Commit the staged directory/catalog removal on a branch and open a PR."
 """
+
