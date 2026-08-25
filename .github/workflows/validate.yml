@@ -220,15 +220,23 @@ jobs:
 
           # Render one block per changed blueprint. The payload carries name/icon/variables; the
           # tag is a separate argument the task injects, so it cannot drift from the JSON.
+          #
+          # The update payload uses `update_variables` (only what this branch newly introduces),
+          # NOT the full required set: an update is a merge-patch, so resending existing variables
+          # would overwrite the deployed values — and an empty required secret is rejected.
+          # A brand-new blueprint has no deployed service, so it gets no update command.
           printf '%s' "$BLUEPRINTS" | jq -r '
             .[] |
             "\n#### `\(.dir)`\n\n```sh\n" +
             "# new service\n" +
             "mise run deploy-service-rc $ENVIRONMENT_ID \\\n  \(.tag) \\\n  " +
             ({name: "rc-test", icon: .icon, variables: .variables} | @json | @sh) +
-            "\n\n# existing blueprint service\n" +
-            "mise run update-service-rc $BLUEPRINT_ID \\\n  \(.tag) \\\n  " +
-            ({name: "rc-test", icon: .icon, variables: (.variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh) +
+            (if .is_new_blueprint then "" else
+              "\n\n# existing blueprint service (THROWAWAY only — see the note below)\n" +
+              "# only new variables are sent; the rest keep their deployed values\n" +
+              "mise run update-service-rc $BLUEPRINT_ID \\\n  \(.tag) \\\n  " +
+              ({name: "rc-test", icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh)
+            end) +
             "\n```"
           ' >> comment.md
 
@@ -239,7 +247,12 @@ jobs:
             echo "- These blueprints do **not** appear in the Console picker. It lists \`catalog.json\`"
             echo "  from \`main\`, which has no rc tags — so this is an API-only flow."
             echo "- \`deploy-service-rc\` takes variables as a **list**, \`update-service-rc\` as a"
-            echo "  **patch map** (\`null\` removes a variable). Both are pre-rendered above."
+            echo "  **merge-patch map** — only the keys you send are changed, so its payload lists"
+            echo "  just the variables this branch adds. Both are pre-rendered above."
+            echo "- **Only point \`update-service-rc\` at a throwaway service.** It pins that service to"
+            echo "  an rc tag that is deleted when this PR closes, and a service on a deleted tag cannot"
+            echo "  be deployed — \`GET /blueprint/{id}/update\` even returns 502, so the Console cannot"
+            echo "  offer the fix. Recovery is API-only: rerun \`update-service-rc\` with a real tag."
             echo
             echo "These tags are never turned into a release, and are deleted when the PR closes."
           } >> comment.md

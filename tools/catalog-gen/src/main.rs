@@ -88,9 +88,13 @@ struct PrereleaseArgs {
     /// Remote to push tags to
     #[arg(long, default_value = "origin")]
     remote: String,
-    /// Skip pushing the tags (for local dry-run testing)
+    /// Create the tags locally but do not push them. They stay in the repo — use --dry-run to
+    /// inspect the output without writing any refs.
     #[arg(long)]
     no_push: bool,
+    /// Compute and print the tags and payloads without creating or pushing any ref
+    #[arg(long)]
+    dry_run: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -930,6 +934,22 @@ fn yaml_str<'a>(value: &'a serde_yaml::Value, key: &str) -> &'a str {
         .unwrap_or("")
 }
 
+/// Names of every variable a manifest declares, required or not.
+fn variable_names_from_yaml(content: &str) -> HashSet<String> {
+    let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
+        return HashSet::new();
+    };
+    doc.get("spec")
+        .and_then(|s| s.get("variables"))
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.get("name")?.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// Icon and required variables from a manifest, so `prerelease` can emit a payload a tester can
 /// run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default come
 /// out with an empty value — the two or three fields that actually need filling in.
@@ -1283,7 +1303,9 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         let exists = !run_git_or_empty(&root, &["rev-parse", "-q", "--verify", &tag_ref])
             .trim()
             .is_empty();
-        if exists {
+        if args.dry_run {
+            eprintln!("[dry-run] would tag {}", tag);
+        } else if exists {
             eprintln!("Tag {} already exists, skipping", tag);
         } else {
             run_git(&root, &["tag", &tag])?;
@@ -1291,11 +1313,31 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         }
 
         let (icon, variables) = payload_hints_from_yaml(&content);
+
+        // An update is a JSON-merge-patch: any key present overwrites the deployed value. Sending
+        // every required variable would therefore clobber the live config — and for a required
+        // secret an empty value is rejected outright. So the update payload carries only variables
+        // this branch newly introduces, which are the ones an existing service cannot already have.
+        let base_qbm = format!("{}:{}/qbm.yml", args.base_ref, dir);
+        let base_manifest = run_git_or_empty(&root, &["show", &base_qbm]);
+        let is_new_blueprint = base_manifest.trim().is_empty();
+        let known = variable_names_from_yaml(&base_manifest);
+        let update_variables: Vec<&serde_json::Value> = variables
+            .iter()
+            .filter(|v| {
+                v.get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|n| !known.contains(n))
+            })
+            .collect();
+
         entries.push(serde_json::json!({
             "tag": tag,
             "dir": dir,
             "icon": icon,
             "variables": variables,
+            "update_variables": update_variables,
+            "is_new_blueprint": is_new_blueprint,
         }));
         tags.push(tag);
     }
@@ -1305,12 +1347,19 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         return Ok(());
     }
 
-    if !args.no_push {
+    if args.dry_run {
+        eprintln!("[dry-run] no refs created, nothing pushed");
+    } else if !args.no_push {
         // Push these refs explicitly, never `--tags` (that would leak unrelated local tags) and
         // never `--force`. Re-pushing an unchanged tag is a no-op; a mismatch should fail loudly.
         let mut push_args: Vec<&str> = vec!["push", &args.remote];
         push_args.extend(tags.iter().map(String::as_str));
         run_git(&root, &push_args)?;
+    } else {
+        eprintln!("--no-push: tags created locally, not pushed. Remove with:");
+        for tag in &tags {
+            eprintln!("  git tag -d {}", tag);
+        }
     }
 
     // stdout is machine-readable (tag + the fields needed to build a deploy payload); progress

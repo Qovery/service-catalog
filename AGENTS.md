@@ -73,6 +73,14 @@ Two limits worth knowing:
 - **This is API-only.** The Console's blueprint picker lists `catalog.json` from `main`, which has
   no rc tags, so the blueprint will not show up there. There is no `qovery` CLI path either — the
   CLI's `blueprint` commands are RDE-portal, a different feature.
+- **`update-service-rc` is for throwaway services only.** It pins the service to a tag that is
+  deleted when the PR closes, and a service on a deleted tag cannot be deployed. Worse,
+  `GET /blueprint/{id}/update` reads `qbm.yml` at the service's *current* tag, so it returns 502
+  and the Console cannot offer the update that would rescue it. Recovery works only through the
+  API — `PATCH /blueprint/{id}` reads the manifest at the *new* tag, so pointing the service at a
+  real tag still succeeds. Move it back before the PR closes, or just delete the test service.
+  After merge, the real tag (e.g. `3.1.0`) is offered as a normal update and its diff is empty:
+  the blueprint files are identical to the rc, so it is a pure tag bump with no infra change.
 - **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
   from the catalog on `main` and will be wrong if the PR changed variables.
 
@@ -80,10 +88,17 @@ The tags are never released (`auto-tag` only releases tags pointing at `main`'s 
 deleted when the PR closes. If the ruleset ever stops excluding `refs/tags/**/*-rc`, that cleanup
 job fails loudly rather than leaving tags behind silently.
 
-To dry-run locally:
-`catalog-gen prerelease --base-ref origin/main --suffix pr0.local-rc --no-push`.
-On macOS, git's loose refs are case-insensitive, so a local run can collide with this repo's legacy
-lowercase tags (`aws/...`); CI on Linux is unaffected.
+To inspect locally without touching the repo:
+
+```sh
+catalog-gen prerelease --base-ref origin/main --suffix pr0.local-rc --dry-run
+```
+
+`--dry-run` writes no refs. `--no-push` is different: it **does** create the tags locally and only
+skips the push, so the refs stay behind and a later run on the same commit reports
+`already exists, skipping`. It prints the `git tag -d` lines to undo itself. On macOS, git's loose
+refs are case-insensitive, so a local run can also collide with this repo's legacy lowercase tags
+(`aws/...`); CI on Linux is unaffected.
 
 ### Retiring a blueprint major
 
