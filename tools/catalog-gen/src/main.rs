@@ -1322,6 +1322,15 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         let base_manifest = run_git_or_empty(&root, &["show", &base_qbm]);
         let is_new_blueprint = base_manifest.trim().is_empty();
         let known = variable_names_from_yaml(&base_manifest);
+
+        // The already-published tag, plus the payload that creates a service on it. Testing the
+        // update path needs a service that starts on the OLD version — creating one at the rc tag
+        // and then updating it to the same tag would diff nothing.
+        let (base_icon, base_variables) = payload_hints_from_yaml(&base_manifest);
+        let base_tag = metadata_version_from_yaml(&base_manifest)
+            .filter(|v| !v.is_empty())
+            .map(|v| format!("{}/{}", dir, v));
+
         let update_variables: Vec<&serde_json::Value> = variables
             .iter()
             .filter(|v| {
@@ -1338,6 +1347,9 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
             "variables": variables,
             "update_variables": update_variables,
             "is_new_blueprint": is_new_blueprint,
+            "base_tag": base_tag,
+            "base_icon": base_icon,
+            "base_variables": base_variables,
         }));
         tags.push(tag);
     }
