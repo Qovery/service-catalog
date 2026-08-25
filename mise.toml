@@ -93,12 +93,9 @@ call_api() {
 }
 
 cat >&2 <<WARN
-WARNING: this pins the service to a throwaway tag that is deleted when the PR closes.
-A service left on a deleted tag cannot be deployed, and GET /blueprint/{id}/update returns
-502 because it reads qbm.yml at the service's *current* tag — so the Console cannot even offer
-the update that would fix it. Recovery is API-only:
-  mise run update-service-rc ${BLUEPRINT_ID} <REAL_TAG> '<payload>'
-Use a throwaway service in a test organization, and move it to a real tag before the PR closes.
+WARNING: only ever point this at a disposable test service.
+It pins the service to an rc tag that is deleted when the PR closes, and a service on a
+deleted tag cannot be deployed.
 WARN
 
 BODY="$(printf '%s' "$PAYLOAD" | jq --arg tag "$RC_TAG" '.tag = $tag')"

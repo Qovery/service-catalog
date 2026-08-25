@@ -73,14 +73,10 @@ Two limits worth knowing:
 - **This is API-only.** The Console's blueprint picker lists `catalog.json` from `main`, which has
   no rc tags, so the blueprint will not show up there. There is no `qovery` CLI path either — the
   CLI's `blueprint` commands are RDE-portal, a different feature.
-- **`update-service-rc` is for throwaway services only.** It pins the service to a tag that is
-  deleted when the PR closes, and a service on a deleted tag cannot be deployed. Worse,
-  `GET /blueprint/{id}/update` reads `qbm.yml` at the service's *current* tag, so it returns 502
-  and the Console cannot offer the update that would rescue it. Recovery works only through the
-  API — `PATCH /blueprint/{id}` reads the manifest at the *new* tag, so pointing the service at a
-  real tag still succeeds. Move it back before the PR closes, or just delete the test service.
-  After merge, the real tag (e.g. `3.1.0`) is offered as a normal update and its diff is empty:
-  the blueprint files are identical to the rc, so it is a pure tag bump with no infra change.
+- **`update-service-rc` is for throwaway services only.** It pins the service to an rc tag that is
+  deleted when the PR closes, and a service on a deleted tag cannot be deployed. To test the
+  update path without risking anything, create a throwaway on the currently published tag first,
+  then upgrade that — the PR comment renders both steps.
 - **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
   from the catalog on `main` and will be wrong if the PR changed variables.
 
