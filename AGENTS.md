@@ -36,6 +36,68 @@ Files per blueprint:
 - A brand-new blueprint directory starts at `1.0.0`.
 - On merge to `main`, CI (`auto-tag`) creates a tag/release `{PROVIDER}/{service}/{major}/{metadata.version}` (e.g. `HELM/redis/8/1.0.0`).
 
+### Testing a blueprint change before merge (CI: `pr-prerelease`)
+
+Every PR whose branch lives on this repo gets prerelease tags for the blueprints it changed.
+Pushing a branch here needs write access, which only Qovery org teams grant, so in practice that
+means org members. Fork PRs are excluded — and GitHub makes their `GITHUB_TOKEN` read-only, so
+they could not push a tag anyway:
+`{PROVIDER}/{service}/{major}/{metadata.version}-pr{PR}.{short_sha}-rc` (e.g.
+`AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc`). CI comments them on the PR once validation passes, with
+a ready-to-run command per blueprint.
+
+Two properties of that name matter:
+
+- **The SHA** makes a tag identify its content — unique per commit, idempotent across workflow
+  re-runs, never force-updated (which the tag ruleset forbids).
+- **The `-rc` ending** is what makes cleanup possible. The ruleset excludes `refs/tags/**/*-rc`
+  from its deletion rule, and fnmatch `*` does not cross `/`, so only a tag whose last segment
+  ends in `-rc` can be deleted. `catalog-gen prerelease` rejects a suffix that does not.
+
+To test one, run it against a **test organization** (needs `QOVERY_API_TOKEN`, `mise`, `jq`):
+
+```sh
+mise run deploy-service-rc $ENVIRONMENT_ID AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '<json>'
+mise run update-service-rc $BLUEPRINT_ID   AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '<json>'
+```
+
+The tag is a separate argument and gets injected into the payload, so the JSON stays about the
+service config and cannot drift from the tag under test. `deploy-service-rc` creates and deploys a
+new service; `update-service-rc` repoints an existing one and redeploys it. The PR comment
+pre-fills each payload with the blueprint's icon and required variables read from **this branch's**
+`qbm.yml`.
+
+This works because `tag` is a per-request field and q-core validates only its shape (4 segments,
+`^[A-Za-z0-9_.-]+$`) before reading `qbm.yml` at that git ref — `catalog.json` is never consulted.
+
+Two limits worth knowing:
+
+- **This is API-only.** The Console's blueprint picker lists `catalog.json` from `main`, which has
+  no rc tags, so the blueprint will not show up there. There is no `qovery` CLI path either — the
+  CLI's `blueprint` commands are RDE-portal, a different feature.
+- **`update-service-rc` is for throwaway services only.** It pins the service to an rc tag that is
+  deleted when the PR closes, and a service on a deleted tag cannot be deployed. To test the
+  update path without risking anything, create a throwaway on the currently published tag first,
+  then upgrade that — the PR comment renders both steps.
+- **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
+  from the catalog on `main` and will be wrong if the PR changed variables.
+
+The tags are never released (`auto-tag` only releases tags pointing at `main`'s HEAD), and are
+deleted when the PR closes. If the ruleset ever stops excluding `refs/tags/**/*-rc`, that cleanup
+job fails loudly rather than leaving tags behind silently.
+
+To inspect locally without touching the repo:
+
+```sh
+catalog-gen prerelease --base-ref origin/main --suffix pr0.local-rc --dry-run
+```
+
+`--dry-run` writes no refs. `--no-push` is different: it **does** create the tags locally and only
+skips the push, so the refs stay behind and a later run on the same commit reports
+`already exists, skipping`. It prints the `git tag -d` lines to undo itself. On macOS, git's loose
+refs are case-insensitive, so a local run can also collide with this repo's legacy lowercase tags
+(`aws/...`); CI on Linux is unaffected.
+
 ### Retiring a blueprint major
 
 `auto-tag` only ever _creates_ tags. To fully retire a major (e.g. Redis 7 → 8), use `mise run retire-blueprint <path>` (e.g. `HELM/redis/7`) — it removes the directory, regenerates `catalog.json` (staged for a PR), and deletes the tags + GitHub releases (applied immediately). It is DESTRUCTIVE and dry-run unless `CONFIRM=yes`. **Deleting a tag makes any service still pinned to it undeployable** (services reference the blueprint by immutable git tag and the engine re-fetches it on every deploy) — first check dependents (`SELECT * FROM blueprint WHERE tag LIKE '<path>/%'` in q-core) and migrate them.

@@ -147,6 +147,158 @@ jobs:
           chmod +x bin/catalog-gen
           bin/catalog-gen auto-tag --root .
 
+  pr-prerelease:
+    name: Publish PR prerelease tags
+    runs-on: ubuntu-latest
+    needs: [build-catalog-gen, validate-qbm, validate-terraform, check-version-bump]
+    # The branch must live on this repo, which requires write access. The repo is public but has
+    # no outside or direct collaborators — all write comes through Qovery org teams — so this is
+    # equivalent to "the author is a Qovery org member". Granting an outside collaborator write
+    # would weaken that, and is the thing to revisit if it ever happens.
+    #
+    # Do NOT gate on author_association: it only reports MEMBER for *public* org members (Qovery
+    # has two), so it silently skips this job for nearly everyone. A fork PR is excluded by the
+    # head-repo check, and its GITHUB_TOKEN is read-only regardless, so it could not push a tag.
+    if: |
+      always() &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.build-catalog-gen.result == 'success' &&
+      needs.validate-qbm.result == 'success' &&
+      needs.check-version-bump.result == 'success' &&
+      (needs.validate-terraform.result == 'success' || needs.validate-terraform.result == 'skipped')
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Tag the author's own head commit, not the synthetic merge commit, so the deployed
+      # blueprint is exactly what they pushed.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog-gen
+          path: bin
+
+      - id: prerelease
+        name: Tag changed blueprints with an rc suffix
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          chmod +x bin/catalog-gen
+          # The suffix carries the head SHA so a tag identifies its content: unique per commit,
+          # idempotent across workflow re-runs, and never needing a force update — which the tag
+          # ruleset forbids. It must END in `-rc`: the ruleset excludes `refs/tags/**/*-rc` from
+          # its deletion rule, and fnmatch `*` does not cross `/`, so only a last segment ending
+          # in `-rc` is deletable. catalog-gen enforces this.
+          bin/catalog-gen prerelease \
+            --root . \
+            --base-ref origin/main \
+            --suffix "pr${{ github.event.pull_request.number }}.${HEAD_SHA:0:7}-rc" \
+            > blueprints.json
+          {
+            echo 'blueprints<<JSON_EOF'
+            cat blueprints.json
+            echo 'JSON_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment the deployable tags on the PR
+        if: steps.prerelease.outputs.blueprints != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BLUEPRINTS: ${{ steps.prerelease.outputs.blueprints }}
+        run: |
+          {
+            echo "### Test this blueprint before merging"
+            echo
+            echo "The engine clones the catalog by git tag, so these run exactly what is on this"
+            echo "branch. **Use a test organization, never production.**"
+            echo
+            echo "Needs \`QOVERY_API_TOKEN\` exported, plus \`mise\` and \`jq\`. Payloads below are"
+            echo "pre-filled from this branch's \`qbm.yml\` — fill in the empty values."
+          } > comment.md
+
+          # One section per changed blueprint, rendered field-by-field rather than as one giant jq
+          # expression so the three options stay readable.
+          printf '%s' "$BLUEPRINTS" | jq -c '.[]' | while read -r bp; do
+            DIR=$(jq -r '.dir' <<<"$bp")
+            RC_TAG=$(jq -r '.tag' <<<"$bp")
+            BASE_TAG=$(jq -r '.base_tag // empty' <<<"$bp")
+            # Name derived from the blueprint path: a PR touching several blueprints would
+            # otherwise emit the same service name for each, and the second create returns 409
+            # (a service name must be unique within an environment).
+            NAME=$(jq -r '"rc-" + (.dir | ascii_downcase | gsub("[^a-z0-9]+"; "-"))' <<<"$bp")
+            # Create payloads take a list of variables; the update payload is a merge-patch map and
+            # carries ONLY what this branch adds — resending existing keys would overwrite the
+            # deployed values, and an empty required secret is rejected outright.
+            CREATE_RC=$(jq -r --arg n "$NAME" '{name: $n, icon: .icon, variables: .variables} | @json | @sh' <<<"$bp")
+            CREATE_BASE=$(jq -r --arg n "$NAME" '{name: $n, icon: .base_icon, variables: .base_variables} | @json | @sh' <<<"$bp")
+            UPDATE=$(jq -r --arg n "$NAME" '{name: $n, icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh' <<<"$bp")
+
+            echo
+            echo "#### \`$DIR\` — \`$RC_TAG\`"
+            echo
+            echo "**1. Test a new deployment**"
+            echo
+            echo '```sh'
+            echo "mise run deploy-service-rc \$ENVIRONMENT_ID \\"
+            echo "  $RC_TAG \\"
+            echo "  $CREATE_RC"
+            echo '```'
+
+            if [ -z "$BASE_TAG" ]; then
+              echo
+              echo "**2. Test a service update** — not applicable: this blueprint is new on this"
+              echo "branch, so there is no published version to upgrade from."
+              continue
+            fi
+
+            echo
+            echo "**2. Test a service update**"
+            echo
+            echo "_a. Against an existing **test** service_"
+            echo
+            echo '```sh'
+            echo "mise run update-service-rc \$BLUEPRINT_ID \\"
+            echo "  $RC_TAG \\"
+            echo "  $UPDATE"
+            echo '```'
+            echo
+            echo "> **⚠️ Only ever point this at a disposable test service.**"
+            echo "> It pins that service to an rc tag that is **deleted when this PR closes**, and a"
+            echo "> service on a deleted tag cannot be deployed."
+            echo
+            echo "_b. Against a brand-new test service_ — create one on the published tag first, then"
+            echo "run 2a against it. Starting from \`$BASE_TAG\` is what makes step 2 an actual"
+            echo "upgrade; creating at the rc tag would diff against itself and show nothing."
+            echo
+            echo '```sh'
+            echo "# i. create a throwaway service on the currently published tag"
+            echo "mise run deploy-service-rc \$ENVIRONMENT_ID \\"
+            echo "  $BASE_TAG \\"
+            echo "  $CREATE_BASE"
+            echo
+            echo "# ii. then run 2a with the blueprint id it returns, and delete the service when done"
+            echo '```'
+          done >> comment.md
+
+          {
+            echo
+            echo "Notes:"
+            echo
+            echo "- These blueprints do **not** appear in the Console picker — it lists"
+            echo "  \`catalog.json\` from \`main\`, which has no rc tags. This is an API-only flow."
+            echo "- Option 1 exercises provisioning from scratch. Option 2 exercises the migration"
+            echo "  path (the diff runs against the deployed service's terraform state), which is"
+            echo "  what reveals a change that would replace or destroy live infrastructure."
+            echo "- These tags never become releases, and are deleted when the PR closes."
+          } >> comment.md
+
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+
   check-catalog:
     name: Check catalog.json is up to date
     runs-on: ubuntu-latest
