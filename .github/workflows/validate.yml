@@ -212,14 +212,28 @@ jobs:
           BLUEPRINTS: ${{ steps.prerelease.outputs.blueprints }}
         run: |
           {
-            echo "### Test this blueprint before merging"
+            echo "### How to test this blueprint before merging"
             echo
-            echo "The engine clones the catalog by git tag, so these run exactly what is on this"
-            echo "branch. **Use a test organization, never production.**"
+            echo "**Use a test organization, never production.**"
             echo
-            echo "Needs \`QOVERY_API_TOKEN\` exported, plus \`mise\` and \`jq\`. Payloads below are"
-            echo "pre-filled from this branch's \`qbm.yml\` — fill in the empty values."
+            echo "Requirements:"
+            echo
+            echo "- \`QOVERY_API_TOKEN\` — a Qovery API token for the target organization. Either"
+            echo "  export it, or set it inline on the command"
+            echo "  (\`QOVERY_API_TOKEN=… mise run …\`) — both work."
+            echo "- \`mise\`"
+            echo "- \`jq\`"
+            echo "- \`curl\`"
+            echo
+            echo "Payloads are pre-filled from this branch's \`qbm.yml\` — fill in the empty values."
           } > comment.md
+
+          # Pretty-print a payload and shell-quote it: readable in the snippet, still safe to
+          # paste. jq's @sh escapes an apostrophe from a manifest default as '\'', and preserves
+          # the newlines, so the multi-line JSON stays a single shell argument.
+          quote_payload() {
+            jq -rn --arg s "$(sed '2,$s/^/  /')" '$s | @sh'
+          }
 
           # One section per changed blueprint, rendered field-by-field rather than as one giant jq
           # expression so the three options stay readable.
@@ -234,9 +248,9 @@ jobs:
             # Create payloads take a list of variables; the update payload is a merge-patch map and
             # carries ONLY what this branch adds — resending existing keys would overwrite the
             # deployed values, and an empty required secret is rejected outright.
-            CREATE_RC=$(jq -r --arg n "$NAME" '{name: $n, icon: .icon, variables: .variables} | @json | @sh' <<<"$bp")
-            CREATE_BASE=$(jq -r --arg n "$NAME" '{name: $n, icon: .base_icon, variables: .base_variables} | @json | @sh' <<<"$bp")
-            UPDATE=$(jq -r --arg n "$NAME" '{name: $n, icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh' <<<"$bp")
+            CREATE_RC=$(jq --arg n "$NAME" '{name: $n, icon: .icon, variables: .variables}' <<<"$bp" | quote_payload)
+            CREATE_BASE=$(jq --arg n "$NAME" '{name: $n, icon: .base_icon, variables: .base_variables}' <<<"$bp" | quote_payload)
+            UPDATE=$(jq --arg n "$NAME" '{name: $n, icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)}' <<<"$bp" | quote_payload)
 
             echo
             echo "#### \`$DIR\` — \`$RC_TAG\`"
