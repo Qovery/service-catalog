@@ -10,11 +10,11 @@ jobs:
   delete-prerelease-tags:
     name: Delete this PR's prerelease tags
     runs-on: ubuntu-latest
-    # Same gate as the job that creates the tags: only a Qovery org member's branch on this repo
-    # ever gets them, so only that case can have any to clean up.
-    if: |
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(fromJSON('["OWNER", "MEMBER"]'), github.event.pull_request.author_association)
+    # Same gate as the job that creates the tags: only a branch on this repo ever gets them, so
+    # only that case can have any to clean up. Deliberately not gated on author_association —
+    # it reports MEMBER only for public org members, which would skip cleanup for nearly everyone
+    # and leave the tags behind.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: write
     steps:

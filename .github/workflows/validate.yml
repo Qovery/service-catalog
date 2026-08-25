@@ -151,15 +151,18 @@ jobs:
     name: Publish PR prerelease tags
     runs-on: ubuntu-latest
     needs: [build-catalog-gen, validate-qbm, validate-terraform, check-version-bump]
-    # Restricted twice over. The branch must live on this repo (a fork PR gets a read-only
-    # GITHUB_TOKEN and could not push tags anyway), AND the author must be a Qovery org member or
-    # owner. author_association is COLLABORATOR for an outside collaborator with write access, so
-    # checking it — not just push permission — is what limits this to the organization.
+    # The branch must live on this repo, which requires write access. The repo is public but has
+    # no outside or direct collaborators — all write comes through Qovery org teams — so this is
+    # equivalent to "the author is a Qovery org member". Granting an outside collaborator write
+    # would weaken that, and is the thing to revisit if it ever happens.
+    #
+    # Do NOT gate on author_association: it only reports MEMBER for *public* org members (Qovery
+    # has two), so it silently skips this job for nearly everyone. A fork PR is excluded by the
+    # head-repo check, and its GITHUB_TOKEN is read-only regardless, so it could not push a tag.
     if: |
       always() &&
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(fromJSON('["OWNER", "MEMBER"]'), github.event.pull_request.author_association) &&
       needs.build-catalog-gen.result == 'success' &&
       needs.validate-qbm.result == 'success' &&
       needs.check-version-bump.result == 'success' &&

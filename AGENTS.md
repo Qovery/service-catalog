@@ -37,9 +37,10 @@ Files per blueprint:
 
 ### Testing a blueprint change before merge (CI: `pr-prerelease`)
 
-Every PR opened by a **Qovery organization member** from a branch on this repo gets prerelease
-tags for the blueprints it changed (fork PRs and outside collaborators are excluded — the job
-checks `author_association`, not merely push access):
+Every PR whose branch lives on this repo gets prerelease tags for the blueprints it changed.
+Pushing a branch here needs write access, which only Qovery org teams grant, so in practice that
+means org members. Fork PRs are excluded — and GitHub makes their `GITHUB_TOKEN` read-only, so
+they could not push a tag anyway:
 `{PROVIDER}/{service}/{major}/{metadata.version}-pr{PR}.{short_sha}-rc` (e.g.
 `AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc`). CI comments them on the PR once validation passes, with
 a ready-to-run command per blueprint.
