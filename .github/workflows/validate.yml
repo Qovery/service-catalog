@@ -151,11 +151,15 @@ jobs:
     name: Publish PR prerelease tags
     runs-on: ubuntu-latest
     needs: [build-catalog-gen, validate-qbm, validate-terraform, check-version-bump]
-    # Only for branches on this repo: a fork PR gets a read-only GITHUB_TOKEN and cannot push tags.
+    # Restricted twice over. The branch must live on this repo (a fork PR gets a read-only
+    # GITHUB_TOKEN and could not push tags anyway), AND the author must be a Qovery org member or
+    # owner. author_association is COLLABORATOR for an outside collaborator with write access, so
+    # checking it — not just push permission — is what limits this to the organization.
     if: |
       always() &&
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER", "MEMBER"]'), github.event.pull_request.author_association) &&
       needs.build-catalog-gen.result == 'success' &&
       needs.validate-qbm.result == 'success' &&
       needs.check-version-bump.result == 'success' &&
@@ -183,65 +187,63 @@ jobs:
         run: |
           chmod +x bin/catalog-gen
           # The suffix carries the head SHA so a tag identifies its content: unique per commit,
-          # idempotent across workflow re-runs, and never needing a force update — which the
-          # repo's tag ruleset forbids anyway.
+          # idempotent across workflow re-runs, and never needing a force update — which the tag
+          # ruleset forbids. It must END in `-rc`: the ruleset excludes `refs/tags/**/*-rc` from
+          # its deletion rule, and fnmatch `*` does not cross `/`, so only a last segment ending
+          # in `-rc` is deletable. catalog-gen enforces this.
           bin/catalog-gen prerelease \
             --root . \
             --base-ref origin/main \
-            --suffix "rc.${{ github.event.pull_request.number }}.${HEAD_SHA:0:7}" \
-            > tags.txt
+            --suffix "pr${{ github.event.pull_request.number }}.${HEAD_SHA:0:7}-rc" \
+            > blueprints.json
           {
-            echo 'tags<<TAGS_EOF'
-            cat tags.txt
-            echo 'TAGS_EOF'
+            echo 'blueprints<<JSON_EOF'
+            cat blueprints.json
+            echo 'JSON_EOF'
           } >> "$GITHUB_OUTPUT"
 
       - name: Comment the deployable tags on the PR
-        if: steps.prerelease.outputs.tags != ''
+        if: steps.prerelease.outputs.blueprints != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAGS: ${{ steps.prerelease.outputs.tags }}
+          BLUEPRINTS: ${{ steps.prerelease.outputs.blueprints }}
         run: |
-          FIRST_TAG=$(echo "$TAGS" | head -n1)
           {
             echo "### Test this blueprint before merging"
-            echo
-            echo "Prerelease tags for this PR:"
-            echo
-            echo '```'
-            echo "$TAGS"
-            echo '```'
             echo
             echo "The engine clones the catalog by git tag, so deploying one of these runs exactly"
             echo "what is on this branch. Use a **test organization**, not production."
             echo
-            echo "**New service** — creates and deploys it:"
-            echo
-            echo '```sh'
-            echo 'curl -X POST "https://api.qovery.com/environment/$ENVIRONMENT_ID/blueprint?deploy=true" \'
-            echo '  -H "Authorization: Bearer $QOVERY_API_TOKEN" \'
-            echo '  -H "Content-Type: application/json" \'
-            echo "  -d '{\"name\":\"rc-test\",\"icon\":\"\",\"tag\":\"$FIRST_TAG\",\"variables\":[]}'"
-            echo '```'
-            echo
-            echo "**Existing blueprint service** — preview the diff, then apply and deploy:"
-            echo
-            echo '```sh'
-            echo 'curl -X POST "https://api.qovery.com/blueprint/$BLUEPRINT_ID/update/preview" \'
-            echo '  -H "Authorization: Bearer $QOVERY_API_TOKEN" \'
-            echo '  -H "Content-Type: application/json" \'
-            echo "  -d '{\"name\":\"rc-test\",\"icon\":\"\",\"tag\":\"$FIRST_TAG\",\"variables\":{}}'"
-            echo '```'
+            echo "Requires \`QOVERY_API_TOKEN\` in your environment, and \`mise\` + \`jq\`."
+            echo "Values below are this branch's required variables — fill in the empty ones."
+          } > comment.md
+
+          # Render one block per changed blueprint. The payload carries name/icon/variables; the
+          # tag is a separate argument the task injects, so it cannot drift from the JSON.
+          printf '%s' "$BLUEPRINTS" | jq -r '
+            .[] |
+            "\n#### `\(.dir)`\n\n```sh\n" +
+            "# new service\n" +
+            "mise run deploy-service-rc $ENVIRONMENT_ID \\\n  \(.tag) \\\n  " +
+            ({name: "rc-test", icon: .icon, variables: .variables} | @json | @sh) +
+            "\n\n# existing blueprint service\n" +
+            "mise run update-service-rc $BLUEPRINT_ID \\\n  \(.tag) \\\n  " +
+            ({name: "rc-test", icon: .icon, variables: (.variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh) +
+            "\n```"
+          ' >> comment.md
+
+          {
             echo
             echo "Two things to know:"
             echo
             echo "- These blueprints do **not** appear in the Console picker. It lists \`catalog.json\`"
             echo "  from \`main\`, which has no rc tags — so this is an API-only flow."
-            echo "- Pass \`variables\` matching **this branch's** \`qbm.yml\`, not main's. The Console's"
-            echo "  variable form is built from main and will be wrong if this PR changed them."
+            echo "- \`deploy-service-rc\` takes variables as a **list**, \`update-service-rc\` as a"
+            echo "  **patch map** (\`null\` removes a variable). Both are pre-rendered above."
             echo
             echo "These tags are never turned into a release, and are deleted when the PR closes."
-          } > comment.md
+          } >> comment.md
+
           gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
 
   check-catalog:

@@ -7,6 +7,75 @@ cargo run --release --manifest-path tools/catalog-gen/Cargo.toml -- \
   generate --root . --output catalog.json
 """
 
+# Deploy a PR's prerelease blueprint into a test environment. CI comments a ready-to-run
+# invocation on every PR that touches a blueprint. Example:
+#   QOVERY_API_TOKEN=... mise run deploy-service-rc <ENVIRONMENT_ID> AWS/postgres/17/3.1.0-pr45.abc1234-rc '{...}'
+# The tag is passed separately and injected into the payload, so the JSON stays about the service
+# config and there is only one place the tag can be wrong.
+[tasks.deploy-service-rc]
+description = "Create + deploy a blueprint service from an rc tag (use a TEST organization)"
+usage = '''
+arg "<environment_id>" help="Target environment uuid"
+arg "<rc_tag>" help="Prerelease tag, e.g. AWS/postgres/17/3.1.0-pr45.abc1234-rc"
+arg "<payload>" help="JSON body: name, icon, variables (tag is injected)"
+'''
+run = """
+set -euo pipefail
+ENVIRONMENT_ID="${usage_environment_id:-${1:-}}"
+RC_TAG="${usage_rc_tag:-${2:-}}"
+PAYLOAD="${usage_payload:-${3:-}}"
+API="${QOVERY_API_URL:-https://api.qovery.com}"
+
+if [ -z "$ENVIRONMENT_ID" ] || [ -z "$RC_TAG" ] || [ -z "$PAYLOAD" ]; then
+  echo "usage: mise run deploy-service-rc <ENVIRONMENT_ID> <RC_TAG> '<json>'" >&2
+  exit 2
+fi
+: "${QOVERY_API_TOKEN:?set QOVERY_API_TOKEN (Qovery API token for the target organization)}"
+
+BODY="$(printf '%s' "$PAYLOAD" | jq --arg tag "$RC_TAG" '.tag = $tag')"
+echo "POST ${API}/environment/${ENVIRONMENT_ID}/blueprint?deploy=true  (tag: ${RC_TAG})"
+curl -sS --fail-with-body -X POST "${API}/environment/${ENVIRONMENT_ID}/blueprint?deploy=true" \
+  -H "Authorization: Bearer ${QOVERY_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "$BODY" | jq .
+"""
+
+# Point an existing blueprint service at a PR's prerelease tag and redeploy it. Applies the
+# update (PATCH) and then triggers the deployment; the preview diff is delivered over a
+# websocket and is not reproducible from a shell, so it is skipped here. Example:
+#   QOVERY_API_TOKEN=... mise run update-service-rc <BLUEPRINT_ID> AWS/postgres/17/3.1.0-pr45.abc1234-rc '{...}'
+[tasks.update-service-rc]
+description = "Point an existing blueprint service at an rc tag and redeploy (use a TEST organization)"
+usage = '''
+arg "<blueprint_id>" help="Blueprint uuid of the existing service"
+arg "<rc_tag>" help="Prerelease tag, e.g. AWS/postgres/17/3.1.0-pr45.abc1234-rc"
+arg "<payload>" help="JSON body: name, icon, variables patch map (tag is injected)"
+'''
+run = """
+set -euo pipefail
+BLUEPRINT_ID="${usage_blueprint_id:-${1:-}}"
+RC_TAG="${usage_rc_tag:-${2:-}}"
+PAYLOAD="${usage_payload:-${3:-}}"
+API="${QOVERY_API_URL:-https://api.qovery.com}"
+
+if [ -z "$BLUEPRINT_ID" ] || [ -z "$RC_TAG" ] || [ -z "$PAYLOAD" ]; then
+  echo "usage: mise run update-service-rc <BLUEPRINT_ID> <RC_TAG> '<json>'" >&2
+  exit 2
+fi
+: "${QOVERY_API_TOKEN:?set QOVERY_API_TOKEN (Qovery API token for the target organization)}"
+
+BODY="$(printf '%s' "$PAYLOAD" | jq --arg tag "$RC_TAG" '.tag = $tag')"
+echo "PATCH ${API}/blueprint/${BLUEPRINT_ID}  (tag: ${RC_TAG})"
+curl -sS --fail-with-body -X PATCH "${API}/blueprint/${BLUEPRINT_ID}" \
+  -H "Authorization: Bearer ${QOVERY_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "$BODY" | jq .
+
+echo "POST ${API}/blueprint/${BLUEPRINT_ID}/deploy"
+curl -sS --fail-with-body -X POST "${API}/blueprint/${BLUEPRINT_ID}/deploy" \
+  -H "Authorization: Bearer ${QOVERY_API_TOKEN}" | jq .
+"""
+
 # Fully retire a blueprint major: remove its directory, regenerate catalog.json,
 # and delete its git tags + GitHub releases. Example:
 #   mise run retire-blueprint HELM/redis/7

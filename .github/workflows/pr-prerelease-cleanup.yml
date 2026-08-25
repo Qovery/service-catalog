@@ -10,7 +10,11 @@ jobs:
   delete-prerelease-tags:
     name: Delete this PR's prerelease tags
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Same gate as the job that creates the tags: only a Qovery org member's branch on this repo
+    # ever gets them, so only that case can have any to clean up.
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER", "MEMBER"]'), github.event.pull_request.author_association)
     permissions:
       contents: write
     steps:
@@ -20,13 +24,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Tags are {PROVIDER}/{service}/{major}/{version}-rc.{PR}.{short_sha}; match this PR only.
-          SUFFIX="-rc.${{ github.event.pull_request.number }}."
+          # Tags are {PROVIDER}/{service}/{major}/{version}-pr{PR}.{short_sha}-rc. Match this PR's
+          # marker and require the -rc ending, which is what the ruleset exclusion keys on.
+          MARKER="-pr${{ github.event.pull_request.number }}."
           mapfile -t TAGS < <(git ls-remote --tags origin \
             | awk '{print $2}' \
             | sed 's|^refs/tags/||' \
             | grep -v '\^{}$' \
-            | grep -F "$SUFFIX" || true)
+            | grep -F "$MARKER" \
+            | grep -E -- '-rc$' || true)
 
           if [ "${#TAGS[@]}" -eq 0 ]; then
             echo "No prerelease tags to delete for PR #${{ github.event.pull_request.number }}."
@@ -35,7 +41,8 @@ jobs:
 
           # Delete in one push so a single rejection fails the job. Without this the tags pile up
           # silently: the repo's "Only admins can delete tags" ruleset covers ~ALL tags with no
-          # bypass actors, so unless it excludes the rc pattern, GITHUB_TOKEN cannot delete these.
+          # bypass actors, and only excludes `refs/tags/**/*-rc` — so a tag whose last segment
+          # does not end in `-rc` is undeletable by GITHUB_TOKEN.
           REFS=()
           for tag in "${TAGS[@]}"; do
             echo "Deleting $tag"
@@ -43,6 +50,6 @@ jobs:
           done
 
           if ! git push origin "${REFS[@]}"; then
-            echo "::error::Could not delete prerelease tags. Check that the repository tag ruleset excludes the '-rc.' pattern."
+            echo "::error::Could not delete prerelease tags. Check that the repository tag ruleset still excludes 'refs/tags/**/*-rc' from its deletion rule."
             exit 1
           fi

@@ -80,7 +80,9 @@ struct PrereleaseArgs {
     #[arg(long, default_value = "origin/main")]
     base_ref: String,
     /// Prerelease suffix appended to metadata.version. Must identify the commit so the tag never
-    /// needs a force update, e.g. "rc.42.a1b2c3d" -> AWS/postgres/17/3.1.0-rc.42.a1b2c3d
+    /// needs a force update, and must end in `-rc` so the repository tag ruleset's
+    /// `refs/tags/**/*-rc` exclusion matches it.
+    /// e.g. "pr45.a1b2c3d-rc" -> AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc
     #[arg(long)]
     suffix: String,
     /// Remote to push tags to
@@ -914,6 +916,58 @@ fn metadata_version_from_yaml(content: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+fn yaml_bool(value: &serde_yaml::Value, key: &str) -> bool {
+    value
+        .get(key)
+        .and_then(serde_yaml::Value::as_bool)
+        .unwrap_or(false)
+}
+
+fn yaml_str<'a>(value: &'a serde_yaml::Value, key: &str) -> &'a str {
+    value
+        .get(key)
+        .and_then(serde_yaml::Value::as_str)
+        .unwrap_or("")
+}
+
+/// Icon and required variables from a manifest, so `prerelease` can emit a payload a tester can
+/// run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default come
+/// out with an empty value — the two or three fields that actually need filling in.
+fn payload_hints_from_yaml(content: &str) -> (String, Vec<serde_json::Value>) {
+    let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
+        return (String::new(), Vec::new());
+    };
+
+    let icon = doc
+        .get("metadata")
+        .and_then(|m| m.get("icon"))
+        .and_then(|i| i.as_str())
+        .unwrap_or_default()
+        .to_string();
+
+    let variables = doc
+        .get("spec")
+        .and_then(|s| s.get("variables"))
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter(|v| yaml_bool(v, "required"))
+                .filter_map(|v| {
+                    let name = v.get("name")?.as_str()?;
+                    let value = yaml_str(v, "default");
+                    let mut entry = serde_json::json!({ "name": name, "value": value });
+                    if yaml_bool(v, "sensitive") {
+                        entry["is_secret"] = serde_json::Value::Bool(true);
+                    }
+                    Some(entry)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    (icon, variables)
+}
+
 // ---------------------------------------------------------------------------
 // check-version-bump
 // ---------------------------------------------------------------------------
@@ -1189,6 +1243,14 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
             args.suffix
         );
     }
+    // The tag ruleset excludes `refs/tags/**/*-rc` from its deletion rule, and fnmatch `*` stops
+    // at `/` — so only a tag whose last segment ends in `-rc` can ever be cleaned up.
+    if !args.suffix.ends_with("-rc") {
+        anyhow::bail!(
+            "--suffix {:?} must end in '-rc', otherwise the tag falls outside the ruleset's deletion exclusion and can never be removed",
+            args.suffix
+        );
+    }
 
     let changed = changed_blueprint_dirs(&root, &args.base_ref)?;
     if changed.is_empty() {
@@ -1197,6 +1259,7 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
     }
 
     let mut tags: Vec<String> = Vec::new();
+    let mut entries: Vec<serde_json::Value> = Vec::new();
     for dir in &changed {
         let qbm_path = root.join(dir).join("qbm.yml");
         let content = std::fs::read_to_string(&qbm_path)
@@ -1226,6 +1289,14 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
             run_git(&root, &["tag", &tag])?;
             eprintln!("Tagged {}", tag);
         }
+
+        let (icon, variables) = payload_hints_from_yaml(&content);
+        entries.push(serde_json::json!({
+            "tag": tag,
+            "dir": dir,
+            "icon": icon,
+            "variables": variables,
+        }));
         tags.push(tag);
     }
 
@@ -1242,10 +1313,9 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         run_git(&root, &push_args)?;
     }
 
-    // stdout is the machine-readable list; progress goes to stderr.
-    for tag in &tags {
-        println!("{}", tag);
-    }
+    // stdout is machine-readable (tag + the fields needed to build a deploy payload); progress
+    // goes to stderr.
+    println!("{}", serde_json::to_string_pretty(&entries)?);
 
     Ok(())
 }

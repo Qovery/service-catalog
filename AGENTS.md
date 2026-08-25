@@ -37,23 +37,36 @@ Files per blueprint:
 
 ### Testing a blueprint change before merge (CI: `pr-prerelease`)
 
-Every PR from a branch on this repo gets prerelease tags for the blueprints it changed:
-`{PROVIDER}/{service}/{major}/{metadata.version}-rc.{PR}.{short_sha}` (e.g.
-`AWS/postgres/17/3.1.0-rc.42.a1b2c3d`). CI comments them on the PR, with ready-to-paste requests,
-once validation passes. The SHA makes a tag identify its content: unique per commit, idempotent
-across workflow re-runs, and never force-updated — which the tag ruleset forbids.
+Every PR opened by a **Qovery organization member** from a branch on this repo gets prerelease
+tags for the blueprints it changed (fork PRs and outside collaborators are excluded — the job
+checks `author_association`, not merely push access):
+`{PROVIDER}/{service}/{major}/{metadata.version}-pr{PR}.{short_sha}-rc` (e.g.
+`AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc`). CI comments them on the PR once validation passes, with
+a ready-to-run command per blueprint.
 
-To test one, create or update a blueprint on a **test organization** passing that tag explicitly.
-`tag` is a per-request field on both endpoints, and q-core validates only its shape (4 segments,
-`^[A-Za-z0-9_.-]+$`) before reading `qbm.yml` at that git ref — `catalog.json` is never consulted:
+Two properties of that name matter:
+
+- **The SHA** makes a tag identify its content — unique per commit, idempotent across workflow
+  re-runs, never force-updated (which the tag ruleset forbids).
+- **The `-rc` ending** is what makes cleanup possible. The ruleset excludes `refs/tags/**/*-rc`
+  from its deletion rule, and fnmatch `*` does not cross `/`, so only a tag whose last segment
+  ends in `-rc` can be deleted. `catalog-gen prerelease` rejects a suffix that does not.
+
+To test one, run it against a **test organization** (needs `QOVERY_API_TOKEN`, `mise`, `jq`):
 
 ```sh
-POST /api/environment/{environmentId}/blueprint?deploy=true
-  { "name": "rc-test", "icon": "", "tag": "AWS/postgres/17/3.1.0-rc.42.a1b2c3d", "variables": [] }
-
-POST /api/blueprint/{blueprintId}/update/preview
-  { "name": "rc-test", "icon": "", "tag": "AWS/postgres/17/3.1.0-rc.42.a1b2c3d", "variables": {} }
+mise run deploy-service-rc $ENVIRONMENT_ID AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '<json>'
+mise run update-service-rc $BLUEPRINT_ID   AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '<json>'
 ```
+
+The tag is a separate argument and gets injected into the payload, so the JSON stays about the
+service config and cannot drift from the tag under test. `deploy-service-rc` creates and deploys a
+new service; `update-service-rc` repoints an existing one and redeploys it. The PR comment
+pre-fills each payload with the blueprint's icon and required variables read from **this branch's**
+`qbm.yml`.
+
+This works because `tag` is a per-request field and q-core validates only its shape (4 segments,
+`^[A-Za-z0-9_.-]+$`) before reading `qbm.yml` at that git ref — `catalog.json` is never consulted.
 
 Two limits worth knowing:
 
@@ -63,12 +76,12 @@ Two limits worth knowing:
 - **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
   from the catalog on `main` and will be wrong if the PR changed variables.
 
-The tags are never released (`auto-tag` only releases tags pointing at `main`'s HEAD). They are
-deleted when the PR closes — which requires the repository tag ruleset to exclude the `-rc.`
-pattern; it covers `~ALL` tags with no bypass actors, so without that exclusion `GITHUB_TOKEN`
-cannot delete them and the cleanup job fails.
+The tags are never released (`auto-tag` only releases tags pointing at `main`'s HEAD), and are
+deleted when the PR closes. If the ruleset ever stops excluding `refs/tags/**/*-rc`, that cleanup
+job fails loudly rather than leaving tags behind silently.
 
-To dry-run locally: `catalog-gen prerelease --base-ref origin/main --suffix rc.local --no-push`.
+To dry-run locally:
+`catalog-gen prerelease --base-ref origin/main --suffix pr0.local-rc --no-push`.
 On macOS, git's loose refs are case-insensitive, so a local run can collide with this repo's legacy
 lowercase tags (`aws/...`); CI on Linux is unaffected.
 
