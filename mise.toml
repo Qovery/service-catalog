@@ -20,7 +20,11 @@ arg "<rc_tag>" help="Prerelease tag, e.g. AWS/postgres/17/3.1.0-pr45.abc1234-rc"
 arg "<payload>" help="JSON body: name, icon, variables (tag is injected)"
 '''
 run = """
-set -euo pipefail
+# `set -eu`, not `-o pipefail`: mise runs tasks with `sh`, which is dash on Debian/Ubuntu, and
+# dash rejects pipefail with "Illegal option" before a single line executes.
+set -eu
+. "${MISE_CONFIG_ROOT:-.}/tools/qovery-api.sh"
+
 ENVIRONMENT_ID="${usage_environment_id:-${1:-}}"
 RC_TAG="${usage_rc_tag:-${2:-}}"
 PAYLOAD="${usage_payload:-${3:-}}"
@@ -32,21 +36,7 @@ if [ -z "$ENVIRONMENT_ID" ] || [ -z "$RC_TAG" ] || [ -z "$PAYLOAD" ]; then
 fi
 : "${QOVERY_API_TOKEN:?set QOVERY_API_TOKEN (Qovery API token for the target organization)}"
 
-# Print the body and fail on >=400. Not `--fail-with-body`: that needs curl 7.76+, and distro
-# curls in the field are older (Ubuntu 20.04 ships 7.68), where an unknown option aborts before
-# the request is even sent.
-call_api() {
-  _out="$(mktemp)"
-  _code="$(curl -sS -o "$_out" -w '%{http_code}' "$@")"
-  if command -v jq >/dev/null 2>&1 && jq -e . "$_out" >/dev/null 2>&1; then jq . "$_out"; else cat "$_out"; fi
-  rm -f "$_out"
-  if [ "$_code" -ge 400 ]; then
-    echo "HTTP $_code" >&2
-    return 1
-  fi
-}
-
-BODY="$(printf '%s' "$PAYLOAD" | jq --arg tag "$RC_TAG" '.tag = $tag')"
+BODY="$(inject_tag "$RC_TAG" "$PAYLOAD")"
 echo "POST ${API}/environment/${ENVIRONMENT_ID}/blueprint?deploy=true  (tag: ${RC_TAG})"
 call_api -X POST "${API}/environment/${ENVIRONMENT_ID}/blueprint?deploy=true" \
   -H "Authorization: Bearer ${QOVERY_API_TOKEN}" \
@@ -66,7 +56,11 @@ arg "<rc_tag>" help="Prerelease tag, e.g. AWS/postgres/17/3.1.0-pr45.abc1234-rc"
 arg "<payload>" help="JSON body: name, icon, variables patch map (tag is injected)"
 '''
 run = """
-set -euo pipefail
+# `set -eu`, not `-o pipefail`: mise runs tasks with `sh`, which is dash on Debian/Ubuntu, and
+# dash rejects pipefail with "Illegal option" before a single line executes.
+set -eu
+. "${MISE_CONFIG_ROOT:-.}/tools/qovery-api.sh"
+
 BLUEPRINT_ID="${usage_blueprint_id:-${1:-}}"
 RC_TAG="${usage_rc_tag:-${2:-}}"
 PAYLOAD="${usage_payload:-${3:-}}"
@@ -78,27 +72,13 @@ if [ -z "$BLUEPRINT_ID" ] || [ -z "$RC_TAG" ] || [ -z "$PAYLOAD" ]; then
 fi
 : "${QOVERY_API_TOKEN:?set QOVERY_API_TOKEN (Qovery API token for the target organization)}"
 
-# Print the body and fail on >=400. Not `--fail-with-body`: that needs curl 7.76+, and distro
-# curls in the field are older (Ubuntu 20.04 ships 7.68), where an unknown option aborts before
-# the request is even sent.
-call_api() {
-  _out="$(mktemp)"
-  _code="$(curl -sS -o "$_out" -w '%{http_code}' "$@")"
-  if command -v jq >/dev/null 2>&1 && jq -e . "$_out" >/dev/null 2>&1; then jq . "$_out"; else cat "$_out"; fi
-  rm -f "$_out"
-  if [ "$_code" -ge 400 ]; then
-    echo "HTTP $_code" >&2
-    return 1
-  fi
-}
-
 cat >&2 <<WARN
 WARNING: only ever point this at a disposable test service.
 It pins the service to an rc tag that is deleted when the PR closes, and a service on a
 deleted tag cannot be deployed.
 WARN
 
-BODY="$(printf '%s' "$PAYLOAD" | jq --arg tag "$RC_TAG" '.tag = $tag')"
+BODY="$(inject_tag "$RC_TAG" "$PAYLOAD")"
 echo "PATCH ${API}/blueprint/${BLUEPRINT_ID}  (tag: ${RC_TAG})"
 call_api -X PATCH "${API}/blueprint/${BLUEPRINT_ID}" \
   -H "Authorization: Bearer ${QOVERY_API_TOKEN}" \

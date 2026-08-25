@@ -227,12 +227,16 @@ jobs:
             DIR=$(jq -r '.dir' <<<"$bp")
             RC_TAG=$(jq -r '.tag' <<<"$bp")
             BASE_TAG=$(jq -r '.base_tag // empty' <<<"$bp")
+            # Name derived from the blueprint path: a PR touching several blueprints would
+            # otherwise emit the same service name for each, and the second create returns 409
+            # (a service name must be unique within an environment).
+            NAME=$(jq -r '"rc-" + (.dir | ascii_downcase | gsub("[^a-z0-9]+"; "-"))' <<<"$bp")
             # Create payloads take a list of variables; the update payload is a merge-patch map and
             # carries ONLY what this branch adds — resending existing keys would overwrite the
             # deployed values, and an empty required secret is rejected outright.
-            CREATE_RC=$(jq -r '{name: "rc-test", icon: .icon, variables: .variables} | @json | @sh' <<<"$bp")
-            CREATE_BASE=$(jq -r '{name: "rc-test", icon: .base_icon, variables: .base_variables} | @json | @sh' <<<"$bp")
-            UPDATE=$(jq -r '{name: "rc-test", icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh' <<<"$bp")
+            CREATE_RC=$(jq -r --arg n "$NAME" '{name: $n, icon: .icon, variables: .variables} | @json | @sh' <<<"$bp")
+            CREATE_BASE=$(jq -r --arg n "$NAME" '{name: $n, icon: .base_icon, variables: .base_variables} | @json | @sh' <<<"$bp")
+            UPDATE=$(jq -r --arg n "$NAME" '{name: $n, icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)} | @json | @sh' <<<"$bp")
 
             echo
             echo "#### \`$DIR\` — \`$RC_TAG\`"

@@ -27,11 +27,14 @@ jobs:
           # Tags are {PROVIDER}/{service}/{major}/{version}-pr{PR}.{short_sha}-rc. Match this PR's
           # marker and require the -rc ending, which is what the ruleset exclusion keys on.
           MARKER="-pr${{ github.event.pull_request.number }}."
+          # `--` before every pattern: MARKER starts with '-', so grep would otherwise parse it as
+          # options and exit 2. With `|| true` swallowing that, cleanup would silently find no tags
+          # and leave every one behind.
           mapfile -t TAGS < <(git ls-remote --tags origin \
             | awk '{print $2}' \
             | sed 's|^refs/tags/||' \
-            | grep -v '\^{}$' \
-            | grep -F "$MARKER" \
+            | grep -v -- '\^{}$' \
+            | grep -F -- "$MARKER" \
             | grep -E -- '-rc$' || true)
 
           if [ "${#TAGS[@]}" -eq 0 ]; then

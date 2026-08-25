@@ -934,22 +934,6 @@ fn yaml_str<'a>(value: &'a serde_yaml::Value, key: &str) -> &'a str {
         .unwrap_or("")
 }
 
-/// Names of every variable a manifest declares, required or not.
-fn variable_names_from_yaml(content: &str) -> HashSet<String> {
-    let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
-        return HashSet::new();
-    };
-    doc.get("spec")
-        .and_then(|s| s.get("variables"))
-        .and_then(|v| v.as_sequence())
-        .map(|seq| {
-            seq.iter()
-                .filter_map(|v| v.get("name")?.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 /// Icon and required variables from a manifest, so `prerelease` can emit a payload a tester can
 /// run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default come
 /// out with an empty value — the two or three fields that actually need filling in.
@@ -1321,7 +1305,6 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         let base_qbm = format!("{}:{}/qbm.yml", args.base_ref, dir);
         let base_manifest = run_git_or_empty(&root, &["show", &base_qbm]);
         let is_new_blueprint = base_manifest.trim().is_empty();
-        let known = variable_names_from_yaml(&base_manifest);
 
         // The already-published tag, plus the payload that creates a service on it. Testing the
         // update path needs a service that starts on the OLD version — creating one at the rc tag
@@ -1331,12 +1314,19 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
             .filter(|v| !v.is_empty())
             .map(|v| format!("{}/{}", dir, v));
 
+        // Compare against what was REQUIRED before, not merely declared: a variable promoted from
+        // optional to required also has to be supplied, because a service created before the
+        // promotion may never have been given a value for it.
+        let base_required: HashSet<&str> = base_variables
+            .iter()
+            .filter_map(|v| v.get("name").and_then(serde_json::Value::as_str))
+            .collect();
         let update_variables: Vec<&serde_json::Value> = variables
             .iter()
             .filter(|v| {
                 v.get("name")
                     .and_then(serde_json::Value::as_str)
-                    .is_some_and(|n| !known.contains(n))
+                    .is_some_and(|n| !base_required.contains(n))
             })
             .collect();
 
