@@ -984,6 +984,37 @@ fn yaml_str<'a>(value: &'a serde_yaml::Value, key: &str) -> &'a str {
         .unwrap_or("")
 }
 
+/// The engine requires exactly 4 slash-separated segments and q-core matches each against
+/// `^[A-Za-z0-9_.-]+$`. Validate the whole constructed tag, not just the suffix: `dir` and
+/// `metadata.version` are author-controlled too, so a legal semver build like `1.2.3+build`
+/// would otherwise produce a tag that only fails once someone tries to deploy it.
+fn validate_blueprint_tag(tag: &str) -> Result<()> {
+    let segments: Vec<&str> = tag.split('/').collect();
+    if segments.len() != 4 {
+        anyhow::bail!(
+            "tag {:?} must have exactly 4 slash-separated segments, got {}",
+            tag,
+            segments.len()
+        );
+    }
+    for segment in &segments {
+        let ok = !segment.is_empty()
+            && *segment != "."
+            && *segment != ".."
+            && segment
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
+        if !ok {
+            anyhow::bail!(
+                "tag {:?} has invalid segment {:?}: every segment must match ^[A-Za-z0-9_.-]+$",
+                tag,
+                segment
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Icon and required variables from a manifest, so `prerelease` can emit a payload a tester can
 /// run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default come
 /// out with an empty value — the two or three fields that actually need filling in.
@@ -1327,6 +1358,7 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         };
 
         let tag = format!("{}/{}-{}", dir, version, args.suffix);
+        validate_blueprint_tag(&tag)?;
         // Never `tag -f`: the repo's tag ruleset forbids non-fast-forward updates. Callers pass a
         // suffix that identifies the commit, so an existing tag already points at this content.
         //
@@ -1465,7 +1497,10 @@ fn auto_tag(args: &AutoTagArgs) -> Result<()> {
     let release_tags: Vec<String> = head_tags_raw
         .lines()
         .map(str::trim)
-        .filter(|l| !l.is_empty() && l.split('/').count() >= 4)
+        // Skip prereleases. A PR merged fast-forward leaves its rc tags pointing at main's HEAD,
+        // and they have the same 4-segment shape as a release — without this they would be
+        // published as GitHub releases, which is exactly what prerelease tags must never become.
+        .filter(|l| !l.is_empty() && l.split('/').count() >= 4 && !l.ends_with("-rc"))
         .map(String::from)
         .collect();
 
