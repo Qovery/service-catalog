@@ -934,6 +934,15 @@ fn yaml_str<'a>(value: &'a serde_yaml::Value, key: &str) -> &'a str {
         .unwrap_or("")
 }
 
+/// True only for a tag this tool generated with `prerelease`, i.e. `…-pr{PR}.{sha}-rc`.
+/// Matching the generated shape rather than a bare `-rc` suffix keeps a blueprint legitimately
+/// versioned `1.2.3-rc` — valid semver — releasable by `auto-tag`.
+fn is_generated_prerelease_tag(tag: &str) -> bool {
+    Regex::new(r"-pr[0-9]+\.[A-Za-z0-9]+-rc$")
+        .expect("static regex")
+        .is_match(tag)
+}
+
 /// The engine requires exactly 4 slash-separated segments and q-core matches each against
 /// `^[A-Za-z0-9_.-]+$`. Validate the whole constructed tag, not just the suffix: `dir` and
 /// `metadata.version` are author-controlled too, so a legal semver build like `1.2.3+build`
@@ -1447,10 +1456,11 @@ fn auto_tag(args: &AutoTagArgs) -> Result<()> {
     let release_tags: Vec<String> = head_tags_raw
         .lines()
         .map(str::trim)
-        // Skip prereleases. A PR merged fast-forward leaves its rc tags pointing at main's HEAD,
-        // and they have the same 4-segment shape as a release — without this they would be
-        // published as GitHub releases, which is exactly what prerelease tags must never become.
-        .filter(|l| !l.is_empty() && l.split('/').count() >= 4 && !l.ends_with("-rc"))
+        // Skip prereleases this tool generated. A PR merged fast-forward leaves its rc tags
+        // pointing at main's HEAD, and they have the same 4-segment shape as a release — without
+        // this they would be published as GitHub releases, which is exactly what prerelease tags
+        // must never become.
+        .filter(|l| !l.is_empty() && l.split('/').count() >= 4 && !is_generated_prerelease_tag(l))
         .map(String::from)
         .collect();
 

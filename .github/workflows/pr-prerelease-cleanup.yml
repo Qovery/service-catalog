@@ -30,20 +30,44 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          for _ in 1 2 3 4 5 6 7 8 9 10; do
-            mapfile -t RUNS < <(gh run list \
-              --workflow "Validate Blueprints" \
-              --branch "$HEAD_REF" \
-              --json databaseId,status \
-              --jq '.[] | select(.status != "completed") | .databaseId' 2>/dev/null || true)
-            [ "${#RUNS[@]}" -eq 0 ] && break
-            for id in "${RUNS[@]}"; do
-              echo "Cancelling in-flight run $id"
-              gh run cancel "$id" >/dev/null 2>&1 || true
-            done
-            sleep 5
+
+          # Every exit from this loop is deliberate: either the branch is provably quiescent, or
+          # the job fails. Reaching the deletion step while a run might still publish would strand
+          # tags with nothing left to remove them, which is the failure this whole job prevents.
+          #
+          # --limit 200 because the default (20) can hide an older in-flight run behind newer
+          # completed ones on a branch that has been pushed to repeatedly.
+          DEADLINE=$(( SECONDS + 300 ))
+          while :; do
+            if RAW=$(gh run list \
+                  --workflow "Validate Blueprints" \
+                  --branch "$HEAD_REF" \
+                  --limit 200 \
+                  --json databaseId,status \
+                  --jq '.[] | select(.status != "completed") | .databaseId'); then
+              if [ -z "$RAW" ]; then
+                echo "No tagging run left in flight."
+                break
+              fi
+              while IFS= read -r id; do
+                if [ -n "$id" ]; then
+                  echo "Cancelling in-flight run $id"
+                  gh run cancel "$id" >/dev/null 2>&1 || true
+                fi
+              done <<< "$RAW"
+              STATE="still in flight: $(printf '%s' "$RAW" | tr '\n' ' ')"
+            else
+              # A failed query is not evidence of quiescence — keep trying rather than sweep blind.
+              echo "::warning::Could not list workflow runs; retrying."
+              STATE="run state unknown (gh run list failed)"
+            fi
+
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              echo "::error::Timed out waiting for tagging runs to stop ($STATE). Refusing to delete tags while a run could still publish new ones."
+              exit 1
+            fi
+            sleep 10
           done
-          echo "No tagging run left in flight."
 
       - name: Delete remote rc tags for this PR
         run: |
