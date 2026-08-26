@@ -1,0 +1,107 @@
+name: Clean up PR prerelease tags
+
+# validate.yml does not run on `closed`, so the cleanup lives in its own workflow.
+# Without it every PR leaves its rc tags behind forever.
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  delete-prerelease-tags:
+    name: Delete this PR's prerelease tags
+    runs-on: ubuntu-latest
+    # Same gate as the job that creates the tags: only a branch on this repo ever gets them, so
+    # only that case can have any to clean up. Deliberately not gated on author_association —
+    # it reports MEMBER only for public org members, which would skip cleanup for nearly everyone
+    # and leave the tags behind.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # A tagging run still in flight when the PR closes would push tags *after* the sweep below,
+      # leaving them behind with nothing left to remove them. Stop those runs first so the sweep
+      # is the last writer.
+      - name: Stop in-flight tagging runs for this PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          # Every exit from this loop is deliberate: either the branch is provably quiescent, or
+          # the job fails. Reaching the deletion step while a run might still publish would strand
+          # tags with nothing left to remove them, which is the failure this whole job prevents.
+          #
+          # --limit 200 because the default (20) can hide an older in-flight run behind newer
+          # completed ones on a branch that has been pushed to repeatedly.
+          DEADLINE=$(( SECONDS + 300 ))
+          while :; do
+            if RAW=$(gh run list \
+                  --workflow "Validate Blueprints" \
+                  --branch "$HEAD_REF" \
+                  --limit 200 \
+                  --json databaseId,status \
+                  --jq '.[] | select(.status != "completed") | .databaseId'); then
+              if [ -z "$RAW" ]; then
+                echo "No tagging run left in flight."
+                break
+              fi
+              while IFS= read -r id; do
+                if [ -n "$id" ]; then
+                  echo "Cancelling in-flight run $id"
+                  gh run cancel "$id" >/dev/null 2>&1 || true
+                fi
+              done <<< "$RAW"
+              STATE="still in flight: $(printf '%s' "$RAW" | tr '\n' ' ')"
+            else
+              # A failed query is not evidence of quiescence — keep trying rather than sweep blind.
+              echo "::warning::Could not list workflow runs; retrying."
+              STATE="run state unknown (gh run list failed)"
+            fi
+
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              echo "::error::Timed out waiting for tagging runs to stop ($STATE). Refusing to delete tags while a run could still publish new ones."
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Delete remote rc tags for this PR
+        run: |
+          set -euo pipefail
+
+          # Tags are {PROVIDER}/{service}/{major}/{version}-pr{PR}.{short_sha}-rc. Match this PR's
+          # marker and require the -rc ending, which is what the ruleset exclusion keys on.
+          MARKER="-pr${{ github.event.pull_request.number }}."
+          # `--` before every pattern: MARKER starts with '-', so grep would otherwise parse it as
+          # options and exit 2. With `|| true` swallowing that, cleanup would silently find no tags
+          # and leave every one behind.
+          mapfile -t TAGS < <(git ls-remote --tags origin \
+            | awk '{print $2}' \
+            | sed 's|^refs/tags/||' \
+            | grep -v -- '\^{}$' \
+            | grep -F -- "$MARKER" \
+            | grep -E -- '-rc$' || true)
+
+          if [ "${#TAGS[@]}" -eq 0 ]; then
+            echo "No prerelease tags to delete for PR #${{ github.event.pull_request.number }}."
+            exit 0
+          fi
+
+          # Delete in one push so a single rejection fails the job. Without this the tags pile up
+          # silently: the repo's "Only admins can delete tags" ruleset covers ~ALL tags with no
+          # bypass actors, and only excludes `refs/tags/**/*-rc` — so a tag whose last segment
+          # does not end in `-rc` is undeletable by GITHUB_TOKEN.
+          REFS=()
+          for tag in "${TAGS[@]}"; do
+            echo "Deleting $tag"
+            REFS+=(":refs/tags/$tag")
+          done
+
+          if ! git push origin "${REFS[@]}"; then
+            echo "::error::Could not delete prerelease tags. Check that the repository tag ruleset still excludes 'refs/tags/**/*-rc' from its deletion rule."
+            exit 1
+          fi
