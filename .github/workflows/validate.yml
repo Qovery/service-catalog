@@ -150,15 +150,24 @@ jobs:
   pr-prerelease:
     name: Publish PR prerelease tags
     runs-on: ubuntu-latest
-    needs: [build-catalog-gen, validate-qbm, validate-terraform, check-version-bump]
+    needs:
+      - build-catalog-gen
+      - validate-qbm
+      - discover-terraform-blueprints
+      - validate-terraform
+      - check-version-bump
+      - check-catalog
     # The branch must live on this repo, which requires write access. The repo is public but has
     # no outside or direct collaborators — all write comes through Qovery org teams — so this is
-    # equivalent to "the author is a Qovery org member". Granting an outside collaborator write
-    # would weaken that, and is the thing to revisit if it ever happens.
+    # equivalent to "the author is a Qovery org member". The first step below asserts that
+    # invariant at runtime rather than trusting this comment.
     #
     # Do NOT gate on author_association: it only reports MEMBER for *public* org members (Qovery
     # has two), so it silently skips this job for nearly everyone. A fork PR is excluded by the
     # head-repo check, and its GITHUB_TOKEN is read-only regardless, so it could not push a tag.
+    #
+    # `validate-terraform` is skipped when no blueprint ships a main.tf, which is legitimate — but
+    # only if discovery itself succeeded, hence discover-terraform-blueprints is required too.
     if: |
       always() &&
       github.event_name == 'pull_request' &&
@@ -166,6 +175,8 @@ jobs:
       needs.build-catalog-gen.result == 'success' &&
       needs.validate-qbm.result == 'success' &&
       needs.check-version-bump.result == 'success' &&
+      needs.check-catalog.result == 'success' &&
+      needs.discover-terraform-blueprints.result == 'success' &&
       (needs.validate-terraform.result == 'success' || needs.validate-terraform.result == 'skipped')
     permissions:
       contents: write
@@ -182,6 +193,32 @@ jobs:
         with:
           name: catalog-gen
           path: bin
+
+      # The job's only access control is "the branch is on this repo", which equals org
+      # membership solely because nobody outside the org has write here. Assert that rather than
+      # assume it. Fails open if the endpoint is not readable by GITHUB_TOKEN — the point is to
+      # catch the invariant being broken, not to add a new way for the job to break.
+      - name: Assert no outside collaborators
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! OUTSIDE=$(gh api "repos/${{ github.repository }}/collaborators?affiliation=outside" --jq 'length' 2>/dev/null); then
+            echo "::notice::Could not read the collaborator list; skipping the org-membership assertion."
+            exit 0
+          fi
+          if [ "$OUTSIDE" -ne 0 ]; then
+            echo "::error::This repo now has $OUTSIDE outside collaborator(s), so a branch on this repo no longer implies Qovery org membership. Gate this job on real membership before continuing."
+            exit 1
+          fi
+          echo "No outside collaborators: push access still implies org membership."
+
+      # Other jobs validate the synthetic merge commit; this job tags the head. Re-validate the
+      # head so the tag cannot point at content that was never checked — they differ whenever
+      # main changed a blueprint after this branch diverged.
+      - name: Validate the head commit being tagged
+        run: |
+          chmod +x bin/catalog-gen
+          bin/catalog-gen validate --root .
 
       - id: prerelease
         name: Tag changed blueprints with an rc suffix

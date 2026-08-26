@@ -17,8 +17,33 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
+
+      # A tagging run still in flight when the PR closes would push tags *after* the sweep below,
+      # leaving them behind with nothing left to remove them. Stop those runs first so the sweep
+      # is the last writer.
+      - name: Stop in-flight tagging runs for this PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            mapfile -t RUNS < <(gh run list \
+              --workflow "Validate Blueprints" \
+              --branch "$HEAD_REF" \
+              --json databaseId,status \
+              --jq '.[] | select(.status != "completed") | .databaseId' 2>/dev/null || true)
+            [ "${#RUNS[@]}" -eq 0 ] && break
+            for id in "${RUNS[@]}"; do
+              echo "Cancelling in-flight run $id"
+              gh run cancel "$id" >/dev/null 2>&1 || true
+            done
+            sleep 5
+          done
+          echo "No tagging run left in flight."
 
       - name: Delete remote rc tags for this PR
         run: |
