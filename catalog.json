@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-21T09:05:58Z",
+  "generatedAt": "2026-08-24T14:20:35Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -275,6 +275,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "EXTERNAL/timescale-cloud/default/1.0.1"
+        }
+      ]
+    },
+    {
+      "name": "gcp-memorystore-redis",
+      "kind": "ServiceBlueprint",
+      "description": "GCP Memorystore for Redis 7 instance with configurable tier, memory size, auth, TLS, persistence, maintenance window, and optional read replicas",
+      "icon": "app://qovery-console/redis",
+      "categories": [
+        "cache",
+        "redis",
+        "memorystore"
+      ],
+      "provider": "GCP",
+      "serviceFamily": "redis",
+      "majorVersions": [
+        {
+          "serviceVersion": "7",
+          "latestTag": "GCP/redis/7/1.0.0"
         }
       ]
     },

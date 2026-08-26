@@ -1,0 +1,189 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "gcp-memorystore-redis"
+  version: "1.0.0"
+  description: "GCP Memorystore for Redis 7 instance with configurable tier, memory size, auth, TLS, persistence, maintenance window, and optional read replicas"
+  icon: "app://qovery-console/redis"
+  serviceFamily: "redis"
+  categories:
+    - "cache"
+    - "redis"
+    - "memorystore"
+
+spec:
+  engine:
+    type: terraform
+    provider: GCP
+    terraform:
+      version: "1.9.7"
+      # module uses cross-variable validation, which requires TF 1.9+.
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
+  variables:
+    - name: "redis_name"
+      type: "string"
+      required: true
+      description: "Memorystore instance ID. Lowercase letters, digits, hyphens; must start with a letter and not end with a hyphen; max 40 chars."
+      pattern: "^[a-z]([-a-z0-9]{0,38}[a-z0-9])?$"
+      minLength: 1
+      maxLength: 40
+    - name: "tier"
+      type: "string"
+      required: true
+      default: "BASIC"
+      description: "Service tier. BASIC is a single node with no failover. STANDARD_HA adds cross-zone replication and automatic failover."
+      allowedValues:
+        - "BASIC"
+        - "STANDARD_HA"
+    - name: "memory_size_gb"
+      type: "number"
+      required: true
+      default: "1"
+      description: "Instance memory size in GiB"
+      min: 1
+      max: 300
+    - name: "redis_version"
+      type: "string"
+      required: false
+      default: "REDIS_7_2"
+      description: "Redis version"
+      allowedValues:
+        - "REDIS_7_2"
+        - "REDIS_7_0"
+    - name: "auth_enabled"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Require an AUTH string to connect. The generated string is published via the redis_auth_string output."
+    - name: "transit_encryption_mode"
+      type: "string"
+      required: false
+      default: "DISABLED"
+      description: "In-transit (TLS) encryption. Defaults to DISABLED, meaning cache traffic and (if auth_enabled) the AUTH string travel unencrypted over the VPC. SERVER_AUTHENTICATION requires clients to trust the CA certificate published via the redis_server_ca_certs output."
+      allowedValues:
+        - "DISABLED"
+        - "SERVER_AUTHENTICATION"
+    - name: "authorized_network"
+      type: "string"
+      required: false
+      default: ""
+      description: "VPC network self-link the instance connects to. Empty = the project's default network. Set this to your Qovery cluster's VPC self-link so pods in the cluster can reach the instance."
+    - name: "connect_mode"
+      type: "string"
+      required: false
+      default: "DIRECT_PEERING"
+      description: "How the instance connects to authorized_network. PRIVATE_SERVICE_ACCESS requires a pre-existing private services access connection on that network."
+      allowedValues:
+        - "DIRECT_PEERING"
+        - "PRIVATE_SERVICE_ACCESS"
+    - name: "reserved_ip_range"
+      type: "string"
+      required: false
+      default: ""
+      description: "CIDR /29 (DIRECT_PEERING) or named allocated range (PRIVATE_SERVICE_ACCESS) reserved for the instance. Empty = GCP picks an unused range automatically."
+    - name: "maxmemory_policy"
+      type: "string"
+      required: false
+      default: "noeviction"
+      description: "Redis eviction policy applied once memory_size_gb is full"
+      allowedValues:
+        - "noeviction"
+        - "allkeys-lru"
+        - "volatile-lru"
+        - "allkeys-random"
+        - "volatile-random"
+        - "volatile-ttl"
+        - "allkeys-lfu"
+        - "volatile-lfu"
+    - name: "persistence_mode"
+      type: "string"
+      required: false
+      default: "DISABLED"
+      description: "RDB snapshot persistence"
+      allowedValues:
+        - "DISABLED"
+        - "RDB"
+    - name: "rdb_snapshot_period"
+      type: "string"
+      required: false
+      default: "TWENTY_FOUR_HOURS"
+      description: "RDB snapshot interval. Only used when persistence_mode is RDB."
+      allowedValues:
+        - "ONE_HOUR"
+        - "SIX_HOURS"
+        - "TWELVE_HOURS"
+        - "TWENTY_FOUR_HOURS"
+    - name: "maintenance_day"
+      type: "string"
+      required: false
+      default: ""
+      description: "Day of week for the scheduled maintenance window. Empty disables a fixed window (GCP may perform maintenance at any time)."
+      allowedValues:
+        - ""
+        - "MONDAY"
+        - "TUESDAY"
+        - "WEDNESDAY"
+        - "THURSDAY"
+        - "FRIDAY"
+        - "SATURDAY"
+        - "SUNDAY"
+    - name: "maintenance_start_hour"
+      type: "number"
+      required: false
+      default: "2"
+      description: "Maintenance window start hour, UTC 24h (0-23). Only used when maintenance_day is set."
+      min: 0
+      max: 23
+    - name: "replica_count"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Number of exposed cross-zone read replicas (0-5). Only supported when tier is STANDARD_HA; read traffic can be pointed at the redis_read_endpoint output. STANDARD_HA always allocates a standby node for failover regardless of this value; 0 just means that node isn't exposed as a readable replica."
+      min: 0
+      max: 5
+    - name: "gcp_project_id"
+      type: "string"
+      required: false
+      default: ""
+      description: "GCP project ID override. Empty = inferred from the credentials used to deploy (cluster credentials or the env-mode service account)."
+
+  outputs:
+    - name: "redis_id"
+      description: "Memorystore instance ID"
+    - name: "redis_host"
+      description: "Primary endpoint hostname"
+    - name: "redis_port"
+      description: "Primary endpoint port"
+    - name: "redis_current_location_id"
+      description: "Zone the primary node currently runs in"
+    - name: "redis_auth_string"
+      description: "AUTH string for authenticating (set only when auth_enabled is true)"
+      sensitive: true
+    - name: "redis_server_ca_certs"
+      description: "Server CA certificates (PEM) for TLS verification when transit_encryption_mode is SERVER_AUTHENTICATION"
+    - name: "redis_read_endpoint"
+      description: "Read replica endpoint hostname (empty when replica_count is 0)"
+    - name: "redis_read_endpoint_port"
+      description: "Read replica endpoint port (empty when replica_count is 0)"
