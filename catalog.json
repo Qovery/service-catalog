@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-24T14:20:35Z",
+  "generatedAt": "2026-08-26T14:45:12Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -312,7 +312,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "HELM/datadog/7/1.0.1"
+          "latestTag": "HELM/datadog/7/2.0.0"
         }
       ]
     },
@@ -331,7 +331,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "HELM/newrelic/default/1.0.1"
+          "latestTag": "HELM/newrelic/default/2.0.0"
         }
       ]
     },

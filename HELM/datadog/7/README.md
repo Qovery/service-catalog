@@ -12,7 +12,7 @@ A **Datadog API key** supplied as the sensitive `datadog_api_key` variable, plus
 | ----------------- | ------ | --------- | ----------------- | ----------------------------------------------------------------- |
 | `datadog_api_key` | string | yes       | —                 | Datadog API key (required)                                        |
 | `datadog_site`    | string |           | `datadoghq.com`   | Datadog site (`datadoghq.com`, `datadoghq.eu`, `us3/us5/ap1`, gov) |
-| `cluster_name`    | string |           | `qovery-cluster`  | Cluster name tag on all telemetry (lowercase RFC1123)             |
+| `cluster_name`    | string |           | —                 | Cluster name tag on all telemetry, lowercase RFC1123 (required)    |
 | `enable_logs`     | string |           | `true`            | Collect container logs from all pods (`true`/`false`)             |
 | `enable_apm`      | string |           | `false`           | Enable the APM trace-agent port (`true`/`false`)                  |
 | `agent_memory`    | string |           | `512Mi`           | Memory request/limit for the node agent container                 |
@@ -25,6 +25,7 @@ A **Datadog API key** supplied as the sensitive `datadog_api_key` variable, plus
 
 ## Notes
 
+- `cluster_name` is required and has no default. `1.x` defaulted it to the placeholder `qovery-cluster`, so installs that never touched the field tagged all telemetry with a name matching no real cluster. It is not auto-filled from the Qovery cluster because cluster names are unconstrained and Datadog requires lowercase RFC1123 — see QOV-2188.
 - Deploys cluster-wide resources (DaemonSet, ClusterRole/Binding, cluster agent) — `allowClusterWideResources: true`.
 - Resources are set explicitly for the node agent (`agent_memory`) and the cluster agent (256Mi); tune `agent_memory` for high-cardinality nodes.
 - APM: with `enable_apm=true`, point tracers at the agent on the node (or the `datadog.apm` socket) per Datadog's APM setup docs.

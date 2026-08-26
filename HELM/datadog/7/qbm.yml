@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-datadog"
-  version: "1.0.1"
+  version: "2.0.0"
   description: "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart"
   icon: "app://qovery-console/datadog"
   serviceFamily: "datadog"
@@ -44,9 +44,8 @@ spec:
         - "ddog-gov.com"
     - name: "cluster_name"
       type: "string"
-      required: false
-      default: "qovery-cluster"
-      description: "Cluster name tag applied to all Datadog telemetry (lowercase RFC1123, e.g. prod-eu)"
+      required: true
+      description: "Cluster name tag applied to all Datadog telemetry. Use your Qovery cluster's name (lowercase RFC1123, e.g. prod-eu)"
       pattern: "^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$"
     - name: "enable_logs"
       type: "string"
