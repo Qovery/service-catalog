@@ -934,15 +934,6 @@ fn yaml_str<'a>(value: &'a serde_yaml::Value, key: &str) -> &'a str {
         .unwrap_or("")
 }
 
-/// True only for a tag this tool generated with `prerelease`, i.e. `…-pr{PR}.{sha}-rc`.
-/// Matching the generated shape rather than a bare `-rc` suffix keeps a blueprint legitimately
-/// versioned `1.2.3-rc` — valid semver — releasable by `auto-tag`.
-fn is_generated_prerelease_tag(tag: &str) -> bool {
-    Regex::new(r"-pr[0-9]+\.[A-Za-z0-9]+-rc$")
-        .expect("static regex")
-        .is_match(tag)
-}
-
 /// The engine requires exactly 4 slash-separated segments and q-core matches each against
 /// `^[A-Za-z0-9_.-]+$`. Validate the whole constructed tag, not just the suffix: `dir` and
 /// `metadata.version` are author-controlled too, so a legal semver build like `1.2.3+build`
@@ -1425,6 +1416,9 @@ fn auto_tag(args: &AutoTagArgs) -> Result<()> {
         .collect();
 
     let mut new_tags: Vec<String> = Vec::new();
+    // Every tag a manifest on HEAD declares, whether created just now or by an earlier run. This
+    // is what makes a tag releasable — see the release filter below.
+    let mut declared_tags: HashSet<String> = HashSet::new();
     for qbm in &qbm_files {
         let dir = qbm.strip_suffix("/qbm.yml").unwrap();
         let content = std::fs::read_to_string(root.join(qbm))
@@ -1437,6 +1431,7 @@ fn auto_tag(args: &AutoTagArgs) -> Result<()> {
             }
         };
         let tag = format!("{}/{}", dir, version);
+        declared_tags.insert(tag.clone());
         if existing.contains(&tag) {
             println!("Tag {} already exists, skipping", tag);
         } else {
@@ -1450,17 +1445,19 @@ fn auto_tag(args: &AutoTagArgs) -> Result<()> {
         run_git(&root, &["push", &args.remote, "--tags"])?;
     }
 
-    // gh release create runs against tags pointing at HEAD (filtered to blueprint shape, i.e.
-    // tags with 4+ slash-separated parts: provider/service/variant/version).
+    // gh release create runs against tags pointing at HEAD that a manifest actually declares.
+    //
+    // Membership in `declared_tags`, not the shape of the name, is what makes a tag a release: it
+    // is released precisely because some `qbm.yml` on HEAD asks for that version. That admits any
+    // version an author chooses — `1.2.3-rc`, `1.2.3-pr45.abc-rc`, anything — and excludes tags
+    // nothing declares, which is what a `prerelease` tag left behind by a fast-forward merge is.
+    // Guessing from the suffix instead cannot separate those two cases, because the suffix is
+    // author-controlled.
     let head_tags_raw = run_git(&root, &["tag", "--points-at", "HEAD"])?;
     let release_tags: Vec<String> = head_tags_raw
         .lines()
         .map(str::trim)
-        // Skip prereleases this tool generated. A PR merged fast-forward leaves its rc tags
-        // pointing at main's HEAD, and they have the same 4-segment shape as a release — without
-        // this they would be published as GitHub releases, which is exactly what prerelease tags
-        // must never become.
-        .filter(|l| !l.is_empty() && l.split('/').count() >= 4 && !is_generated_prerelease_tag(l))
+        .filter(|l| declared_tags.contains(*l))
         .map(String::from)
         .collect();
 
