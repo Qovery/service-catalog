@@ -44,8 +44,8 @@ spec:
         - "ddog-gov.com"
     - name: "cluster_name"
       type: "string"
-      required: true
-      description: "Cluster name tag applied to all Datadog telemetry. Use your Qovery cluster's name (lowercase RFC1123, e.g. prod-eu)"
+      required: false
+      description: "Cluster name tag applied to all Datadog telemetry. Leave empty to use the Qovery cluster's own name, lowercased and hyphenated (lowercase RFC1123, e.g. prod-eu)"
       pattern: "^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$"
     - name: "enable_logs"
       type: "string"

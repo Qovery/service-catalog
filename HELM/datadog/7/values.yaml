@@ -2,7 +2,12 @@
 datadog:
   apiKey: {{ datadog_api_key }}
   site: {{ datadog_site }}
-  clusterName: {{ cluster_name }}
+  # `qovery_cluster_name` and `region` are injected by the engine for every blueprint, so an unset
+  # cluster_name falls back to the real cluster. slugify makes it RFC1123, which Datadog requires and
+  # Qovery cluster names do not guarantee (`_Undeletable_cluster` is a real one). The `if` rather than
+  # a `default` filter is deliberate: `default` only covers an undefined variable, and a client that
+  # sends cluster_name as an empty string would otherwise render an empty tag.
+  clusterName: {% if cluster_name %}{{ cluster_name | slugify }}{% else %}{{ qovery_cluster_name | slugify }}{% endif %}
   logs:
     enabled: {{ enable_logs }}
     containerCollectAll: {{ enable_logs }}
