@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-27T07:49:54Z",
+  "generatedAt": "2026-08-27T09:17:31Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -331,7 +331,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "HELM/newrelic/default/2.0.0"
+          "latestTag": "HELM/newrelic/default/1.0.1"
         }
       ]
     },

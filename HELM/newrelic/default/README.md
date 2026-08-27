@@ -4,13 +4,14 @@ Deploys [New Relic Kubernetes monitoring](https://docs.newrelic.com/docs/kuberne
 
 ## Credentials
 
-A **New Relic ingest license key** supplied as the sensitive `newrelic_license_key` variable. Data appears in your New Relic account (no in-cluster endpoint to connect to).
+A **New Relic ingest license key** supplied as the sensitive `newrelic_license_key` variable, plus a `cluster_name` reported to New Relic. Data appears in your New Relic account (no in-cluster endpoint to connect to).
 
 ## Variables
 
 | Name                   | Type   | Sensitive | Default          | Description                                                        |
 | ---------------------- | ------ | --------- | ---------------- | ------------------------------------------------------------------ |
 | `newrelic_license_key` | string | yes       | —                | New Relic ingest license key (required)                            |
+| `cluster_name`         | string |           | —                | Cluster name reported to New Relic (required)                      |
 | `low_data_mode`        | string |           | `true`           | Reduce ingest to control cost (`true`/`false`)                     |
 | `enable_kube_events`   | string |           | `true`           | Collect Kubernetes events (`true`/`false`)                         |
 | `enable_logging`       | string |           | `false`          | Deploy the Fluent Bit log DaemonSet (`true`/`false`)               |
@@ -18,7 +19,6 @@ A **New Relic ingest license key** supplied as the sensitive `newrelic_license_k
 
 ## Notes
 
-- `global.cluster` is set from the Qovery cluster the service is deployed to (`contextVariables`, `source: cluster.name`) — not a user input. Upgrading from `1.x`, where it was typed by hand, re-tags data under the real cluster name if the two differed.
 - Deploys cluster-wide resources (DaemonSets, ClusterRole/Binding across sub-charts) — `allowClusterWideResources: true`.
 - **Resources:** `kube-state-metrics` is set explicitly (the bundle leaves it unbounded by default); the New Relic agent sub-charts (`newrelic-infrastructure`, logging) use New Relic's own tuned resource defaults. Override per sub-chart if you need tighter limits.
 - `low_data_mode` defaults to `true` to keep ingest (and cost) down; set `false` for full-fidelity data.

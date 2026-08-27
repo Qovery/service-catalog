@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-newrelic"
-  version: "2.0.0"
+  version: "1.0.1"
   description: "New Relic Kubernetes monitoring (infrastructure agent, kube-state-metrics, events, optional logs) via the official nri-bundle Helm chart"
   icon: "app://qovery-console/newrelic"
   serviceFamily: "newrelic"
@@ -23,17 +23,17 @@ spec:
     # nri-bundle deploys DaemonSets and cluster-scoped RBAC across several sub-charts.
     allowClusterWideResources: true
 
-  contextVariables:
-    - name: "cluster_name"
-      source: "cluster.name"
-      overridable: true
-
   variables:
     - name: "newrelic_license_key"
       type: "string"
       required: true
       sensitive: true
       description: "New Relic ingest license key"
+    - name: "cluster_name"
+      type: "string"
+      required: true
+      description: "Cluster name reported to New Relic (letters, digits, hyphens, underscores; max 64)"
+      pattern: "^[a-zA-Z0-9_-]{1,64}$"
     - name: "low_data_mode"
       type: "string"
       required: false
