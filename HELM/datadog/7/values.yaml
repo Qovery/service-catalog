@@ -28,6 +28,14 @@ agents:
 
 # Cluster agent (cluster-level metrics, orchestrator, external metrics).
 clusterAgent:
+  # The chart names this component's Service "<release>-cluster-agent-admission-controller". Qovery
+  # release names are "helm-z<id>-<service name>", leaving 13 characters for the service name before
+  # the Service exceeds Kubernetes' 63-character limit and the deploy fails. Nothing is lost: the
+  # controller only injects APM/DogStatsD config into pods labelled admission.datadoghq.com/enabled,
+  # which Qovery services do not carry, and it also claims a cluster-wide "datadog-webhook" object
+  # that a second install in another namespace would fight over.
+  admissionController:
+    enabled: false
   resources:
     requests:
       cpu: "100m"
