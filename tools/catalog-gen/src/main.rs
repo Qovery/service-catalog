@@ -1015,12 +1015,27 @@ fn validate_blueprint_tag(tag: &str) -> Result<()> {
     Ok(())
 }
 
-/// Icon and required variables from a manifest, so `prerelease` can emit a payload a tester can
-/// run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default come
-/// out with an empty value — the two or three fields that actually need filling in.
-fn payload_hints_from_yaml(content: &str) -> (String, Vec<serde_json::Value>) {
+/// Manifest-derived inputs for the PR comment's ready-to-run payloads. `required_names` is carried
+/// alongside the payload rather than as a field on each entry, so the flag never leaks into the JSON
+/// a tester pastes.
+#[derive(Default)]
+struct PayloadHints {
+    icon: String,
+    variables: Vec<serde_json::Value>,
+    required_names: HashSet<String>,
+}
+
+/// Icon and create-payload variables from a manifest, so `prerelease` can emit a payload a tester
+/// can run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default
+/// come out with an empty value — the two or three fields that actually need filling in.
+///
+/// EVERY variable is emitted, optional ones carrying their `default:`. Optional variables have to be
+/// sent explicitly because the platform does not apply manifest defaults to API-created services:
+/// the engine renders `values.yaml` with Tera using only the variables in the request, so an omitted
+/// optional leaves `{{ var }}` undefined and the deployment fails before it reaches Helm.
+fn payload_hints_from_yaml(content: &str) -> PayloadHints {
     let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
-        return (String::new(), Vec::new());
+        return PayloadHints::default();
     };
 
     let icon = doc
@@ -1030,27 +1045,34 @@ fn payload_hints_from_yaml(content: &str) -> (String, Vec<serde_json::Value>) {
         .unwrap_or_default()
         .to_string();
 
-    let variables = doc
+    let mut variables = Vec::new();
+    let mut required_names = HashSet::new();
+
+    if let Some(seq) = doc
         .get("spec")
         .and_then(|s| s.get("variables"))
         .and_then(|v| v.as_sequence())
-        .map(|seq| {
-            seq.iter()
-                .filter(|v| yaml_bool(v, "required"))
-                .filter_map(|v| {
-                    let name = v.get("name")?.as_str()?;
-                    let value = yaml_str(v, "default");
-                    let mut entry = serde_json::json!({ "name": name, "value": value });
-                    if yaml_bool(v, "sensitive") {
-                        entry["is_secret"] = serde_json::Value::Bool(true);
-                    }
-                    Some(entry)
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    {
+        for var in seq {
+            let Some(name) = var.get("name").and_then(serde_yaml::Value::as_str) else {
+                continue;
+            };
+            let mut entry = serde_json::json!({ "name": name, "value": yaml_str(var, "default") });
+            if yaml_bool(var, "sensitive") {
+                entry["is_secret"] = serde_json::Value::Bool(true);
+            }
+            variables.push(entry);
+            if yaml_bool(var, "required") {
+                required_names.insert(name.to_string());
+            }
+        }
+    }
 
-    (icon, variables)
+    PayloadHints {
+        icon,
+        variables,
+        required_names,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1378,7 +1400,7 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
             eprintln!("Tagged {}", tag);
         }
 
-        let (icon, variables) = payload_hints_from_yaml(&content);
+        let hints = payload_hints_from_yaml(&content);
 
         // An update is a JSON-merge-patch: any key present overwrites the deployed value. Sending
         // every required variable would therefore clobber the live config — and for a required
@@ -1391,37 +1413,45 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         // The already-published tag, plus the payload that creates a service on it. Testing the
         // update path needs a service that starts on the OLD version — creating one at the rc tag
         // and then updating it to the same tag would diff nothing.
-        let (base_icon, base_variables) = payload_hints_from_yaml(&base_manifest);
+        let base_hints = payload_hints_from_yaml(&base_manifest);
         let base_tag = metadata_version_from_yaml(&base_manifest)
             .filter(|v| !v.is_empty())
             .map(|v| format!("{}/{}", dir, v));
 
-        // Compare against what was REQUIRED before, not merely declared: a variable promoted from
-        // optional to required also has to be supplied, because a service created before the
-        // promotion may never have been given a value for it.
-        let base_required: HashSet<&str> = base_variables
+        // Two kinds of variable an existing service cannot already hold a value for, and nothing
+        // else — resending a variable the service already has would overwrite the deployed value:
+        //   - one this branch declares for the first time (optional included: with no stored value,
+        //     its `{{ var }}` would be undefined at render time);
+        //   - one promoted from optional to required, since a service created before the promotion
+        //     may never have been given a value for it.
+        let base_declared: HashSet<&str> = base_hints
+            .variables
             .iter()
             .filter_map(|v| v.get("name").and_then(serde_json::Value::as_str))
             .collect();
-        let update_variables: Vec<&serde_json::Value> = variables
+        let update_variables: Vec<&serde_json::Value> = hints
+            .variables
             .iter()
             .filter(|v| {
                 v.get("name")
                     .and_then(serde_json::Value::as_str)
-                    .is_some_and(|n| !base_required.contains(n))
+                    .is_some_and(|n| {
+                        !base_declared.contains(n)
+                            || (hints.required_names.contains(n) && !base_hints.required_names.contains(n))
+                    })
             })
             .collect();
 
         entries.push(serde_json::json!({
             "tag": tag,
             "dir": dir,
-            "icon": icon,
-            "variables": variables,
+            "icon": hints.icon,
+            "variables": hints.variables,
             "update_variables": update_variables,
             "is_new_blueprint": is_new_blueprint,
             "base_tag": base_tag,
-            "base_icon": base_icon,
-            "base_variables": base_variables,
+            "base_icon": base_hints.icon,
+            "base_variables": base_hints.variables,
         }));
         tags.push(tag);
     }
