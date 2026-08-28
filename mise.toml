@@ -74,8 +74,9 @@ fi
 
 cat >&2 <<WARN
 WARNING: only ever point this at a disposable test service.
-It pins the service to an rc tag that is deleted when the PR closes, and a service on a
-deleted tag cannot be deployed.
+It pins the service to an rc tag that is deleted by the next push to the PR, and on close.
+A service on a deleted tag cannot be deployed, so re-run this with the new tag after each
+push.
 WARN
 
 BODY="$(inject_tag "$RC_TAG" "$PAYLOAD")"
