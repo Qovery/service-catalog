@@ -345,8 +345,9 @@ jobs:
             echo "> **⚠️ Only ever point this at a disposable test service.**"
             echo "> It pins that service to an rc tag that is **deleted as soon as this PR is"
             echo "> pushed to again**, and a service on a deleted tag cannot be deployed. Re-run"
-            echo "> the command above with the tag from the refreshed comment after each push — and"
-            echo "> note that a push that stops changing this blueprint leaves no rc tag at all."
+            echo "> the command above with the tag from the refreshed comment after each push. Every"
+            echo "> push re-tags while this blueprint still differs from \`main\`, so a docs-only push"
+            echo "> still yields a new tag; only reverting it leaves no rc tag at all."
             echo
             echo "_b. Against a brand-new test service_ — create one on the published tag first, then"
             echo "run 2a against it. Starting from \`$BASE_TAG\` is what makes step 2 an actual"
@@ -400,9 +401,17 @@ jobs:
           # The guard ran before tagging and commenting; a push can have landed since. Re-check here,
           # immediately before deleting, and fail open on an unreadable endpoint as the guard does.
           CURRENT=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" --jq '.head.sha' || echo "$HEAD_SHA")
+          # Every bail-out below leaves the old comments in place, so it must report
+          # reconciled=false: the tag sweep keys on this, not on this step's exit code, which stays 0
+          # so that a cosmetic failure does not redden the PR.
+          bail() {
+            echo "reconciled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
           if [ "$CURRENT" != "$HEAD_SHA" ]; then
             echo "::notice::Head moved to ${CURRENT}; leaving this PR's comments to the newer run."
-            exit 0
+            bail
           fi
 
           # An empty KEEP_ID is expected when the step above was skipped — then every comment goes.
@@ -410,7 +419,7 @@ jobs:
           # ones: leave a duplicate rather than risk deleting the only copy of the instructions.
           if [ "$COMMENT_OUTCOME" = "success" ] && [ -z "$KEEP_ID" ]; then
             echo "::warning::Could not determine the new comment's id; leaving previous comments in place."
-            exit 0
+            bail
           fi
 
           # Also match the header: comments posted before the marker existed carry none.
@@ -423,23 +432,32 @@ jobs:
                            or contains("### How to test this blueprint before merging"))
                   | .id'); then
             echo "::warning::Could not list PR comments; leaving previous comments in place."
-            exit 0
+            bail
           fi
 
+          RECONCILED=true
           while IFS= read -r id; do
             [ -n "$id" ] && [ "$id" != "$KEEP_ID" ] || continue
             echo "Deleting superseded comment $id"
-            # A comment someone already deleted by hand answers 404. That is the desired end state,
-            # so warn rather than fail the job over it.
-            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id" \
-              || echo "::warning::Could not delete comment $id."
+            if ! gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"; then
+              # Already deleted by hand is the desired end state; anything else leaves a comment
+              # naming the generation the next step wants to delete.
+              if gh api "repos/${{ github.repository }}/issues/comments/$id" >/dev/null 2>&1; then
+                echo "::warning::Could not delete comment $id."
+                RECONCILED=false
+              else
+                echo "Comment $id was already gone."
+              fi
+            fi
           done <<< "$RAW"
 
-      # Last: only once the new tags are pushed AND the comment state is known good. If the comment
-      # did not reconcile, the comment still on the PR names the previous generation, so deleting it
-      # would leave the PR advertising tags that no longer exist. Stranded tags go at PR close.
+          echo "reconciled=$RECONCILED" >> "$GITHUB_OUTPUT"
+
+      # Last: only once the new tags are pushed AND the prune reported reconciled=true. Gating on
+      # that output rather than the step's outcome is the point — the prune exits 0 even when it
+      # bails, and a comment left naming this generation must keep its tags. Strays go at PR close.
       - name: Delete this PR's superseded rc tags
-        if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' && steps.prune_comments.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' && steps.prune_comments.outputs.reconciled == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}

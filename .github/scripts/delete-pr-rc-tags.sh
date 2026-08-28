@@ -9,9 +9,11 @@ PR="${1:?usage: delete-pr-rc-tags.sh <pr_number> [keep_suffix]}"
 KEEP_SUFFIX="${2:-}"
 REMOTE="${REMOTE:-origin}"
 
-# Generated tags end in -pr{PR}.{short_sha}-rc. Match that whole shape, anchored: a published tag
-# is free to contain "-pr${PR}." in its path or version and to end in -rc, and must survive.
-PATTERN="-pr${PR}\.[0-9a-f]{7,40}-rc\$"
+# Match only what the workflow produces: four path segments, then -pr{PR}. and the 7-char sha it
+# builds with ${HEAD_SHA:0:7}. Anything wider could sweep a published tag that looks generated.
+# Widen this if that suffix ever changes, or the sweep silently stops finding its own tags.
+SEG='[A-Za-z0-9_.-]+'
+PATTERN="^${SEG}/${SEG}/${SEG}/${SEG}-pr${PR}\.[0-9a-f]{7}-rc\$"
 
 # A failed listing is not evidence of "no tags" — swallowing it would report success while leaving
 # every tag behind, which is the exact failure this script exists to prevent.

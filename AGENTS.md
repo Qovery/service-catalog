@@ -81,8 +81,10 @@ Two limits worth knowing:
   CLI's `blueprint` commands are RDE-portal, a different feature.
 - **`update-service-rc` is for throwaway services only.** It pins the service to an rc tag that is
   deleted by the next push to the PR (and on close), and a service on a deleted tag cannot be
-  deployed — so re-run it with the tag from the refreshed PR comment after each push. A push that
-  stops changing the blueprint leaves no rc tag at all. To test the update path without risking
+  deployed — so re-run it with the tag from the refreshed PR comment after each push. Every push
+  re-tags while the blueprint still differs from `main`, so a docs-only push still produces a new
+  tag; only reverting the blueprint back to `main` leaves no rc tag at all. To test the update path
+  without risking
   anything, create a throwaway on the currently published tag first, then upgrade that — the PR
   comment renders both steps.
 - **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
