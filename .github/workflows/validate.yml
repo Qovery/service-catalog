@@ -220,11 +220,9 @@ jobs:
           chmod +x bin/catalog-gen
           bin/catalog-gen validate --root .
 
-      # This job replaces the PR's tags and comment on every push, so two runs racing would let the
-      # older one delete the newer one's work — reachable whenever this job's dependencies finish
-      # late on the earlier run. Whoever no longer matches the PR head owns nothing and writes
-      # nothing. Fails open on an unreadable endpoint: the guard exists to avoid clobbering a newer
-      # run, not to add a new way for the job to break.
+      # Two runs race when pushes land close together, and the older must not delete the newer's
+      # tags and comment. Fails open on an unreadable endpoint: this guards against clobbering a
+      # newer run, it is not a health check.
       - id: guard
         name: Skip if a newer push superseded this run
         env:
@@ -385,11 +383,9 @@ jobs:
           NEW_ID=$(printf '%s' "$COMMENT_URL" | sed -n 's/.*#issuecomment-\([0-9]\{1,\}\).*/\1/p')
           echo "comment_id=$NEW_ID" >> "$GITHUB_OUTPUT"
 
-      # Not gated on `blueprints`: a push that stops changing blueprints emits none, skipping the
-      # step above, and the previous push's comment must still go — otherwise it keeps advertising
-      # tags the next step is about to delete. It IS gated on the tagging step having succeeded, and
-      # on the comment step not having *failed*: with no new comment to replace them, the old ones
-      # are the only instructions there are, so keep them.
+      # Not gated on `blueprints`: a push that stops changing them emits none, and the previous
+      # comment must still go. Gated on the comment step not having failed — with no replacement
+      # posted, the old comments are the only instructions there are.
       - id: prune_comments
         name: Delete this PR's superseded rc comments
         if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' && steps.comment.outcome != 'failure' }}
@@ -417,11 +413,8 @@ jobs:
             exit 0
           fi
 
-          # `contains` on the header as well as the marker: comments posted before the marker
-          # existed carry no marker, and would otherwise linger on open PRs forever.
-          #
-          # Captured rather than piped straight into mapfile: a failed listing is not evidence that
-          # there is nothing to prune, and process substitution would hide the failure.
+          # Also match the header: comments posted before the marker existed carry none.
+          # Captured rather than piped: a failed listing is not evidence of nothing to prune.
           if ! RAW=$(gh api \
             "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
             --paginate --jq '
