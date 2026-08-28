@@ -8,15 +8,22 @@ A **Datadog API key** supplied as the sensitive `datadog_api_key` variable, plus
 
 ## Variables
 
-| Name              | Type   | Sensitive | Default           | Description                                                       |
-| ----------------- | ------ | --------- | ----------------- | ----------------------------------------------------------------- |
-| `datadog_api_key` | string | yes       | —                 | Datadog API key (required)                                        |
-| `datadog_site`    | string |           | `datadoghq.com`   | Datadog site (`datadoghq.com`, `datadoghq.eu`, `us3/us5/ap1`, gov) |
-| `cluster_name`    | string |           | Qovery cluster name | Cluster name tag on all telemetry, max 80 chars. Empty = the Qovery cluster's name, slugified |
-| `enable_logs`     | string |           | `true`            | Collect container logs from all pods (`true`/`false`)             |
-| `enable_apm`      | string |           | `false`           | Enable the APM trace-agent port (`true`/`false`)                  |
-| `agent_memory`    | string |           | `512Mi`           | Memory request/limit for the node agent container                 |
-| `cluster_agent_memory` | string |      | `512Mi`           | Memory request/limit for the cluster agent container              |
+### Required Variables
+
+| Name              | Type   | Sensitive | Description                                                       |
+| ----------------- | ------ | --------- | ------------------------------------------------------------------ |
+| `datadog_api_key` | string | yes       | Datadog API key (Organization Settings → API Keys)                |
+| `datadog_site`    | string |           | Datadog site (`datadoghq.com`, `datadoghq.eu`, `us3/us5/ap1`, gov). Default suggestion: `datadoghq.com`. |
+
+### Optional Variables
+
+| Name              | Type   | Default           | Description                                                       |
+| ----------------- | ------ | ----------------- | ----------------------------------------------------------------- |
+| `cluster_name`    | string | Qovery cluster name | Cluster name tag on all telemetry, max 80 chars. Empty = the Qovery cluster's name, slugified |
+| `enable_logs`     | string | `true`            | Collect container logs from all pods (`true`/`false`)             |
+| `enable_apm`      | string | `false`           | Enable the APM trace-agent port (`true`/`false`)                  |
+| `agent_memory`    | string | `512Mi`           | Memory request/limit for the node agent container                 |
+| `cluster_agent_memory` | string | `512Mi`      | Memory request/limit for the cluster agent container              |
 
 ## Outputs
 
