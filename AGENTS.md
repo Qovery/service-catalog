@@ -148,9 +148,10 @@ Rendered with **Tera** (`tera::Tera::default()`), so filters and control flow ar
   `qovery_cluster_name` (the Qovery cluster's own name, verbatim) and `region`. This is why the
   Terraform blueprints name their context variable `qovery_cluster_name` — the injection is keyed on
   that exact name, not on the `contextVariables` block, which only drives the console's form.
-- **Cluster names are unconstrained**, so `qovery_cluster_name` may not satisfy the chart's
-  expectations — `_Undeletable_cluster` is a real cluster. Pipe it through `slugify` when the chart
-  needs RFC1123.
+- **Cluster names are unconstrained** — q-core accepts any string, so `qovery_cluster_name` can
+  carry uppercase, underscores or spaces and may not satisfy the chart's expectations. Pipe it
+  through `slugify` when the chart needs RFC1123, and quote the result: a name that slugifies to
+  `true` or `123` is otherwise parsed as a YAML bool or number.
 - **An omitted optional variable is NOT filled in from `default:`.** The platform sends only the
   variables the client supplied, so `{{ var }}` for an omitted optional is *undefined* and the whole
   deployment fails while generating terraform files, before Helm runs. The error is
