@@ -75,6 +75,12 @@ spec:
       default: "512Mi"
       description: "Memory request/limit for the node agent container (valid Kubernetes quantity)"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
+    - name: "cluster_agent_memory"
+      type: "string"
+      required: false
+      default: "512Mi"
+      description: "Memory request/limit for the cluster agent container (valid Kubernetes quantity)"
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
 
   outputs:
     - name: "datadog_cluster_agent_service"
