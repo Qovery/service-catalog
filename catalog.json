@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-28T09:17:16Z",
+  "generatedAt": "2026-08-28T09:32:49Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -312,7 +312,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "HELM/datadog/7/1.0.1"
+          "latestTag": "HELM/datadog/7/2.0.0"
         }
       ]
     },
