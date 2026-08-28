@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-datadog"
-  version: "1.0.1"
+  version: "2.0.0"
   description: "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart"
   icon: "app://qovery-console/datadog"
   serviceFamily: "datadog"
@@ -45,9 +45,14 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: false
-      default: "qovery-cluster"
-      description: "Cluster name tag applied to all Datadog telemetry (lowercase RFC1123, e.g. prod-eu)"
-      pattern: "^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$"
+      description: "Cluster name tag applied to all Datadog telemetry. Leave empty to use the Qovery cluster's own name, lowercased and hyphenated. Otherwise: lowercase letters, digits, hyphens and underscores, optionally dot-separated, starting and ending alphanumeric (e.g. prod-eu)"
+      maxLength: 80
+      # Mirrors the chart's own check-cluster-name check (80 chars, FQDN-like tokens of
+      # [a-z0-9_-]) so nothing Datadog accepts is rejected here. Wrapped optional because an
+      # untouched optional field arrives as "" rather than being omitted, and the platform
+      # validates a submitted "" while skipping a variable that is absent entirely — rejecting ""
+      # would fail the create request before values.yaml can fall back to the cluster's name.
+      pattern: "^(([a-z0-9]([a-z0-9_-]*[a-z0-9])?[.])*([a-z0-9]([a-z0-9_-]*[a-z0-9])?))?$"
     - name: "enable_logs"
       type: "string"
       required: false
