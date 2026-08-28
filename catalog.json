@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-28T06:56:03Z",
+  "generatedAt": "2026-08-28T07:13:37Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
