@@ -1,13 +1,17 @@
 # Datadog Agent chart values. Secrets and toggles are interpolated by Qovery.
 datadog:
-  apiKey: {{ datadog_api_key }}
-  site: {{ datadog_site }}
-  # `qovery_cluster_name` and `region` are injected by the engine for every blueprint, so an unset
+  # Every string value is quoted: an interpolated value that happens to look like a YAML scalar
+  # (`true`, `on`, `123`) would otherwise be parsed as a bool or number, and the chart's type checks
+  # reject that — `check-cluster-name` fails with "expected string; got bool". enable_logs and
+  # enable_apm stay unquoted because the chart genuinely wants booleans there.
+  apiKey: "{{ datadog_api_key }}"
+  site: "{{ datadog_site }}"
+  # The engine injects `qovery_cluster_name` (and `region`) into every blueprint, so an unset
   # cluster_name falls back to the real cluster. slugify makes it RFC1123, which Datadog requires and
-  # Qovery cluster names do not guarantee (`_Undeletable_cluster` is a real one). The `if` rather than
-  # a `default` filter is deliberate: `default` only covers an undefined variable, and a client that
-  # sends cluster_name as an empty string would otherwise render an empty tag.
-  clusterName: {% if cluster_name %}{{ cluster_name | slugify }}{% else %}{{ qovery_cluster_name | slugify }}{% endif %}
+  # Qovery cluster names do not guarantee (`_Undeletable_cluster` is a real one); it emits only
+  # [a-z0-9-], so it can never break the quoting. `if` rather than a `default` filter because
+  # `default` covers an undefined variable only, and clients send cluster_name as an empty string.
+  clusterName: "{% if cluster_name %}{{ cluster_name | slugify }}{% else %}{{ qovery_cluster_name | slugify }}{% endif %}"
   logs:
     enabled: {{ enable_logs }}
     containerCollectAll: {{ enable_logs }}
