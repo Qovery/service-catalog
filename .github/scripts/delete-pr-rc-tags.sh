@@ -14,9 +14,9 @@ PR="${1:?usage: delete-pr-rc-tags.sh <pr_number> [keep_suffix]}"
 KEEP_SUFFIX="${2:-}"
 REMOTE="${REMOTE:-origin}"
 
-# Tags are {PROVIDER}/{service}/{major}/{version}-pr{PR}.{short_sha}-rc. The trailing '.' in the
-# marker is load-bearing: without it PR #4 would match every tag belonging to PR #45.
-MARKER="-pr${PR}."
+# Generated tags end in -pr{PR}.{short_sha}-rc. Match that whole shape, anchored: a published tag
+# is free to contain "-pr${PR}." in its path or version and to end in -rc, and must survive.
+PATTERN="-pr${PR}\.[0-9a-f]{7,40}-rc\$"
 
 # A failed listing is not evidence of "no tags" — swallowing it would report success while leaving
 # every tag behind, which is the exact failure this script exists to prevent.
@@ -25,14 +25,13 @@ if ! RAW=$(git ls-remote --tags "$REMOTE"); then
   exit 1
 fi
 
-# `--` before every pattern: MARKER starts with '-', so grep would otherwise parse it as options
-# and exit 2. With `|| true` swallowing that, the sweep would silently find nothing.
+# `--` before the pattern: it starts with '-', so grep would otherwise parse it as options and exit
+# 2. With `|| true` swallowing that, the sweep would silently find nothing.
 mapfile -t CANDIDATES < <(printf '%s\n' "$RAW" \
   | awk '{print $2}' \
   | sed 's|^refs/tags/||' \
   | grep -v -- '\^{}$' \
-  | grep -F -- "$MARKER" \
-  | grep -E -- '-rc$' || true)
+  | grep -E -- "$PATTERN" || true)
 
 TAGS=()
 if [ "${#CANDIDATES[@]}" -gt 0 ]; then
