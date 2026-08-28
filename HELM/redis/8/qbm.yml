@@ -25,7 +25,7 @@ spec:
     - name: "memory_limit"
       type: "string"
       required: false
-      default: "768Mi"
+      default: "1Gi"
       description: "Memory limit for Redis pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "password"
