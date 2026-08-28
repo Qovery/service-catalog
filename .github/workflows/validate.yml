@@ -220,8 +220,30 @@ jobs:
           chmod +x bin/catalog-gen
           bin/catalog-gen validate --root .
 
+      # This job replaces the PR's tags and comment on every push, so two runs racing would let the
+      # older one delete the newer one's work — reachable whenever this job's dependencies finish
+      # late on the earlier run. Whoever no longer matches the PR head owns nothing and writes
+      # nothing. Fails open on an unreadable endpoint: the guard exists to avoid clobbering a newer
+      # run, not to add a new way for the job to break.
+      - id: guard
+        name: Skip if a newer push superseded this run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if ! CURRENT=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" --jq '.head.sha'); then
+            echo "::notice::Could not read the PR head; proceeding."
+            exit 0
+          fi
+          if [ "$CURRENT" != "$HEAD_SHA" ]; then
+            echo "::notice::Head moved to ${CURRENT}; a newer run owns this PR's tags and comment."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - id: prerelease
         name: Tag changed blueprints with an rc suffix
+        if: steps.guard.outputs.stale != 'true'
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -242,13 +264,17 @@ jobs:
             echo 'JSON_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Comment the deployable tags on the PR
-        if: steps.prerelease.outputs.blueprints != ''
+      - id: comment
+        name: Comment the deployable tags on the PR
+        if: steps.prerelease.outputs.blueprints != '' && steps.guard.outputs.stale != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BLUEPRINTS: ${{ steps.prerelease.outputs.blueprints }}
         run: |
           {
+            # Invisible when rendered. The next push's prune step keys on this to find the
+            # comments it supersedes.
+            echo "<!-- qovery-rc-prerelease -->"
             echo "### How to test this blueprint before merging"
             echo
             echo "**Use a test organization, never production.**"
@@ -319,8 +345,9 @@ jobs:
             echo '```'
             echo
             echo "> **⚠️ Only ever point this at a disposable test service.**"
-            echo "> It pins that service to an rc tag that is **deleted when this PR closes**, and a"
-            echo "> service on a deleted tag cannot be deployed."
+            echo "> It pins that service to an rc tag that is **deleted as soon as this PR is"
+            echo "> pushed to again**, and on close — and a service on a deleted tag cannot be"
+            echo "> deployed. Re-run the command above with the new tag after each push."
             echo
             echo "_b. Against a brand-new test service_ — create one on the published tag first, then"
             echo "run 2a against it. Starting from \`$BASE_TAG\` is what makes step 2 an actual"
@@ -345,10 +372,76 @@ jobs:
             echo "- Option 1 exercises provisioning from scratch. Option 2 exercises the migration"
             echo "  path (the diff runs against the deployed service's terraform state), which is"
             echo "  what reveals a change that would replace or destroy live infrastructure."
-            echo "- These tags never become releases, and are deleted when the PR closes."
+            echo "- These tags never become releases. Each push replaces this comment and deletes"
+            echo "  the tags of the previous push, so only the tags above exist; closing the PR"
+            echo "  deletes those too."
           } >> comment.md
 
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+          # Post before pruning, so there is never a window where the PR carries no instructions.
+          # The prune step needs the new comment's id to know which one to keep.
+          COMMENT_URL=$(gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md)
+          echo "$COMMENT_URL"
+          NEW_ID=$(printf '%s' "$COMMENT_URL" | sed -n 's/.*#issuecomment-\([0-9]\{1,\}\).*/\1/p')
+          echo "comment_id=$NEW_ID" >> "$GITHUB_OUTPUT"
+
+      # Not gated on `blueprints`: a push that stops changing blueprints emits none, skipping the
+      # step above, and the previous push's comment must still go — otherwise it keeps advertising
+      # tags the next step is about to delete. It IS gated on the tagging step having succeeded, and
+      # on the comment step not having *failed*: with no new comment to replace them, the old ones
+      # are the only instructions there are, so keep them.
+      - name: Delete this PR's superseded rc comments
+        if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' && steps.comment.outcome != 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_OUTCOME: ${{ steps.comment.outcome }}
+          KEEP_ID: ${{ steps.comment.outputs.comment_id }}
+        run: |
+          set -euo pipefail
+
+          # An empty KEEP_ID is expected when the step above was skipped — then every comment goes.
+          # But if it ran and the URL did not parse, we cannot tell the new comment from the old
+          # ones: leave a duplicate rather than risk deleting the only copy of the instructions.
+          if [ "$COMMENT_OUTCOME" = "success" ] && [ -z "$KEEP_ID" ]; then
+            echo "::warning::Could not determine the new comment's id; leaving previous comments in place."
+            exit 0
+          fi
+
+          # `contains` on the header as well as the marker: comments posted before the marker
+          # existed carry no marker, and would otherwise linger on open PRs forever.
+          #
+          # Captured rather than piped straight into mapfile: a failed listing is not evidence that
+          # there is nothing to prune, and process substitution would hide the failure.
+          if ! RAW=$(gh api \
+            "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            --paginate --jq '
+              .[] | select(.user.login == "github-actions[bot]")
+                  | select(.body | contains("<!-- qovery-rc-prerelease -->")
+                           or contains("### How to test this blueprint before merging"))
+                  | .id'); then
+            echo "::warning::Could not list PR comments; leaving previous comments in place."
+            exit 0
+          fi
+
+          while IFS= read -r id; do
+            [ -n "$id" ] && [ "$id" != "$KEEP_ID" ] || continue
+            echo "Deleting superseded comment $id"
+            # A comment someone already deleted by hand answers 404. That is the desired end state,
+            # so warn rather than fail the job over it.
+            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id" \
+              || echo "::warning::Could not delete comment $id."
+          done <<< "$RAW"
+
+      # Last, and only once the new tags are pushed: a failed tagging step must not delete the
+      # generation a reviewer is currently testing against. A failed *comment* step does not block
+      # this — that would strand the superseded tags with nothing to remove them until the PR closes.
+      - name: Delete this PR's superseded rc tags
+        if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' }}
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          .github/scripts/delete-pr-rc-tags.sh \
+            "${{ github.event.pull_request.number }}" \
+            "-pr${{ github.event.pull_request.number }}.${HEAD_SHA:0:7}-rc"
 
   check-catalog:
     name: Check catalog.json is up to date

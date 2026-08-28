@@ -69,39 +69,7 @@ jobs:
             sleep 10
           done
 
+      # No keep-suffix: the PR is closed, so every generation goes. validate.yml calls the same
+      # script per push with the current generation to keep.
       - name: Delete remote rc tags for this PR
-        run: |
-          set -euo pipefail
-
-          # Tags are {PROVIDER}/{service}/{major}/{version}-pr{PR}.{short_sha}-rc. Match this PR's
-          # marker and require the -rc ending, which is what the ruleset exclusion keys on.
-          MARKER="-pr${{ github.event.pull_request.number }}."
-          # `--` before every pattern: MARKER starts with '-', so grep would otherwise parse it as
-          # options and exit 2. With `|| true` swallowing that, cleanup would silently find no tags
-          # and leave every one behind.
-          mapfile -t TAGS < <(git ls-remote --tags origin \
-            | awk '{print $2}' \
-            | sed 's|^refs/tags/||' \
-            | grep -v -- '\^{}$' \
-            | grep -F -- "$MARKER" \
-            | grep -E -- '-rc$' || true)
-
-          if [ "${#TAGS[@]}" -eq 0 ]; then
-            echo "No prerelease tags to delete for PR #${{ github.event.pull_request.number }}."
-            exit 0
-          fi
-
-          # Delete in one push so a single rejection fails the job. Without this the tags pile up
-          # silently: the repo's "Only admins can delete tags" ruleset covers ~ALL tags with no
-          # bypass actors, and only excludes `refs/tags/**/*-rc` — so a tag whose last segment
-          # does not end in `-rc` is undeletable by GITHUB_TOKEN.
-          REFS=()
-          for tag in "${TAGS[@]}"; do
-            echo "Deleting $tag"
-            REFS+=(":refs/tags/$tag")
-          done
-
-          if ! git push origin "${REFS[@]}"; then
-            echo "::error::Could not delete prerelease tags. Check that the repository tag ruleset still excludes 'refs/tags/**/*-rc' from its deletion rule."
-            exit 1
-          fi
+        run: .github/scripts/delete-pr-rc-tags.sh "${{ github.event.pull_request.number }}"
