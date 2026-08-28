@@ -50,6 +50,6 @@ clusterAgent:
   resources:
     requests:
       cpu: "100m"
-      memory: "256Mi"
+      memory: "{{ cluster_agent_memory }}"
     limits:
-      memory: "256Mi"
+      memory: "{{ cluster_agent_memory }}"
