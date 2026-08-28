@@ -32,7 +32,7 @@ spec:
       description: "Datadog API key (Organization Settings → API Keys)"
     - name: "datadog_site"
       type: "string"
-      required: false
+      required: true
       default: "datadoghq.com"
       description: "Datadog site your account belongs to"
       allowedValues:
