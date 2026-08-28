@@ -346,8 +346,9 @@ jobs:
             echo
             echo "> **⚠️ Only ever point this at a disposable test service.**"
             echo "> It pins that service to an rc tag that is **deleted as soon as this PR is"
-            echo "> pushed to again**, and on close — and a service on a deleted tag cannot be"
-            echo "> deployed. Re-run the command above with the new tag after each push."
+            echo "> pushed to again**, and a service on a deleted tag cannot be deployed. Re-run"
+            echo "> the command above with the tag from the refreshed comment after each push — and"
+            echo "> note that a push that stops changing this blueprint leaves no rc tag at all."
             echo
             echo "_b. Against a brand-new test service_ — create one on the published tag first, then"
             echo "run 2a against it. Starting from \`$BASE_TAG\` is what makes step 2 an actual"
@@ -389,14 +390,24 @@ jobs:
       # tags the next step is about to delete. It IS gated on the tagging step having succeeded, and
       # on the comment step not having *failed*: with no new comment to replace them, the old ones
       # are the only instructions there are, so keep them.
-      - name: Delete this PR's superseded rc comments
+      - id: prune_comments
+        name: Delete this PR's superseded rc comments
         if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' && steps.comment.outcome != 'failure' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           COMMENT_OUTCOME: ${{ steps.comment.outcome }}
           KEEP_ID: ${{ steps.comment.outputs.comment_id }}
         run: |
           set -euo pipefail
+
+          # The guard ran before tagging and commenting; a push can have landed since. Re-check here,
+          # immediately before deleting, and fail open on an unreadable endpoint as the guard does.
+          CURRENT=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" --jq '.head.sha' || echo "$HEAD_SHA")
+          if [ "$CURRENT" != "$HEAD_SHA" ]; then
+            echo "::notice::Head moved to ${CURRENT}; leaving this PR's comments to the newer run."
+            exit 0
+          fi
 
           # An empty KEEP_ID is expected when the step above was skipped — then every comment goes.
           # But if it ran and the URL did not parse, we cannot tell the new comment from the old
@@ -431,14 +442,24 @@ jobs:
               || echo "::warning::Could not delete comment $id."
           done <<< "$RAW"
 
-      # Last, and only once the new tags are pushed: a failed tagging step must not delete the
-      # generation a reviewer is currently testing against. A failed *comment* step does not block
-      # this — that would strand the superseded tags with nothing to remove them until the PR closes.
+      # Last: only once the new tags are pushed AND the comment state is known good. If the comment
+      # did not reconcile, the comment still on the PR names the previous generation, so deleting it
+      # would leave the PR advertising tags that no longer exist. Stranded tags go at PR close.
       - name: Delete this PR's superseded rc tags
-        if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.guard.outputs.stale != 'true' && steps.prerelease.outcome == 'success' && steps.prune_comments.outcome == 'success' }}
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          set -euo pipefail
+
+          # Re-check ownership immediately before deleting, as the comment prune does.
+          CURRENT=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" --jq '.head.sha' || echo "$HEAD_SHA")
+          if [ "$CURRENT" != "$HEAD_SHA" ]; then
+            echo "::notice::Head moved to ${CURRENT}; leaving this PR's tags to the newer run."
+            exit 0
+          fi
+
           .github/scripts/delete-pr-rc-tags.sh \
             "${{ github.event.pull_request.number }}" \
             "-pr${{ github.event.pull_request.number }}.${HEAD_SHA:0:7}-rc"

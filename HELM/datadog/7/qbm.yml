@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-datadog"
-  version: "2.0.0"
+  version: "3.0.0"
   description: "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart"
   icon: "app://qovery-console/datadog"
   serviceFamily: "datadog"
@@ -32,7 +32,7 @@ spec:
       description: "Datadog API key (Organization Settings → API Keys)"
     - name: "datadog_site"
       type: "string"
-      required: false
+      required: true
       default: "datadoghq.com"
       description: "Datadog site your account belongs to"
       allowedValues:
@@ -74,6 +74,12 @@ spec:
       required: false
       default: "512Mi"
       description: "Memory request/limit for the node agent container (valid Kubernetes quantity)"
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
+    - name: "cluster_agent_memory"
+      type: "string"
+      required: false
+      default: "512Mi"
+      description: "Memory request/limit for the cluster agent container (valid Kubernetes quantity)"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
 
   outputs:

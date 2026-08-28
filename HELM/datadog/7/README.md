@@ -8,14 +8,22 @@ A **Datadog API key** supplied as the sensitive `datadog_api_key` variable, plus
 
 ## Variables
 
-| Name              | Type   | Sensitive | Default           | Description                                                       |
-| ----------------- | ------ | --------- | ----------------- | ----------------------------------------------------------------- |
-| `datadog_api_key` | string | yes       | —                 | Datadog API key (required)                                        |
-| `datadog_site`    | string |           | `datadoghq.com`   | Datadog site (`datadoghq.com`, `datadoghq.eu`, `us3/us5/ap1`, gov) |
-| `cluster_name`    | string |           | Qovery cluster name | Cluster name tag on all telemetry, max 80 chars. Empty = the Qovery cluster's name, slugified |
-| `enable_logs`     | string |           | `true`            | Collect container logs from all pods (`true`/`false`)             |
-| `enable_apm`      | string |           | `false`           | Enable the APM trace-agent port (`true`/`false`)                  |
-| `agent_memory`    | string |           | `512Mi`           | Memory request/limit for the node agent container                 |
+### Required Variables
+
+| Name              | Type   | Sensitive | Description                                                       |
+| ----------------- | ------ | --------- | ------------------------------------------------------------------ |
+| `datadog_api_key` | string | yes       | Datadog API key (Organization Settings → API Keys)                |
+| `datadog_site`    | string |           | Datadog site (`datadoghq.com`, `datadoghq.eu`, `us3/us5/ap1`, gov). Default suggestion: `datadoghq.com`. |
+
+### Optional Variables
+
+| Name              | Type   | Default           | Description                                                       |
+| ----------------- | ------ | ----------------- | ----------------------------------------------------------------- |
+| `cluster_name`    | string | Qovery cluster name | Cluster name tag on all telemetry, max 80 chars. Empty = the Qovery cluster's name, slugified |
+| `enable_logs`     | string | `true`            | Collect container logs from all pods (`true`/`false`)             |
+| `enable_apm`      | string | `false`           | Enable the APM trace-agent port (`true`/`false`)                  |
+| `agent_memory`    | string | `512Mi`           | Memory request/limit for the node agent container                 |
+| `cluster_agent_memory` | string | `512Mi`      | Memory request/limit for the cluster agent container              |
 
 ## Outputs
 
@@ -30,6 +38,6 @@ A **Datadog API key** supplied as the sensitive `datadog_api_key` variable, plus
 - The Cluster Agent's admission controller is disabled (`clusterAgent.admissionController.enabled: false`). Its Service is named `<release>-cluster-agent-admission-controller`, and since Qovery release names are `helm-z<id>-<service name>`, a service name longer than 13 characters pushes it past Kubernetes' 63-character limit and the deploy fails. It injects APM/DogStatsD config only into pods labelled `admission.datadoghq.com/enabled=true`, which Qovery services do not carry, so nothing is lost — configure tracers as described below. `1.x` shipped it enabled.
 - **Service name length.** With the admission controller gone the longest suffix the chart appends is `-kpi-telemetry-configmap` (24 characters), so a Qovery service name above ~24 characters will still breach the 63-character limit on a resource name. Keep the service name short.
 - Deploys cluster-wide resources (DaemonSet, ClusterRole/Binding, cluster agent) — `allowClusterWideResources: true`.
-- Resources are set explicitly for the node agent (`agent_memory`) and the cluster agent (256Mi); tune `agent_memory` for high-cardinality nodes.
+- Resources are set explicitly for the node agent (`agent_memory`) and the cluster agent (`cluster_agent_memory`); tune `agent_memory` for high-cardinality nodes.
 - APM: with `enable_apm=true`, point tracers at the agent on the node (or the `datadog.apm` socket) per Datadog's APM setup docs.
 - Chart pinned to `3.240.0`. This is the official Datadog chart (not Bitnami).
