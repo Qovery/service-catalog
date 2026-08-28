@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-24T14:20:35Z",
+  "generatedAt": "2026-08-28T09:17:16Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -367,7 +367,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "HELM/redis/8/1.0.0"
+          "latestTag": "HELM/redis/8/1.0.1"
         }
       ]
     },
