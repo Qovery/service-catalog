@@ -1,13 +1,30 @@
 # Datadog Agent chart values. Secrets and toggles are interpolated by Qovery.
 datadog:
-  apiKey: {{ datadog_api_key }}
-  site: {{ datadog_site }}
-  clusterName: {{ cluster_name }}
+  # Every string value is quoted: an interpolated value that happens to look like a YAML scalar
+  # (`true`, `on`, `123`) would otherwise be parsed as a bool or number, and the chart's type checks
+  # reject that — `check-cluster-name` fails with "expected string; got bool". enable_logs and
+  # enable_apm stay unquoted because the chart genuinely wants booleans there.
+  apiKey: "{{ datadog_api_key }}"
+  site: "{{ datadog_site }}"
+  # The engine injects `qovery_cluster_name` (and `region`) into every blueprint, so an unset
+  # cluster_name falls back to the real cluster. Only the inferred value is slugified: Qovery
+  # cluster names are unconstrained and can carry uppercase or spaces, which the chart rejects.
+  # An explicit cluster_name is passed through verbatim — the qbm.yml pattern already limits it to
+  # what the chart accepts, and slugify would corrupt legal values (`my_cluster` -> `my-cluster`).
+  # `if` rather than a `default` filter because `default` covers an undefined variable only, and
+  # clients send cluster_name as an empty string.
+  clusterName: "{% if cluster_name %}{{ cluster_name }}{% else %}{{ qovery_cluster_name | slugify }}{% endif %}"
   logs:
     enabled: {{ enable_logs }}
     containerCollectAll: {{ enable_logs }}
   apm:
     portEnabled: {{ enable_apm }}
+  # Chart 3.240.0 defaults this to true, which ships the Datadog Operator and 7 cluster-scoped
+  # CRDs. CRDs are singular per cluster, so the first environment to install owns them and every
+  # later install on the same cluster fails on Helm ownership. The agent is deployed directly by
+  # this chart, so the Operator is unused.
+  operator:
+    enabled: false
 
 # Per-node agent DaemonSet — resources explicitly set (don't rely on chart defaults).
 agents:
@@ -22,6 +39,14 @@ agents:
 
 # Cluster agent (cluster-level metrics, orchestrator, external metrics).
 clusterAgent:
+  # The chart names this component's Service "<release>-cluster-agent-admission-controller". Qovery
+  # release names are "helm-z<id>-<service name>", leaving 13 characters for the service name before
+  # the Service exceeds Kubernetes' 63-character limit and the deploy fails. Nothing is lost: the
+  # controller only injects APM/DogStatsD config into pods labelled admission.datadoghq.com/enabled,
+  # which Qovery services do not carry, and it also claims a cluster-wide "datadog-webhook" object
+  # that a second install in another namespace would fight over.
+  admissionController:
+    enabled: false
   resources:
     requests:
       cpu: "100m"

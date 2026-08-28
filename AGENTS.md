@@ -139,6 +139,27 @@ Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): mov
 - Keep the `qbm.yml` variable contract stable across a software major when possible (rename = major bump).
 - `values.yaml` is a template — user inputs are interpolated as `{{ variable_name }}`.
 
+### `values.yaml` templating — what the engine actually does
+
+Rendered with **Tera** (`tera::Tera::default()`), so filters and control flow are available:
+`{{ var | slugify }}`, `{% if var %}…{% else %}…{% endif %}`. Three things are not obvious:
+
+- **Two variables are injected for free**, whether or not `qbm.yml` declares them:
+  `qovery_cluster_name` (the Qovery cluster's own name, verbatim) and `region`. This is why the
+  Terraform blueprints name their context variable `qovery_cluster_name` — the injection is keyed on
+  that exact name, not on the `contextVariables` block, which only drives the console's form.
+- **Cluster names are unconstrained** — q-core accepts any string, so `qovery_cluster_name` can
+  carry uppercase, underscores or spaces and may not satisfy the chart's expectations. Pipe it
+  through `slugify` when the chart needs RFC1123, and quote the result: a name that slugifies to
+  `true` or `123` is otherwise parsed as a YAML bool or number.
+- **An omitted optional variable is NOT filled in from `default:`.** The platform sends only the
+  variables the client supplied, so `{{ var }}` for an omitted optional is *undefined* and the whole
+  deployment fails while generating terraform files, before Helm runs. The error is
+  `Failed to render 'values.yaml'` with no indication of which variable. Guard anything optional with
+  `{% if var %}` or `| default(value=…)`. Note `default` covers undefined only — a client sending an
+  empty string still yields an empty value, which is why `{% if %}` is the safer form. Tracked as
+  QOV-2196.
+
 ## Commit / PR messages
 
 Keep them synthetic, for developers and SRE readers with no business context. Explain the _why_, not just the _what_.
