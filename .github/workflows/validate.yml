@@ -439,15 +439,12 @@ jobs:
           while IFS= read -r id; do
             [ -n "$id" ] && [ "$id" != "$KEEP_ID" ] || continue
             echo "Deleting superseded comment $id"
+            # Any failure counts, 404 included: a rate limit or 5xx says nothing about whether the
+            # comment survived, and probing would hit the same wall. If one did survive it still
+            # names the tags the next step wants to delete, so keep them until a push succeeds.
             if ! gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"; then
-              # Already deleted by hand is the desired end state; anything else leaves a comment
-              # naming the generation the next step wants to delete.
-              if gh api "repos/${{ github.repository }}/issues/comments/$id" >/dev/null 2>&1; then
-                echo "::warning::Could not delete comment $id."
-                RECONCILED=false
-              else
-                echo "Comment $id was already gone."
-              fi
+              echo "::warning::Could not delete comment $id; keeping this PR's previous tags."
+              RECONCILED=false
             fi
           done <<< "$RAW"
 
