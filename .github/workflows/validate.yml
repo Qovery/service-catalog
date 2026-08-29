@@ -423,32 +423,53 @@ jobs:
           fi
 
           # Also match the header: comments posted before the marker existed carry none.
+          list_rc_comments() {
+            gh api \
+              "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+              --paginate --jq '
+                .[] | select(.user.login == "github-actions[bot]")
+                    | select(.body | contains("<!-- qovery-rc-prerelease -->")
+                             or contains("### How to test this blueprint before merging"))
+                    | .id'
+          }
+
+          # Everything except KEEP_ID, one id per line. `|| [ -n "$id" ]` keeps the last line when
+          # the input has no trailing newline, which is what $( ) always hands back.
+          superseded() {
+            while IFS= read -r id || [ -n "$id" ]; do
+              [ -n "$id" ] && [ "$id" != "$KEEP_ID" ] || { id=; continue; }
+              printf '%s\n' "$id"
+              id=
+            done
+          }
+
           # Captured rather than piped: a failed listing is not evidence of nothing to prune.
-          if ! RAW=$(gh api \
-            "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
-            --paginate --jq '
-              .[] | select(.user.login == "github-actions[bot]")
-                  | select(.body | contains("<!-- qovery-rc-prerelease -->")
-                           or contains("### How to test this blueprint before merging"))
-                  | .id'); then
+          if ! RAW=$(list_rc_comments); then
             echo "::warning::Could not list PR comments; leaving previous comments in place."
             bail
           fi
 
-          RECONCILED=true
           while IFS= read -r id; do
-            [ -n "$id" ] && [ "$id" != "$KEEP_ID" ] || continue
+            [ -n "$id" ] || continue
             echo "Deleting superseded comment $id"
-            # Any failure counts, 404 included: a rate limit or 5xx says nothing about whether the
-            # comment survived, and probing would hit the same wall. If one did survive it still
-            # names the tags the next step wants to delete, so keep them until a push succeeds.
-            if ! gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"; then
-              echo "::warning::Could not delete comment $id; keeping this PR's previous tags."
-              RECONCILED=false
-            fi
-          done <<< "$RAW"
+            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id" \
+              || echo "::notice::Delete of comment $id did not succeed; re-checking below."
+          done <<< "$(printf '%s' "$RAW" | superseded)"
 
-          echo "reconciled=$RECONCILED" >> "$GITHUB_OUTPUT"
+          # A delete's exit code cannot answer this on its own: 404 means the comment is already
+          # gone, a rate limit means nothing at all. Re-read the PR and let the end state decide.
+          if ! AFTER=$(list_rc_comments); then
+            echo "::warning::Could not confirm the comments were removed; keeping this PR's previous tags."
+            bail
+          fi
+
+          LEFT=$(printf '%s' "$AFTER" | superseded | tr '\n' ' ')
+          if [ -n "${LEFT// /}" ]; then
+            echo "::warning::Superseded comments still on the PR (${LEFT}); keeping this PR's previous tags."
+            bail
+          fi
+
+          echo "reconciled=true" >> "$GITHUB_OUTPUT"
 
       # Last: only once the new tags are pushed AND the prune reported reconciled=true. Gating on
       # that output rather than the step's outcome is the point — the prune exits 0 even when it
