@@ -239,3 +239,5 @@ Rendered with **Tera** (`tera::Tera::default()`), so filters and control flow ar
 ## Commit / PR messages
 
 Keep them synthetic, for developers and SRE readers with no business context. Explain the _why_, not just the _what_.
+
+The PR title is CI-enforced and accepts **only** `feat`, `fix`, `patch`, `chore` (see [PR title](#pr-title-ci-pr-title)). The conventional-commit types you may reach for out of habit — `docs`, `refactor`, `test`, `ci`, `build`, `perf` — are all rejected. A docs-only or tooling-only change lands as `chore`.
