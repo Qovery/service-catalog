@@ -35,3 +35,4 @@ resource "mongodbatlas_project_ip_access_list" "this" {
   cidr_block = var.ip_access_list_cidr
   comment    = "Managed by Qovery blueprint"
 }
+
