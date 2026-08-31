@@ -44,7 +44,7 @@ By default the instance attaches to the project's **default** VPC network, which
 
 | Name                     | Type   | Default | Description                                                                 |
 | ------------------------ | ------ | ------- | ----------------------------------------------------------------------------- |
-| `maintenance_day`        | string |         | Day of week for the maintenance window. Empty disables a fixed window.       |
+| `maintenance_day`        | string |         | Day of week for the maintenance window. Unset disables a fixed window.       |
 | `maintenance_start_hour` | number | `2`     | Maintenance window start hour, UTC 24h. Only used when `maintenance_day` is set. |
 
 ### Read replicas
