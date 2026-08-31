@@ -555,11 +555,13 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // cluster metadata, so they arrive whether or not the blueprint has anything to do with a cluster.
 const ENGINE_INJECTED_VARIABLES: [&str; 2] = ["region", "qovery_cluster_name"];
 
-// Reads a `<<TAG` / `<<-TAG` opener at `i`, returning the tag and the offset just past the
-// opener line. Returns None when what follows `<<` is not an identifier.
-fn heredoc_tag(b: &[char], i: usize) -> Option<(String, usize)> {
+// Reads a `<<TAG` / `<<-TAG` opener at `i`, returning the tag, whether it was the indented
+// (`<<-`) form, and the offset just past the opener line. Returns None when what follows `<<`
+// is not an identifier.
+fn heredoc_tag(b: &[char], i: usize) -> Option<(String, bool, usize)> {
     let mut j = i + 2;
-    if b.get(j) == Some(&'-') {
+    let indented = b.get(j) == Some(&'-');
+    if indented {
         j += 1;
     }
     let start = j;
@@ -573,7 +575,7 @@ fn heredoc_tag(b: &[char], i: usize) -> Option<(String, usize)> {
     while j < b.len() && b[j] != '\n' {
         j += 1;
     }
-    Some((tag, (j + 1).min(b.len())))
+    Some((tag, indented, (j + 1).min(b.len())))
 }
 
 // Blanks out `#`, `//` and `/* */` comments, keeping newlines so line structure survives. A `#`
@@ -620,7 +622,7 @@ fn strip_hcl_comments(tf: &str) -> String {
             // `/*`, a stray `}`, or even a literal `variable "x" {` — none of which are source
             // comments or declarations. Blank the body so nothing inside it is interpreted either
             // way, keeping the opener and the newlines.
-            let (tag, body_start) = heredoc_tag(&b, i).unwrap();
+            let (tag, indented, body_start) = heredoc_tag(&b, i).unwrap();
             out.extend(b[i..body_start].iter());
             i = body_start;
             while i < b.len() {
@@ -633,7 +635,15 @@ fn strip_hcl_comments(tf: &str) -> String {
                     out.push('\n');
                     i += 1;
                 }
-                if line.trim() == tag {
+                // Only `<<-` allows the terminator to be indented. For a plain `<<`, an indented
+                // tag is body text, and ending there would spill the rest of the heredoc into the
+                // scan as if it were HCL. trim_end still tolerates a trailing CR.
+                let terminated = if indented {
+                    line.trim() == tag
+                } else {
+                    line.trim_end() == tag
+                };
+                if terminated {
                     break;
                 }
             }
