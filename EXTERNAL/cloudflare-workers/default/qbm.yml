@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "cloudflare-workers"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Deploy a Cloudflare Worker script (with an optional route) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
   serviceFamily: "cloudflare-workers"
@@ -34,6 +34,13 @@ spec:
     resources:
       cpu: "500m"
       ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
 
   variables:
     - name: "cloudflare_api_token"

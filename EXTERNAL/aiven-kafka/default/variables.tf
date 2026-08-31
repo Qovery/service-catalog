@@ -46,3 +46,13 @@ variable "kafka_version" {
   default     = "3.9"
   description = "Apache Kafka version"
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}

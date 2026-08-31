@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "temporal-cloud-namespace"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Provision a Temporal Cloud namespace (regions, retention, client auth) via the Temporal Cloud Terraform provider"
   icon: "app://qovery-console/temporal"
   serviceFamily: "temporal-cloud"
@@ -32,6 +32,13 @@ spec:
     resources:
       cpu: "500m"
       ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
 
   variables:
     - name: "temporal_cloud_api_key"

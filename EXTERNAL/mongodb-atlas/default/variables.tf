@@ -107,3 +107,13 @@ variable "ip_access_list_cidr" {
   default     = "0.0.0.0/0"
   description = "CIDR allowed to reach the cluster. Defaults to 0.0.0.0/0 (open); restrict this in production."
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}

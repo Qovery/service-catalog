@@ -69,3 +69,13 @@ variable "route_pattern" {
     error_message = "route_pattern is required when route_zone_id is set."
   }
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}

@@ -78,3 +78,13 @@ variable "ha_replicas" {
     error_message = "ha_replicas must be between 0 and 2."
   }
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}
