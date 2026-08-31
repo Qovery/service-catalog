@@ -16,3 +16,4 @@ resource "planetscale_vitess_branch_password" "app" {
   name         = "qovery-app"
   role         = var.role
 }
+
