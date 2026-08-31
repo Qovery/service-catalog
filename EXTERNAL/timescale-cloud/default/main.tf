@@ -5,3 +5,4 @@ resource "timescale_service" "this" {
   memory_gb   = var.memory_gb
   ha_replicas = var.ha_replicas
 }
+

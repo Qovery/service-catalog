@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-28T09:46:23Z",
+  "generatedAt": "2026-08-31T13:03:48Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -274,7 +274,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.1"
+          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.2"
         }
       ]
     },
