@@ -9,7 +9,7 @@ resource "cloudflare_zone" "this" {
 
 # Optional single DNS record in the zone.
 resource "cloudflare_dns_record" "this" {
-  count = var.record_name != "" ? 1 : 0
+  count = var.record_name != null ? 1 : 0
 
   zone_id = cloudflare_zone.this.id
   name    = var.record_name

@@ -43,7 +43,7 @@ variable "zone_type" {
 # Optional single DNS record
 variable "record_name" {
   type        = string
-  default     = ""
+  default     = null
   description = "Optional DNS record name (e.g. www, @, or a full host). Empty = create no record."
 }
 
@@ -60,11 +60,11 @@ variable "record_type" {
 
 variable "record_content" {
   type        = string
-  default     = ""
+  default     = null
   description = "DNS record value (IP, hostname, or text). Required when record_name is set."
 
   validation {
-    condition     = var.record_name == "" || var.record_content != ""
+    condition     = var.record_name == null || var.record_content != null
     error_message = "record_content is required when record_name is set."
   }
 }

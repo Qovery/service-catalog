@@ -37,7 +37,7 @@ variable "script_content" {
 
 variable "main_module" {
   type        = string
-  default     = ""
+  default     = null
   description = "Entrypoint module name for ES-module Workers (e.g. worker.js). Empty = service-worker syntax (addEventListener)."
 }
 
@@ -55,17 +55,17 @@ variable "compatibility_date" {
 # Optional route: bind the Worker to a URL pattern on a zone.
 variable "route_zone_id" {
   type        = string
-  default     = ""
+  default     = null
   description = "Zone ID to attach a route on. Empty = no route (Worker reachable only via workers.dev / other bindings)."
 }
 
 variable "route_pattern" {
   type        = string
-  default     = ""
+  default     = null
   description = "Route pattern that triggers the Worker (e.g. example.com/*). Required when route_zone_id is set."
 
   validation {
-    condition     = var.route_zone_id == "" || var.route_pattern != ""
+    condition     = var.route_zone_id == null || var.route_pattern != null
     error_message = "route_pattern is required when route_zone_id is set."
   }
 }
