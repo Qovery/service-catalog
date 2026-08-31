@@ -8,3 +8,4 @@ resource "aiven_kafka" "this" {
     kafka_version = var.kafka_version
   }
 }
+
