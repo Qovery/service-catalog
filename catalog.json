@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-28T09:46:23Z",
+  "generatedAt": "2026-08-31T13:02:38Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -179,7 +179,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.0"
+          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.1"
         }
       ]
     },
