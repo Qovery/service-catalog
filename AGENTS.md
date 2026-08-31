@@ -145,10 +145,6 @@ Terraform blueprints are additionally `terraform init -backend=false && terrafor
 defaulting to `""` sends an empty-valued variable, the provider refuses it while the engine applies
 the meta-module, and no Terraform service is ever created.
 
-The create call still answers `201`, because dispatch is submitted onto a background executor after
-the response is sent. Nothing surfaces the rejection: the blueprint row exists with no linked
-service. Four `EXTERNAL` blueprints shipped like this and could not be instantiated at all.
-
 Two questions, in order:
 
 1. **Must the caller always supply a value?** → `required: true`, no `default`. If a value has to be
