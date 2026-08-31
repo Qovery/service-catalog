@@ -48,13 +48,13 @@ variable "branch_name" {
 
 variable "cluster_size" {
   type        = string
-  default     = null
+  default     = ""
   description = "Vitess production cluster size (e.g. PS-10, PS-20). Empty = provider/plan default."
 }
 
 variable "region" {
   type        = string
-  default     = null
+  default     = ""
   description = "PlanetScale region slug for the branch (e.g. us-east). Empty = organization default."
 }
 

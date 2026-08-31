@@ -7,5 +7,5 @@ resource "temporalcloud_namespace" "this" {
   regions            = local.regions
   retention_days     = var.retention_days
   api_key_auth       = true
-  accepted_client_ca = var.accepted_client_ca
+  accepted_client_ca = var.accepted_client_ca == "" ? null : var.accepted_client_ca
 }

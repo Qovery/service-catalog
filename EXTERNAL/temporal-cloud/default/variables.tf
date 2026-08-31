@@ -45,7 +45,7 @@ variable "retention_days" {
 # mTLS on top by supplying a CA bundle here.
 variable "accepted_client_ca" {
   type        = string
-  default     = null
+  default     = ""
   description = "Base64-encoded PEM CA bundle to additionally enable mTLS client auth. Empty = API-key auth only."
 }
 

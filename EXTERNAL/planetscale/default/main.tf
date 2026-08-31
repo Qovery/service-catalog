@@ -5,8 +5,8 @@ resource "planetscale_vitess_branch" "main" {
   organization = var.organization
   database     = var.database_name
   name         = var.branch_name
-  cluster_size = var.cluster_size
-  region       = var.region
+  cluster_size = var.cluster_size == "" ? null : var.cluster_size
+  region       = var.region == "" ? null : var.region
 }
 
 resource "planetscale_vitess_branch_password" "app" {

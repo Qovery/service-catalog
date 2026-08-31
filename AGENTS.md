@@ -138,35 +138,31 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
 
-## Variable defaults — never the empty string, anywhere
+## `qbm.yml` variable defaults — never `default: ""`
 
-**The Qovery terraform provider drops empty strings.** A variable whose value is `""` arrives
-unset, so any blueprint that treats `""` as meaningful is relying on a value the platform never
-delivers. `""` is not a value here — it is the absence of one.
+**The Qovery terraform provider rejects an empty variable value.** `Variable.Validate()` returns
+`variable value is required` for `Value == ""`, before any API call. So a `qbm.yml` variable
+defaulting to `""` sends an empty-valued variable, the provider refuses it while the engine applies
+the meta-module, and no Terraform service is ever created.
 
-That makes it wrong in three places at once, and all three must be avoided:
-
-- `default: ""` in `qbm.yml` — makes `POST /environment/{id}/blueprint` answer `201` and then never
-  create the service, with no error on any endpoint. Four `EXTERNAL` blueprints shipped like this
-  and could not be instantiated at all.
-- `default = ""` in `variables.tf` — encodes "unset" as a value that cannot survive the round trip.
-- `var.x == ""` / `var.x != ""` in `main.tf` or a `validation` block — a comparison against a state
-  that never arrives.
+The create call still answers `201`, because dispatch is submitted onto a background executor after
+the response is sent. Nothing surfaces the rejection: the blueprint row exists with no linked
+service. Four `EXTERNAL` blueprints shipped like this and could not be instantiated at all.
 
 Two questions, in order:
 
 1. **Must the caller always supply a value?** → `required: true`, no `default`. If a value has to be
    passed, the variable is not optional — say so rather than faking it with an empty default.
-2. **Otherwise it is optional.** If it has a real default, declare it in `qbm.yml`
-   (`default: "startup-2"`). If "unset" has no meaningful value, omit `default:` from `qbm.yml`,
-   put `default = null` in `variables.tf`, and compare against `null` everywhere — `count =
-   var.record_name != null ? 1 : 0`. Say what unset means in the description
-   ("Unset = create no record").
+2. **Otherwise it is optional and has a default.** Declare it (`default: "startup-2"`) — *unless
+   that default is the empty string*, in which case omit the `default:` line entirely. Say what
+   unset means in the description ("Unset = create no record").
 
-`null` is terraform's native "absent", so it needs no sentinel and no round trip. Watch the
-`validation` blocks when converting: `var.record_name == "" || var.record_content != ""` silently
-stops firing once the default is `null`, because an unset name is no longer `""`. Those comparisons
-have to move to `null` along with the defaults, or the rule they encode quietly disappears.
+**This is a `qbm.yml` rule only. Leave `variables.tf` alone.** `default = ""` there is correct and
+must stay: the provider never reads that file — it is consulted by the deployed terraform job, a
+different execution from the one that rejects. Omitting the variable then falls back to that
+default, and the usual `count = var.record_name != "" ? 1 : 0` guard does the right thing. Deleting
+it would make the variable required, and `default = null` with `!= null` is no better — `!= ""`
+also covers a value explicitly set to empty, where `!= null` would fall through.
 
 ## Keep `README.md` in sync with `qbm.yml`
 
