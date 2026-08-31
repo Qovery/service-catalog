@@ -138,12 +138,18 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
 
-## `qbm.yml` variable defaults — never `default: ""`
+## `qbm.yml` variable defaults — never `default: ""` (terraform/opentofu)
 
 **The Qovery terraform provider rejects an empty variable value.** `Variable.Validate()` returns
-`variable value is required` for `Value == ""`, before any API call. So a `qbm.yml` variable
-defaulting to `""` sends an empty-valued variable, the provider refuses it while the engine applies
-the meta-module, and no Terraform service is ever created.
+`variable value is required` for `Value == ""`, before any API call. q-core materialises a
+manifest default into a real variable, so a `qbm.yml` variable defaulting to `""` sends an
+empty-valued one, the provider refuses it while the engine applies the meta-module, and no
+Terraform service is ever created.
+
+This applies to `terraform` and `opentofu` blueprints, on **every** provider — `AWS`, `GCP`, `SCW`
+and `EXTERNAL` alike. It is not about `credentials.default: env`; the rejection is on the variable,
+with no branch on provider or credentials mode. Helm blueprints interpolate `values.yaml` instead
+and never reach that check.
 
 Two questions, in order:
 

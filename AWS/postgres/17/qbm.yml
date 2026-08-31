@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "3.0.0"
+  version: "3.0.1"
   description: "AWS RDS PostgreSQL 17 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -129,12 +129,10 @@ spec:
     - name: "db_subnet_group_name"
       type: "string"
       required: false
-      default: ""
       description: "Optional DB subnet group override. Empty = the Qovery cluster DB subnet group."
     - name: "security_group_ids"
       type: "string"
       required: false
-      default: ""
       description: "Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group."
     - name: "apply_changes_now"
       type: "bool"
@@ -240,12 +238,10 @@ spec:
     - name: "monitoring_role_arn"
       type: "string"
       required: false
-      default: ""
       description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
     - name: "option_group_name"
       type: "string"
       required: false
-      default: ""
       description: "Optional option group name. Empty = AWS default."
     - name: "deletion_protection"
       type: "bool"
@@ -272,7 +268,6 @@ spec:
     - name: "read_replica_instance_class"
       type: "string"
       required: false
-      default: ""
       description: "Instance class for read replicas. Empty = same as the primary. Analytics workloads often want a larger class here."
     - name: "read_replica_publicly_accessible"
       type: "bool"

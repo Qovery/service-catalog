@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-31T14:16:15Z",
+  "generatedAt": "2026-08-31T17:23:56Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/cloudfront/default/1.0.1"
+          "latestTag": "AWS/cloudfront/default/1.0.2"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/msk/default/1.0.0"
+          "latestTag": "AWS/msk/default/1.0.1"
         }
       ]
     },
@@ -55,7 +55,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/2.0.0"
+          "latestTag": "AWS/mysql/8/2.0.1"
         }
       ]
     },
@@ -74,19 +74,19 @@
       "majorVersions": [
         {
           "serviceVersion": "14",
-          "latestTag": "AWS/postgres/14/3.0.0"
+          "latestTag": "AWS/postgres/14/3.0.1"
         },
         {
           "serviceVersion": "15",
-          "latestTag": "AWS/postgres/15/3.0.0"
+          "latestTag": "AWS/postgres/15/3.0.1"
         },
         {
           "serviceVersion": "16",
-          "latestTag": "AWS/postgres/16/3.0.0"
+          "latestTag": "AWS/postgres/16/3.0.1"
         },
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/3.0.0"
+          "latestTag": "AWS/postgres/17/3.0.1"
         }
       ]
     },
@@ -293,7 +293,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "GCP/redis/7/1.0.0"
+          "latestTag": "GCP/redis/7/1.0.1"
         }
       ]
     },

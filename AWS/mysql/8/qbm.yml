@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "2.0.0"
+  version: "2.0.1"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -129,12 +129,10 @@ spec:
     - name: "db_subnet_group_name"
       type: "string"
       required: false
-      default: ""
       description: "Optional DB subnet group override. Empty = the Qovery cluster DB subnet group."
     - name: "security_group_ids"
       type: "string"
       required: false
-      default: ""
       description: "Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group."
     - name: "apply_changes_now"
       type: "bool"
@@ -240,12 +238,10 @@ spec:
     - name: "monitoring_role_arn"
       type: "string"
       required: false
-      default: ""
       description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
     - name: "option_group_name"
       type: "string"
       required: false
-      default: ""
       description: "Optional option group name. Empty = AWS default."
     - name: "deletion_protection"
       type: "bool"

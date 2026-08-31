@@ -25,9 +25,9 @@ Creates a GCP Memorystore for Redis 7 instance with configurable tier, memory si
 | ------------------------- | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `auth_enabled`            | bool   | `true`           | Require an AUTH string to connect                                                                                |
 | `transit_encryption_mode` | string | `DISABLED`       | `DISABLED` or `SERVER_AUTHENTICATION` (TLS; clients must trust the CA cert from `redis_server_ca_certs`)         |
-| `authorized_network`      | string | `""`             | VPC network self-link to connect to. Empty = the project's default network.                                      |
+| `authorized_network`      | string |                  | VPC network self-link to connect to. Unset = the project's default network.                                      |
 | `connect_mode`            | string | `DIRECT_PEERING` | `DIRECT_PEERING` or `PRIVATE_SERVICE_ACCESS`                                                                      |
-| `reserved_ip_range`       | string | `""`             | CIDR /29 (or named allocated range for PSA) reserved for the instance. Empty = GCP picks one automatically.       |
+| `reserved_ip_range`       | string |                  | CIDR /29 (or named allocated range for PSA) reserved for the instance. Unset = GCP picks one automatically.       |
 
 By default the instance attaches to the project's **default** VPC network, which is usually *not* the Qovery cluster's VPC. Set `authorized_network` to the cluster's VPC self-link (and `connect_mode`/`reserved_ip_range` as required by that network's setup) so pods in the cluster can reach the instance without extra peering.
 
@@ -44,7 +44,7 @@ By default the instance attaches to the project's **default** VPC network, which
 
 | Name                     | Type   | Default | Description                                                                 |
 | ------------------------ | ------ | ------- | ----------------------------------------------------------------------------- |
-| `maintenance_day`        | string | `""`    | Day of week for the maintenance window. Empty disables a fixed window.       |
+| `maintenance_day`        | string |         | Day of week for the maintenance window. Empty disables a fixed window.       |
 | `maintenance_start_hour` | number | `2`     | Maintenance window start hour, UTC 24h. Only used when `maintenance_day` is set. |
 
 ### Read replicas
@@ -61,7 +61,7 @@ Replicas are asynchronous, cross-zone, read-only copies of the primary; point an
 
 | Name             | Type   | Default | Description                                                                       |
 | ---------------- | ------ | ------- | ---------------------------------------------------------------------------------- |
-| `gcp_project_id` | string | `""`    | GCP project ID override. Empty = inferred from the credentials used to deploy.    |
+| `gcp_project_id` | string |         | GCP project ID override. Unset = inferred from the credentials used to deploy.    |
 
 ## Outputs
 

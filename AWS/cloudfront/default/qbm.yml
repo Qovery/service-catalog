@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-cloudfront"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions"
   icon: "app://qovery-console/cloudfront"
   serviceFamily: "cloudfront"
@@ -64,7 +64,6 @@ spec:
     - name: "default_root_object"
       type: "string"
       required: false
-      default: ""
       description: "Object returned for requests to the root URL (e.g. index.html). Empty = none."
     - name: "price_class"
       type: "string"
@@ -121,12 +120,10 @@ spec:
     - name: "aliases"
       type: "string"
       required: false
-      default: ""
       description: "Comma-separated custom domain names (CNAMEs). Requires acm_certificate_arn. Empty = use the default *.cloudfront.net domain."
     - name: "acm_certificate_arn"
       type: "string"
       required: false
-      default: ""
       description: "ACM certificate ARN for the custom domains. Must be in us-east-1. Empty = default CloudFront certificate."
     - name: "geo_restriction_type"
       type: "string"
@@ -140,7 +137,6 @@ spec:
     - name: "geo_restriction_locations"
       type: "string"
       required: false
-      default: ""
       description: "Comma-separated ISO 3166-1-alpha-2 country codes (e.g. US,FR). Required when geo_restriction_type is not none."
 
   outputs:
