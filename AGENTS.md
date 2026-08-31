@@ -138,6 +138,8 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
 
+**What this does NOT catch:** a Terraform blueprint that fails to declare the variables the engine injects — see [Context variables](#context-variables--must-be-declared-nothing-in-ci-checks-this). Nothing in CI catches it, and the blueprint is undeployable.
+
 ## Keep `README.md` in sync with `qbm.yml`
 
 Not CI-enforced, but expected on every PR: if a variable's `required` flag, default, type, or description changes in `qbm.yml`, update the matching row in `README.md`'s `## Variables` tables — including moving the row between the `### Required` table and its sizing/optional table when `required` flips. The `### Required` tables have no `Default` column; when a variable that still ships a `default:` in `qbm.yml` becomes required, fold that default into the description as "Default suggestion: `<value>`" rather than dropping it.
@@ -145,6 +147,65 @@ Not CI-enforced, but expected on every PR: if a variable's `required` flag, defa
 ## PR title (CI: `pr-title`)
 
 Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): move off Bitnami chart`.
+
+## Terraform blueprint conventions
+
+### Context variables — MUST be declared, nothing in CI checks this
+
+The engine passes `region` and `qovery_cluster_name` as `-var` to **every** Terraform blueprint, on
+every provider — including `EXTERNAL`, whose resources live outside Qovery entirely. Terraform
+aborts when handed a `-var` the root module does not declare:
+
+```
+Error: Value for undeclared variable
+A variable named "region" was assigned on the command line, but the root
+module does not declare a variable of that name.
+```
+
+So every Terraform blueprint MUST declare both, in **both** files.
+
+`qbm.yml` — a `contextVariables` block, sitting between `spec.engine` and `spec.variables`:
+
+```yaml
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+```
+
+`variables.tf`:
+
+```hcl
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}
+```
+
+The resources do not have to reference either one. Declaring them is what satisfies the contract;
+leaving them unused is fine and is what the `EXTERNAL` blueprints do.
+
+**Nothing catches a missing declaration before a real deploy.** `validate-qbm` walks
+`contextVariables` + `variables` from `qbm.yml` and requires each to exist in `variables.tf` — so it
+catches a *half*-finished job (a `contextVariables` entry with no matching `variable` block), but it
+has no idea what the engine injects, so declaring **neither** is internally consistent and passes
+clean. `validate-terraform` passes too, because the configuration on its own is valid. The failure
+surfaces only at `terraform apply`, against a live environment. All nine `EXTERNAL` blueprints
+shipped and stayed green in CI in exactly this state, and every one of them was undeployable. When
+adding a Terraform blueprint, copy the two blocks above before anything else.
+
+**Never name a user-facing variable `region`.** The engine sends its own `region` regardless, so a
+user-facing one collides with it and the blueprint does not control which value wins. A
+provider-specific region needs a provider-specific name — `confluent_region`, `planetscale_region`,
+`region_code` — or it belongs in `contextVariables` with `overridable: true`, which is how a user
+overrides the injected value.
 
 ## Helm blueprint conventions
 
