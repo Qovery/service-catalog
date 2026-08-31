@@ -551,6 +551,10 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // Validation
 // ---------------------------------------------------------------------------
 
+// Variables the engine supplies to every Terraform blueprint without being asked. Sourced from
+// cluster metadata, so they arrive whether or not the blueprint has anything to do with a cluster.
+const ENGINE_INJECTED_VARIABLES: [&str; 2] = ["region", "qovery_cluster_name"];
+
 // Captures each `variable "name" { ... }` block: group 1 is the name, group 2 is the body
 // (until the next closing `}`). Assumes no nested braces inside variable blocks, which holds
 // for the catalog's flat declarations.
@@ -763,6 +767,20 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                         Ok(tf) => {
                             let tf_vars = parse_tf_variables(&tf);
                             let tf_names: HashSet<&String> = tf_vars.keys().collect();
+                            // The engine passes these as -var to every Terraform blueprint,
+                            // EXTERNAL included, and terraform aborts on a -var the root module
+                            // does not declare. The qbm.yml -> variables.tf check below cannot
+                            // catch it: it only walks what qbm.yml already declares, so a
+                            // blueprint declaring neither is self-consistent and passes.
+                            for injected in ENGINE_INJECTED_VARIABLES {
+                                if !tf_names.iter().any(|n| n.as_str() == injected) {
+                                    errors.push(format!(
+                                        "{}: '{}' is injected by the engine into every Terraform blueprint but is not declared in variables.tf. \
+                                         Add a `variable \"{}\"` block, plus a contextVariables entry in qbm.yml unless a spec.variables entry already supplies it.",
+                                        vd.full_path, injected, injected
+                                    ));
+                                }
+                            }
                             for var in spec.context_variables.iter().chain(spec.variables.iter()) {
                                 if !tf_names.contains(&var.name) {
                                     errors.push(format!(
