@@ -46,6 +46,10 @@ they could not push a tag anyway:
 `AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc`). CI comments them on the PR once validation passes, with
 a ready-to-run command per blueprint.
 
+A PR holds **one generation at a time**: each push tags its own head, then deletes the previous
+push's tags and replaces the comment, so the only rc tags that exist are the ones the current
+comment names. Anything pinned to an older tag stops being deployable at that point.
+
 Two properties of that name matter:
 
 - **The SHA** makes a tag identify its content — unique per commit, idempotent across workflow
@@ -76,15 +80,26 @@ Two limits worth knowing:
   no rc tags, so the blueprint will not show up there. There is no `qovery` CLI path either — the
   CLI's `blueprint` commands are RDE-portal, a different feature.
 - **`update-service-rc` is for throwaway services only.** It pins the service to an rc tag that is
-  deleted when the PR closes, and a service on a deleted tag cannot be deployed. To test the
-  update path without risking anything, create a throwaway on the currently published tag first,
-  then upgrade that — the PR comment renders both steps.
+  deleted by the next push to the PR (and on close), and a service on a deleted tag cannot be
+  deployed — so re-run it with the tag from the refreshed PR comment after each push. Every push
+  re-tags while the blueprint still differs from `main`, so a docs-only push still produces a new
+  tag; only reverting the blueprint back to `main` leaves no rc tag at all. To test the update path
+  without risking
+  anything, create a throwaway on the currently published tag first, then upgrade that — the PR
+  comment renders both steps.
 - **Pass variables from this branch's `qbm.yml`**, not main's. The Console's variable form is built
   from the catalog on `main` and will be wrong if the PR changed variables.
 
-The tags are never released (`auto-tag` only releases tags pointing at `main`'s HEAD), and are
-deleted when the PR closes. If the ruleset ever stops excluding `refs/tags/**/*-rc`, that cleanup
-job fails loudly rather than leaving tags behind silently.
+The tags are never released (`auto-tag` only releases tags pointing at `main`'s HEAD). Deletion
+happens twice: `pr-prerelease` sweeps the superseded generations on every push, and
+`pr-prerelease-cleanup` sweeps the rest when the PR closes. Both call
+`.github/scripts/delete-pr-rc-tags.sh` — the only difference is that the per-push call passes the
+current generation as a keep-suffix. If the ruleset ever stops excluding `refs/tags/**/*-rc`,
+either sweep fails loudly rather than leaving tags behind silently.
+
+Two runs of `pr-prerelease` can overlap when pushes land in quick succession, so the job first
+re-reads the PR head and does nothing at all if it has moved on — otherwise the older run would
+delete the newer run's tags and comment.
 
 To inspect locally without touching the repo:
 
