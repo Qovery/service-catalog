@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "planetscale-database"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider"
   icon: "app://qovery-console/planetscale"
   serviceFamily: "planetscale"
@@ -65,12 +65,10 @@ spec:
     - name: "cluster_size"
       type: "string"
       required: false
-      default: ""
       description: "Vitess production cluster size (e.g. PS-10, PS-20). Empty = provider/plan default."
     - name: "region"
       type: "string"
       required: false
-      default: ""
       description: "PlanetScale region slug for the branch (e.g. us-east). Empty = organization default."
     - name: "role"
       type: "string"

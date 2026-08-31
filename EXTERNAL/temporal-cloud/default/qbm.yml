@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "temporal-cloud-namespace"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Provision a Temporal Cloud namespace (regions, retention, client auth) via the Temporal Cloud Terraform provider"
   icon: "app://qovery-console/temporal"
   serviceFamily: "temporal-cloud"
@@ -66,7 +66,6 @@ spec:
     - name: "accepted_client_ca"
       type: "string"
       required: false
-      default: ""
       description: "Base64-encoded PEM CA bundle to additionally enable mTLS client auth. Empty = API-key auth only."
 
   outputs:

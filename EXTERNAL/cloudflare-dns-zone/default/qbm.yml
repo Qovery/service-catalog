@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "cloudflare-dns-zone"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
   serviceFamily: "cloudflare-dns-zone"
@@ -64,7 +64,6 @@ spec:
     - name: "record_name"
       type: "string"
       required: false
-      default: ""
       description: "Optional DNS record name (e.g. www, @, or a full host). Empty = create no record."
     - name: "record_type"
       type: "string"
@@ -81,7 +80,6 @@ spec:
     - name: "record_content"
       type: "string"
       required: false
-      default: ""
       description: "DNS record value (IP, hostname, or text). Required when record_name is set."
     - name: "record_ttl"
       type: "number"

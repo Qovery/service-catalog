@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "cloudflare-workers"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Deploy a Cloudflare Worker script (with an optional route) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
   serviceFamily: "cloudflare-workers"
@@ -65,7 +65,6 @@ spec:
     - name: "main_module"
       type: "string"
       required: false
-      default: ""
       description: "Entrypoint module name for ES-module Workers (e.g. worker.js). Empty = service-worker syntax."
     - name: "compatibility_date"
       type: "string"
@@ -76,12 +75,10 @@ spec:
     - name: "route_zone_id"
       type: "string"
       required: false
-      default: ""
       description: "Zone ID to attach a route on. Empty = no route."
     - name: "route_pattern"
       type: "string"
       required: false
-      default: ""
       description: "Route pattern that triggers the Worker (e.g. example.com/*). Required when route_zone_id is set."
 
   outputs:
