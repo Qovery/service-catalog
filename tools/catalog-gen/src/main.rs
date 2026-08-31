@@ -555,13 +555,61 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // cluster metadata, so they arrive whether or not the blueprint has anything to do with a cluster.
 const ENGINE_INJECTED_VARIABLES: [&str; 2] = ["region", "qovery_cluster_name"];
 
+// Blanks out `#`, `//` and `/* */` comments, keeping newlines so line structure survives. A `#`
+// inside a quoted string is not a comment, so strings are tracked and copied through verbatim —
+// which also keeps the `variable "name"` label itself intact.
+fn strip_hcl_comments(tf: &str) -> String {
+    let mut out = String::with_capacity(tf.len());
+    let b: Vec<char> = tf.chars().collect();
+    let (mut i, mut in_string) = (0, false);
+    while i < b.len() {
+        let c = b[i];
+        if in_string {
+            out.push(c);
+            match c {
+                '\\' if i + 1 < b.len() => {
+                    out.push(b[i + 1]);
+                    i += 2;
+                    continue;
+                }
+                '"' => in_string = false,
+                _ => {}
+            }
+            i += 1;
+        } else if c == '"' {
+            in_string = true;
+            out.push(c);
+            i += 1;
+        } else if c == '#' || (c == '/' && b.get(i + 1) == Some(&'/')) {
+            while i < b.len() && b[i] != '\n' {
+                i += 1;
+            }
+        } else if c == '/' && b.get(i + 1) == Some(&'*') {
+            i += 2;
+            while i < b.len() && !(b[i] == '*' && b.get(i + 1) == Some(&'/')) {
+                if b[i] == '\n' {
+                    out.push('\n');
+                }
+                i += 1;
+            }
+            i += 2;
+        } else {
+            out.push(c);
+            i += 1;
+        }
+    }
+    out
+}
+
 // Captures each `variable "name" { ... }` block: group 1 is the name, group 2 is the body
 // (until the next closing `}`). Assumes no nested braces inside variable blocks, which holds
-// for the catalog's flat declarations.
+// for the catalog's flat declarations. Comments are stripped first so a commented-out block is
+// not read as a declaration — terraform would still reject the missing variable at apply.
 fn parse_tf_variables(tf: &str) -> HashMap<String, bool> {
+    let tf = strip_hcl_comments(tf);
     let re = Regex::new(r#"(?s)variable\s+"(\w+)"\s*\{([^}]*)\}"#).unwrap();
     let sensitive_re = Regex::new(r#"(?m)^\s*sensitive\s*=\s*true\b"#).unwrap();
-    re.captures_iter(tf)
+    re.captures_iter(&tf)
         .map(|c| (c[1].to_string(), sensitive_re.is_match(&c[2])))
         .collect()
 }
