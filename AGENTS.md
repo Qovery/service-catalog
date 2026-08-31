@@ -138,6 +138,25 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
 
+## Variable defaults — never `default: ""`
+
+A `qbm.yml` variable declared with `default: ""` makes `POST /environment/{id}/blueprint` answer
+`201` and then never create the service, with no error surfaced on any endpoint. Four `EXTERNAL`
+blueprints shipped like this and could not be instantiated at all.
+
+Pick one of three, by what the variable actually is:
+
+- **A sensible default exists** → give it (`plan: "startup-2"`, `region_code: "us-east-1"`).
+- **The caller must always supply a value** → `required: true` and no `default`. If a value has to
+  be passed, the variable is not optional — say so rather than faking it with an empty default.
+- **Optional, and its "off" state is empty** → keep `required: false`, **omit `default:` entirely**,
+  and spell out what empty means in the description ("Empty = create no record"). `variables.tf`
+  carries the `default = ""`, so terraform still supplies the empty value.
+
+The third case is the easy one to get wrong. An optional feature switch — a DNS record, an mTLS CA
+bundle, a worker route — has no meaningful non-empty default and must not be promoted to
+`required`. Leave the empty default to `variables.tf`, where it belongs.
+
 ## Keep `README.md` in sync with `qbm.yml`
 
 Not CI-enforced, but expected on every PR: if a variable's `required` flag, default, type, or description changes in `qbm.yml`, update the matching row in `README.md`'s `## Variables` tables — including moving the row between the `### Required` table and its sizing/optional table when `required` flips. The `### Required` tables have no `Default` column; when a variable that still ships a `default:` in `qbm.yml` becomes required, fold that default into the description as "Default suggestion: `<value>`" rather than dropping it.
