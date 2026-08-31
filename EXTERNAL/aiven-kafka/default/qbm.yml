@@ -33,6 +33,13 @@ spec:
       cpu: "500m"
       ram: "512Mi"
 
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
   variables:
     - name: "aiven_api_token"
       type: "string"
