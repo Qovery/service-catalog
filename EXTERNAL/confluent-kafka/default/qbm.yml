@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "confluent-kafka"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider"
   icon: "app://qovery-console/kafka"
   serviceFamily: "confluent-kafka"
@@ -32,6 +32,10 @@ spec:
     resources:
       cpu: "500m"
       ram: "512Mi"
+
+  contextVariables:
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
 
   variables:
     - name: "confluent_cloud_api_key"

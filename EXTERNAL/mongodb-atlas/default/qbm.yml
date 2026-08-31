@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "mongodb-atlas-cluster"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider"
   icon: "app://qovery-console/mongodb"
   serviceFamily: "mongodb-atlas"
@@ -32,6 +32,13 @@ spec:
     resources:
       cpu: "500m"
       ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
 
   variables:
     - name: "atlas_public_key"

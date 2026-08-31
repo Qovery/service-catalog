@@ -48,3 +48,13 @@ variable "accepted_client_ca" {
   default     = ""
   description = "Base64-encoded PEM CA bundle to additionally enable mTLS client auth. Empty = API-key auth only."
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}

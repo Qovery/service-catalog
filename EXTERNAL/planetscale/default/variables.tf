@@ -68,3 +68,8 @@ variable "role" {
     error_message = "role must be one of: reader, writer, readwriter, admin."
   }
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
