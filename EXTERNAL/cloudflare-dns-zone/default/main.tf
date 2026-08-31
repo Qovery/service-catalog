@@ -18,3 +18,4 @@ resource "cloudflare_dns_record" "this" {
   ttl     = var.record_ttl
   proxied = var.record_proxied
 }
+
