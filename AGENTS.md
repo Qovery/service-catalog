@@ -134,6 +134,7 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 - **Sensitive variables:** any variable whose name matches `password|secret|token|api_key|access_key|private_key|credential` **must** be `sensitive: true` (or rename it). For Terraform blueprints, `qbm.yml` `sensitive` must equal `variables.tf` `sensitive = true`.
 - Each Terraform `qbm.yml` variable must exist in `variables.tf`.
+- **Engine-injected variables:** every Terraform blueprint must declare `region` and `qovery_cluster_name` in `variables.tf`. Missing either fails the build — see [Context variables](#context-variables--must-be-declared-ci-validate-qbm).
 - `spec.engine.type` ∈ `terraform | opentofu | helm`; `terraform`/`opentofu` require a `version`; `helm` requires a `chart` `{repository, name, version}`.
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
@@ -145,6 +146,69 @@ Not CI-enforced, but expected on every PR: if a variable's `required` flag, defa
 ## PR title (CI: `pr-title`)
 
 Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): move off Bitnami chart`.
+
+## Terraform blueprint conventions
+
+### Context variables — MUST be declared (CI: `validate-qbm`)
+
+The engine passes `region` and `qovery_cluster_name` as `-var` to **every** Terraform blueprint, on
+every provider — including `EXTERNAL`, whose resources live outside Qovery entirely. Terraform
+aborts when handed a `-var` the root module does not declare:
+
+```
+Error: Value for undeclared variable
+A variable named "region" was assigned on the command line, but the root
+module does not declare a variable of that name.
+```
+
+So every Terraform blueprint MUST declare both, in **both** files.
+
+`qbm.yml` — a `contextVariables` block, sitting between `spec.engine` and `spec.variables`:
+
+```yaml
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+```
+
+`variables.tf`:
+
+```hcl
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}
+```
+
+The resources do not have to reference either one. Declaring them is what satisfies the contract;
+leaving them unused is fine and is what the `EXTERNAL` blueprints do.
+
+`validate-qbm` fails the build when either declaration is missing from `variables.tf`, naming the
+blueprint and the variable. It checks `variables.tf` rather than requiring a `contextVariables`
+entry, because `variables.tf` is what terraform actually reads — a blueprint whose own
+`spec.variables` already supplies `region` satisfies the check without declaring it twice.
+
+That check exists because nothing used to catch this. `validate-qbm` walked `contextVariables` +
+`variables` and required each to exist in `variables.tf`, which catches a *half*-finished job
+(a `contextVariables` entry with no matching `variable` block) but knew nothing about what the
+engine injects — so declaring **neither** was internally consistent and passed clean.
+`validate-terraform` passed too, because the configuration on its own is valid. The failure surfaced
+only at `terraform apply` against a live environment, and all nine `EXTERNAL` blueprints shipped and
+stayed green in CI in exactly that state while every one of them was undeployable.
+
+**Never name a user-facing variable `region`.** The engine sends its own `region` regardless, so a
+user-facing one collides with it and the blueprint does not control which value wins. A
+provider-specific region needs a provider-specific name — `confluent_region`, `planetscale_region`,
+`region_code` — or it belongs in `contextVariables` with `overridable: true`, which is how a user
+overrides the injected value.
 
 ## Helm blueprint conventions
 
@@ -178,3 +242,5 @@ Rendered with **Tera** (`tera::Tera::default()`), so filters and control flow ar
 ## Commit / PR messages
 
 Keep them synthetic, for developers and SRE readers with no business context. Explain the _why_, not just the _what_.
+
+The PR title is CI-enforced and accepts **only** `feat`, `fix`, `patch`, `chore` (see [PR title](#pr-title-ci-pr-title)). The conventional-commit types you may reach for out of habit — `docs`, `refactor`, `test`, `ci`, `build`, `perf` — are all rejected. A docs-only or tooling-only change lands as `chore`.

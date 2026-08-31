@@ -551,13 +551,119 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // Validation
 // ---------------------------------------------------------------------------
 
+// Variables the engine supplies to every Terraform blueprint without being asked. Sourced from
+// cluster metadata, so they arrive whether or not the blueprint has anything to do with a cluster.
+const ENGINE_INJECTED_VARIABLES: [&str; 2] = ["region", "qovery_cluster_name"];
+
+// Reads a `<<TAG` / `<<-TAG` opener at `i`, returning the tag, whether it was the indented
+// (`<<-`) form, and the offset just past the opener line. Returns None when what follows `<<`
+// is not an identifier.
+fn heredoc_tag(b: &[char], i: usize) -> Option<(String, bool, usize)> {
+    let mut j = i + 2;
+    let indented = b.get(j) == Some(&'-');
+    if indented {
+        j += 1;
+    }
+    let start = j;
+    while j < b.len() && (b[j].is_alphanumeric() || b[j] == '_') {
+        j += 1;
+    }
+    if j == start {
+        return None;
+    }
+    let tag: String = b[start..j].iter().collect();
+    while j < b.len() && b[j] != '\n' {
+        j += 1;
+    }
+    Some((tag, indented, (j + 1).min(b.len())))
+}
+
+// Blanks out `#`, `//` and `/* */` comments, keeping newlines so line structure survives. A `#`
+// inside a quoted string is not a comment, so strings are tracked and copied through verbatim —
+// which also keeps the `variable "name"` label itself intact. Heredoc bodies are copied verbatim
+// too, since their contents are data and may legitimately contain comment markers.
+fn strip_hcl_comments(tf: &str) -> String {
+    let mut out = String::with_capacity(tf.len());
+    let b: Vec<char> = tf.chars().collect();
+    let (mut i, mut in_string) = (0, false);
+    while i < b.len() {
+        let c = b[i];
+        if in_string {
+            out.push(c);
+            match c {
+                '\\' if i + 1 < b.len() => {
+                    out.push(b[i + 1]);
+                    i += 2;
+                    continue;
+                }
+                '"' => in_string = false,
+                _ => {}
+            }
+            i += 1;
+        } else if c == '"' {
+            in_string = true;
+            out.push(c);
+            i += 1;
+        } else if c == '#' || (c == '/' && b.get(i + 1) == Some(&'/')) {
+            while i < b.len() && b[i] != '\n' {
+                i += 1;
+            }
+        } else if c == '/' && b.get(i + 1) == Some(&'*') {
+            i += 2;
+            while i < b.len() && !(b[i] == '*' && b.get(i + 1) == Some(&'/')) {
+                if b[i] == '\n' {
+                    out.push('\n');
+                }
+                i += 1;
+            }
+            i += 2;
+        } else if c == '<' && b.get(i + 1) == Some(&'<') && heredoc_tag(&b, i).is_some() {
+            // A heredoc body is data, not HCL. Its contents may hold `#`, `//`, an unterminated
+            // `/*`, a stray `}`, or even a literal `variable "x" {` — none of which are source
+            // comments or declarations. Blank the body so nothing inside it is interpreted either
+            // way, keeping the opener and the newlines.
+            let (tag, indented, body_start) = heredoc_tag(&b, i).unwrap();
+            out.extend(b[i..body_start].iter());
+            i = body_start;
+            while i < b.len() {
+                let line_start = i;
+                while i < b.len() && b[i] != '\n' {
+                    i += 1;
+                }
+                let line: String = b[line_start..i].iter().collect();
+                if i < b.len() {
+                    out.push('\n');
+                    i += 1;
+                }
+                // Only `<<-` allows the terminator to be indented. For a plain `<<`, an indented
+                // tag is body text, and ending there would spill the rest of the heredoc into the
+                // scan as if it were HCL. trim_end still tolerates a trailing CR.
+                let terminated = if indented {
+                    line.trim() == tag
+                } else {
+                    line.trim_end() == tag
+                };
+                if terminated {
+                    break;
+                }
+            }
+        } else {
+            out.push(c);
+            i += 1;
+        }
+    }
+    out
+}
+
 // Captures each `variable "name" { ... }` block: group 1 is the name, group 2 is the body
 // (until the next closing `}`). Assumes no nested braces inside variable blocks, which holds
-// for the catalog's flat declarations.
+// for the catalog's flat declarations. Comments are stripped first so a commented-out block is
+// not read as a declaration — terraform would still reject the missing variable at apply.
 fn parse_tf_variables(tf: &str) -> HashMap<String, bool> {
+    let tf = strip_hcl_comments(tf);
     let re = Regex::new(r#"(?s)variable\s+"(\w+)"\s*\{([^}]*)\}"#).unwrap();
     let sensitive_re = Regex::new(r#"(?m)^\s*sensitive\s*=\s*true\b"#).unwrap();
-    re.captures_iter(tf)
+    re.captures_iter(&tf)
         .map(|c| (c[1].to_string(), sensitive_re.is_match(&c[2])))
         .collect()
 }
@@ -763,6 +869,20 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                         Ok(tf) => {
                             let tf_vars = parse_tf_variables(&tf);
                             let tf_names: HashSet<&String> = tf_vars.keys().collect();
+                            // The engine passes these as -var to every Terraform blueprint,
+                            // EXTERNAL included, and terraform aborts on a -var the root module
+                            // does not declare. The qbm.yml -> variables.tf check below cannot
+                            // catch it: it only walks what qbm.yml already declares, so a
+                            // blueprint declaring neither is self-consistent and passes.
+                            for injected in ENGINE_INJECTED_VARIABLES {
+                                if !tf_names.iter().any(|n| n.as_str() == injected) {
+                                    errors.push(format!(
+                                        "{}: '{}' is injected by the engine into every Terraform blueprint but is not declared in variables.tf. \
+                                         Add a `variable \"{}\"` block, plus a contextVariables entry in qbm.yml unless a spec.variables entry already supplies it.",
+                                        vd.full_path, injected, injected
+                                    ));
+                                }
+                            }
                             for var in spec.context_variables.iter().chain(spec.variables.iter()) {
                                 if !tf_names.contains(&var.name) {
                                     errors.push(format!(
