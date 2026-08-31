@@ -7,3 +7,4 @@ resource "redpanda_serverless_cluster" "this" {
   resource_group_id = redpanda_resource_group.this.id
   serverless_region = var.serverless_region
 }
+
