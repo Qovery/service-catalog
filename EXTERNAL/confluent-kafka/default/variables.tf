@@ -69,3 +69,8 @@ variable "service_account_name" {
   default     = "qovery-app"
   description = "Service account display name for the generated client API key"
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}

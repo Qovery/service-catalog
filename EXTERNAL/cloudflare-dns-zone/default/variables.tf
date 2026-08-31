@@ -80,3 +80,13 @@ variable "record_proxied" {
   default     = false
   description = "Whether the record is proxied through Cloudflare (orange cloud). Only valid for A/AAAA/CNAME."
 }
+
+variable "qovery_cluster_name" {
+  type        = string
+  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+}
+
+variable "region" {
+  type        = string
+  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+}

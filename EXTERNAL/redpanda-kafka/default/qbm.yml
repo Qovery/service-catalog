@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "redpanda-kafka"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider"
   icon: "app://qovery-console/kafka"
   serviceFamily: "redpanda-kafka"
@@ -32,6 +32,13 @@ spec:
     resources:
       cpu: "500m"
       ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
 
   variables:
     - name: "redpanda_client_id"

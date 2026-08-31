@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "planetscale-database"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider"
   icon: "app://qovery-console/planetscale"
   serviceFamily: "planetscale"
@@ -32,6 +32,10 @@ spec:
     resources:
       cpu: "500m"
       ram: "512Mi"
+
+  contextVariables:
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
 
   variables:
     - name: "planetscale_service_token_id"
