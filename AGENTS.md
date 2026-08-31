@@ -144,18 +144,20 @@ A `qbm.yml` variable declared with `default: ""` makes `POST /environment/{id}/b
 `201` and then never create the service, with no error surfaced on any endpoint. Four `EXTERNAL`
 blueprints shipped like this and could not be instantiated at all.
 
-Pick one of three, by what the variable actually is:
+Two questions, in order:
 
-- **A sensible default exists** → give it (`plan: "startup-2"`, `region_code: "us-east-1"`).
-- **The caller must always supply a value** → `required: true` and no `default`. If a value has to
-  be passed, the variable is not optional — say so rather than faking it with an empty default.
-- **Optional, and its "off" state is empty** → keep `required: false`, **omit `default:` entirely**,
-  and spell out what empty means in the description ("Empty = create no record"). `variables.tf`
-  carries the `default = ""`, so terraform still supplies the empty value.
+1. **Must the caller always supply a value?** → `required: true`, no `default`. If a value has to be
+   passed, the variable is not optional — say so rather than faking it with an empty default.
+2. **Otherwise it is optional and has a default.** Declare it (`default: "startup-2"`) — *unless
+   that default is the empty string*, in which case omit the `default:` line entirely and let
+   `variables.tf` carry `default = ""`. Spell out what empty means in the description
+   ("Empty = create no record").
 
-The third case is the easy one to get wrong. An optional feature switch — a DNS record, an mTLS CA
-bundle, a worker route — has no meaningful non-empty default and must not be promoted to
-`required`. Leave the empty default to `variables.tf`, where it belongs.
+An empty default is not a different kind of variable. `record_name` (empty = create no record) is
+the same "optional with a default" as `plan: "startup-2"`; both fall back to a value when unset, and
+the console renders them identically. The line is omitted for one reason only: `default: ""` in
+`qbm.yml` breaks service creation. Once that platform bug is fixed this collapses back into rule 2
+with no exception, and the omitted lines can go back.
 
 ## Keep `README.md` in sync with `qbm.yml`
 
