@@ -9,3 +9,4 @@ resource "temporalcloud_namespace" "this" {
   api_key_auth       = true
   accepted_client_ca = var.accepted_client_ca == "" ? null : var.accepted_client_ca
 }
+
