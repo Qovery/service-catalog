@@ -23,7 +23,7 @@ A **Temporal Cloud API key** supplied as the sensitive `temporal_cloud_api_key` 
 | -------------------- | ------ | --------------- | ----------------------------------------------------------------- |
 | `regions`            | string | `aws-us-east-1` | Comma-separated regions (1-2), e.g. `aws-us-east-1`               |
 | `retention_days`     | number | `30`            | Workflow execution retention (1-90 days)                          |
-| `accepted_client_ca` | string | `""`            | Base64 PEM CA bundle to additionally enable mTLS. Empty = api-key only. |
+| `accepted_client_ca` | string |                 | Base64 PEM CA bundle to additionally enable mTLS. Unset = api-key only. |
 
 API-key client auth is always enabled; supplying `accepted_client_ca` additionally enables mTLS.
 

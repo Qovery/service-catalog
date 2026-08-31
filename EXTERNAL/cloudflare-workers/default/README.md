@@ -21,10 +21,10 @@ Authentication is a **Cloudflare API token** supplied as the sensitive `cloudfla
 | Name                 | Type   | Default        | Description                                                         |
 | -------------------- | ------ | -------------- | ------------------------------------------------------------------- |
 | `script_content`     | string | hello-world    | Worker script source. Defaults to a service-worker hello-world.     |
-| `main_module`        | string | `""`           | Entrypoint module for ES-module Workers (e.g. `worker.js`).         |
+| `main_module`        | string |                | Entrypoint module for ES-module Workers (e.g. `worker.js`).         |
 | `compatibility_date` | string | `2024-09-23`   | Workers runtime compatibility date (`YYYY-MM-DD`)                   |
-| `route_zone_id`      | string | `""`           | Zone ID to attach a route on. Empty = no route.                     |
-| `route_pattern`      | string | `""`           | Route pattern (e.g. `example.com/*`). Required when `route_zone_id` set. |
+| `route_zone_id`      | string |                | Zone ID to attach a route on. Unset = no route.                     |
+| `route_pattern`      | string |                | Route pattern (e.g. `example.com/*`). Required when `route_zone_id` set. |
 
 ## Outputs
 
