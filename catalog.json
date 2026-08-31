@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-28T09:46:23Z",
+  "generatedAt": "2026-08-31T13:02:24Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -160,7 +160,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/cloudflare-workers/default/1.0.1"
+          "latestTag": "EXTERNAL/cloudflare-workers/default/1.0.2"
         }
       ]
     },

@@ -14,3 +14,4 @@ resource "cloudflare_workers_route" "this" {
   pattern = var.route_pattern
   script  = cloudflare_workers_script.this.script_name
 }
+
