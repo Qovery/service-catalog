@@ -134,11 +134,10 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 - **Sensitive variables:** any variable whose name matches `password|secret|token|api_key|access_key|private_key|credential` **must** be `sensitive: true` (or rename it). For Terraform blueprints, `qbm.yml` `sensitive` must equal `variables.tf` `sensitive = true`.
 - Each Terraform `qbm.yml` variable must exist in `variables.tf`.
+- **Engine-injected variables:** every Terraform blueprint must declare `region` and `qovery_cluster_name` in `variables.tf`. Missing either fails the build — see [Context variables](#context-variables--must-be-declared-ci-validate-qbm).
 - `spec.engine.type` ∈ `terraform | opentofu | helm`; `terraform`/`opentofu` require a `version`; `helm` requires a `chart` `{repository, name, version}`.
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
-
-**What this does NOT catch:** a Terraform blueprint that fails to declare the variables the engine injects — see [Context variables](#context-variables--must-be-declared-nothing-in-ci-checks-this). Nothing in CI catches it, and the blueprint is undeployable.
 
 ## Keep `README.md` in sync with `qbm.yml`
 
@@ -150,7 +149,7 @@ Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): mov
 
 ## Terraform blueprint conventions
 
-### Context variables — MUST be declared, nothing in CI checks this
+### Context variables — MUST be declared (CI: `validate-qbm`)
 
 The engine passes `region` and `qovery_cluster_name` as `-var` to **every** Terraform blueprint, on
 every provider — including `EXTERNAL`, whose resources live outside Qovery entirely. Terraform
@@ -192,14 +191,18 @@ variable "region" {
 The resources do not have to reference either one. Declaring them is what satisfies the contract;
 leaving them unused is fine and is what the `EXTERNAL` blueprints do.
 
-**Nothing catches a missing declaration before a real deploy.** `validate-qbm` walks
-`contextVariables` + `variables` from `qbm.yml` and requires each to exist in `variables.tf` — so it
-catches a *half*-finished job (a `contextVariables` entry with no matching `variable` block), but it
-has no idea what the engine injects, so declaring **neither** is internally consistent and passes
-clean. `validate-terraform` passes too, because the configuration on its own is valid. The failure
-surfaces only at `terraform apply`, against a live environment. All nine `EXTERNAL` blueprints
-shipped and stayed green in CI in exactly this state, and every one of them was undeployable. When
-adding a Terraform blueprint, copy the two blocks above before anything else.
+`validate-qbm` fails the build when either declaration is missing from `variables.tf`, naming the
+blueprint and the variable. It checks `variables.tf` rather than requiring a `contextVariables`
+entry, because `variables.tf` is what terraform actually reads — a blueprint whose own
+`spec.variables` already supplies `region` satisfies the check without declaring it twice.
+
+That check exists because nothing used to catch this. `validate-qbm` walked `contextVariables` +
+`variables` and required each to exist in `variables.tf`, which catches a *half*-finished job
+(a `contextVariables` entry with no matching `variable` block) but knew nothing about what the
+engine injects — so declaring **neither** was internally consistent and passed clean.
+`validate-terraform` passed too, because the configuration on its own is valid. The failure surfaced
+only at `terraform apply` against a live environment, and all nine `EXTERNAL` blueprints shipped and
+stayed green in CI in exactly that state while every one of them was undeployable.
 
 **Never name a user-facing variable `region`.** The engine sends its own `region` regardless, so a
 user-facing one collides with it and the blueprint does not control which value wins. A
