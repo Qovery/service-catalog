@@ -4,7 +4,7 @@ Provisions an [Amazon MSK Serverless](https://docs.aws.amazon.com/msk/latest/dev
 
 ## Credentials & networking
 
-Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). By default the cluster attaches to the **Qovery cluster network**: the cluster VPC subnets and workers security group are auto-discovered via the `ClusterId` tag (like the managed RDS blueprints), so in-cluster apps can reach it. Override with `subnet_ids` / `security_group_ids` on clusters where the tag lookup doesn't resolve (user-provided VPC).
+Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The cluster attaches to the **Qovery cluster network**: the cluster VPC subnets and workers security group are discovered via the `ClusterId` tag (like the managed RDS blueprints), so in-cluster apps can reach it. There is nothing to configure. On a cluster deployed into an existing VPC the security group is matched on its cluster-ownership tag alone, since Qovery naming conventions do not apply to a user-provided network.
 
 ## Variables
 
@@ -18,8 +18,6 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). By d
 
 | Name                 | Type   | Default | Description                                                              |
 | -------------------- | ------ | ------- | ------------------------------------------------------------------------ |
-| `subnet_ids`         | string |         | Comma-separated subnet IDs. Unset = auto-discover the cluster VPC subnets. |
-| `security_group_ids` | string |         | Comma-separated SG IDs. Unset = the cluster workers security group.       |
 
 ## Outputs
 
