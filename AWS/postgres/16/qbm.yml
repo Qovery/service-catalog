@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-postgresql"
-  version: "3.0.1"
+  version: "3.0.2"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -40,6 +40,12 @@ spec:
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
+    - name: "qovery_cluster_long_id"
+      source: "cluster.long_id"
+    - name: "qovery_user_provided_network"
+      source: "cluster.user_provided_network"
 
   variables:
     - name: "db_name"

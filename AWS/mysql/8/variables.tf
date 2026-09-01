@@ -9,6 +9,12 @@ variable "qovery_cluster_name" {
   description = "Qovery cluster name, used as a prefix for resource naming"
 }
 
+variable "qovery_user_provided_network" {
+  type        = bool
+  default     = false
+  description = "True when the cluster VPC was provided by the user, so Qovery resource naming conventions do not apply to it."
+}
+
 variable "qovery_cluster_id" {
   type        = string
   default     = ""

@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "confluent-kafka"
-  version: "1.0.1"
+  version: "1.0.2"
   description: "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider"
   icon: "app://qovery-console/kafka"
   serviceFamily: "confluent-kafka"

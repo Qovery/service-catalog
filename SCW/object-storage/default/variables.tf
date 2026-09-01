@@ -9,6 +9,18 @@ variable "qovery_cluster_name" {
   description = "Qovery cluster name (for tagging)"
 }
 
+variable "qovery_cluster_long_id" {
+  type        = string
+  default     = ""
+  description = "Qovery cluster long id."
+}
+
+variable "qovery_user_provided_network" {
+  type        = bool
+  default     = false
+  description = "True when the cluster VPC was provided by the user, so Qovery resource naming conventions do not apply to it."
+}
+
 # Qovery-injected infra tags (the engine sets them via TF_VAR_qovery_*). Empty default so the module
 # still plans if absent. Emitted as cost/identification tags on the bucket.
 variable "qovery_cluster_id" {

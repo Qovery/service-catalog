@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "2.0.1"
+  version: "2.0.2"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -40,6 +40,12 @@ spec:
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
+    - name: "qovery_cluster_long_id"
+      source: "cluster.long_id"
+    - name: "qovery_user_provided_network"
+      source: "cluster.user_provided_network"
 
   variables:
     - name: "db_name"

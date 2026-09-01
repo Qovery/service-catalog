@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-s3"
-  version: "1.1.2"
+  version: "1.1.3"
   description: "S3 bucket with encryption, versioning, and public-access blocking"
   icon: "app://qovery-console/s3"
   serviceFamily: "s3"
@@ -38,6 +38,10 @@ spec:
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
+    - name: "qovery_cluster_long_id"
+      source: "cluster.long_id"
 
   variables:
     - name: "bucket_name"
