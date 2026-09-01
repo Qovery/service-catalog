@@ -14,7 +14,6 @@ variable "qovery_cluster_name" {
 
 variable "qovery_user_provided_network" {
   type        = bool
-  default     = false
   description = "True when the cluster VPC was provided by the user, so Qovery resource naming conventions do not apply to it."
 }
 
@@ -23,13 +22,11 @@ variable "qovery_user_provided_network" {
 variable "qovery_cluster_id" {
   description = "Qovery cluster short id (engine kubernetes_cluster_id)."
   type        = string
-  default     = ""
 }
 
 variable "qovery_cluster_long_id" {
   description = "Qovery cluster long id."
   type        = string
-  default     = ""
 }
 
 variable "qovery_client_id" {
