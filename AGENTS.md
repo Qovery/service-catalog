@@ -68,8 +68,10 @@ mise run update-service-rc $BLUEPRINT_ID   AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc
 The tag is a separate argument and gets injected into the payload, so the JSON stays about the
 service config and cannot drift from the tag under test. `deploy-service-rc` creates and deploys a
 new service; `update-service-rc` repoints an existing one and redeploys it. The PR comment
-pre-fills each payload with the blueprint's icon and required variables read from **this branch's**
-`qbm.yml`.
+pre-fills each payload with the blueprint's icon and every variable **this branch's** `qbm.yml`
+gives a `default:`. A variable with no default is left out of the payload rather than sent empty —
+an empty value is the one shape that fails silently (see the `default: ""` rule below) — so the
+required ones are listed above each command for the tester to add.
 
 This works because `tag` is a per-request field and q-core validates only its shape (4 segments,
 `^[A-Za-z0-9_.-]+$`) before reading `qbm.yml` at that git ref — `catalog.json` is never consulted.
