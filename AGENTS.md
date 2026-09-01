@@ -136,7 +136,7 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 - **Sensitive variables:** any variable whose name matches `password|secret|token|api_key|access_key|private_key|credential` **must** be `sensitive: true` (or rename it). For Terraform blueprints, `qbm.yml` `sensitive` must equal `variables.tf` `sensitive = true`.
 - Each Terraform `qbm.yml` variable must exist in `variables.tf`.
-- **Engine-injected variables:** every Terraform blueprint must declare `region` and `qovery_cluster_name` in `variables.tf`. Missing either fails the build — see [Context variables](#context-variables--must-be-declared-ci-validate-qbm).
+- **Context variables:** every `contextVariables` entry must carry a `source` the engine knows, and the variables that source fills must exist in `variables.tf`. `qovery_user_provided_network` must be declared by every Terraform blueprint. Missing any of these fails the build — see [Context variables](#context-variables--declare-what-you-consume-ci-validate-qbm).
 - `spec.engine.type` ∈ `terraform | opentofu | helm`; `terraform`/`opentofu` require a `version`; `helm` requires a `chart` `{repository, name, version}`.
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
@@ -179,21 +179,10 @@ Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): mov
 
 ## Terraform blueprint conventions
 
-### Context variables — MUST be declared (CI: `validate-qbm`)
+### Context variables — declare what you consume (CI: `validate-qbm`)
 
-The engine passes `region` and `qovery_cluster_name` as `-var` to **every** Terraform blueprint, on
-every provider — including `EXTERNAL`, whose resources live outside Qovery entirely. Terraform
-aborts when handed a `-var` the root module does not declare:
-
-```
-Error: Value for undeclared variable
-A variable named "region" was assigned on the command line, but the root
-module does not declare a variable of that name.
-```
-
-So every Terraform blueprint MUST declare both, in **both** files.
-
-`qbm.yml` — a `contextVariables` block, sitting between `spec.engine` and `spec.variables`:
+`spec.contextVariables` decides which cluster context the engine injects. A blueprint receives
+exactly the sources it declares — nothing more:
 
 ```yaml
   contextVariables:
@@ -202,43 +191,61 @@ So every Terraform blueprint MUST declare both, in **both** files.
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
 ```
 
-`variables.tf`:
+| `source` | fills |
+|---|---|
+| `cluster.region` | the declared name, with the cluster's region (Scaleway zones are reduced to a region) |
+| `cluster.name` | the declared name, with the cluster's name verbatim |
+| `cluster.id` | the declared name with the cluster **short id** (`z` + first 8 of the uuid), **and** `qovery_cluster_long_id` with the uuid |
+
+One entry per context input, not one per terraform variable: `cluster.id` covers both id forms,
+because a module needing the cluster identity needs both.
+
+Everything a source fills MUST also be declared in `variables.tf`, and **without a `default`**:
 
 ```hcl
-variable "qovery_cluster_name" {
+variable "qovery_cluster_id" {
   type        = string
-  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
-}
-
-variable "region" {
-  type        = string
-  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+  description = "Qovery cluster short id (engine kubernetes_cluster_id)"
 }
 ```
 
-The resources do not have to reference either one. Declaring them is what satisfies the contract;
-leaving them unused is fine and is what the `EXTERNAL` blueprints do.
+No default is the point. `qovery_cluster_id` shipped with `default = ""`, and when nothing injected
+it the empty string flowed into the cluster VPC and security-group lookups, which failed with
+`no matching EC2 VPC found` — three repos from the cause, a whole minor release after the module
+started depending on it. With no default, a missing injection fails at variable resolution and names
+the variable.
 
-`validate-qbm` fails the build when either declaration is missing from `variables.tf`, naming the
-blueprint and the variable. It checks `variables.tf` rather than requiring a `contextVariables`
-entry, because `variables.tf` is what terraform actually reads — a blueprint whose own
-`spec.variables` already supplies `region` satisfies the check without declaring it twice.
+An unknown `source` is a build error, not a silently unset variable. Adding a source means adding it
+in three places: the engine's `inject_context_variables`, `source_targets` in `tools/catalog-gen`,
+and the table above.
 
-That check exists because nothing used to catch this. `validate-qbm` walked `contextVariables` +
-`variables` and required each to exist in `variables.tf`, which catches a *half*-finished job
-(a `contextVariables` entry with no matching `variable` block) but knew nothing about what the
-engine injects — so declaring **neither** was internally consistent and passed clean.
-`validate-terraform` passed too, because the configuration on its own is valid. The failure surfaced
-only at `terraform apply` against a live environment, and all nine `EXTERNAL` blueprints shipped and
-stayed green in CI in exactly that state while every one of them was undeployable.
+`qovery_user_provided_network` (bool) is the exception: injected into **every** Terraform blueprint
+and not declarable in `contextVariables`. It is plumbing for the cluster-network lookups — true when
+the cluster VPC was supplied by the user, so Qovery naming conventions do not apply to it — rather
+than context an author selects. Declare it in `variables.tf` regardless; undeclared, terraform prints
+`Value for undeclared variable` into plan output that the update preview shows users verbatim.
 
-**Never name a user-facing variable `region`.** The engine sends its own `region` regardless, so a
-user-facing one collides with it and the blueprint does not control which value wins. A
-provider-specific region needs a provider-specific name — `confluent_region`, `planetscale_region`,
-`region_code` — or it belongs in `contextVariables` with `overridable: true`, which is how a user
-overrides the injected value.
+Resources do not have to reference a declared context variable; declaring it is what satisfies the
+contract, and leaving it unused is fine.
+
+**A user-facing `region` is allowed only if the blueprint does not declare `cluster.region`.**
+`EXTERNAL/confluent-kafka` and `EXTERNAL/planetscale` do exactly that: their `region` is a provider
+slug of their own (`us-east` for PlanetScale is not an AWS region), so they omit `cluster.region` and
+keep full control of the value. Declaring both puts two writers on one variable and the blueprint
+does not control which wins. If a blueprint needs both, give the user-facing one a
+provider-specific name — `confluent_region`, `planetscale_region` — or mark the context entry
+`overridable: true`.
+
+**Do not expose a cloud resource id the module can derive.** No `db_subnet_group_name`,
+`security_group_ids`, `subnet_ids` and the like in `spec.variables`: they ask users for raw ids with
+no validation or discovery, and a wrong value silently attaches the resource to the wrong network.
+The native managed-database path never exposed them — it derives the subnet group and security
+groups from its own lookups — and neither should a blueprint. `publicly_accessible` is a product
+choice, not an id, and is fine.
 
 ## Helm blueprint conventions
 
@@ -253,10 +260,12 @@ overrides the injected value.
 Rendered with **Tera** (`tera::Tera::default()`), so filters and control flow are available:
 `{{ var | slugify }}`, `{% if var %}…{% else %}…{% endif %}`. Three things are not obvious:
 
-- **Two variables are injected for free**, whether or not `qbm.yml` declares them:
-  `qovery_cluster_name` (the Qovery cluster's own name, verbatim) and `region`. This is why the
-  Terraform blueprints name their context variable `qovery_cluster_name` — the injection is keyed on
-  that exact name, not on the `contextVariables` block, which only drives the console's form.
+- **Cluster context must be declared, exactly like a Terraform blueprint.** A `{{ qovery_cluster_name }}`
+  in `values.yaml` resolves only if `qbm.yml` declares `contextVariables: [{name: qovery_cluster_name,
+  source: cluster.name}]` — see [Context variables](#context-variables--declare-what-you-consume-ci-validate-qbm).
+  Tera aborts the render on the first unresolved placeholder, so an undeclared one breaks the deploy
+  rather than rendering empty. Injection used to be unconditional and keyed on the variable name, so
+  older charts relied on it arriving without being asked; that is no longer true.
 - **Cluster names are unconstrained** — q-core accepts any string, so `qovery_cluster_name` can
   carry uppercase, underscores or spaces and may not satisfy the chart's expectations. Pipe it
   through `slugify` when the chart needs RFC1123, and quote the result: a name that slugifies to

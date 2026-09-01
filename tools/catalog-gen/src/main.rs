@@ -219,6 +219,8 @@ const PROVIDERS: &[&str] = &["AWS", "SCW", "GCP", "AZURE", "EXTERNAL", "HELM"];
 #[derive(Deserialize)]
 struct VarDecl {
     name: String,
+    /// Only set on `contextVariables` entries: where the engine takes the value from.
+    source: Option<String>,
     #[serde(rename = "type")]
     type_: Option<String>,
     default: Option<String>,
@@ -551,9 +553,22 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // Validation
 // ---------------------------------------------------------------------------
 
-// Variables the engine supplies to every Terraform blueprint without being asked. Sourced from
-// cluster metadata, so they arrive whether or not the blueprint has anything to do with a cluster.
-const ENGINE_INJECTED_VARIABLES: [&str; 2] = ["region", "qovery_cluster_name"];
+// Injected into every Terraform blueprint whether or not the manifest asks: plumbing for the
+// cluster-network lookups rather than context an author selects. Undeclared, terraform prints
+// "Value for undeclared variable" into plan output the update preview shows users verbatim.
+const ALWAYS_INJECTED_VARIABLES: [&str; 1] = ["qovery_user_provided_network"];
+
+/// Terraform variables a `contextVariables[].source` fills, given the entry's declared name.
+/// Mirrors the engine's `inject_context_variables`; anything else is a typo that would leave the
+/// variable silently unset, which is how `qovery_cluster_id` went missing for a whole release.
+fn source_targets(source: &str, declared_name: &str) -> Option<Vec<String>> {
+    match source {
+        "cluster.region" | "cluster.name" => Some(vec![declared_name.to_string()]),
+        // One entry, two variables: a module needing the cluster identity needs both forms.
+        "cluster.id" => Some(vec![declared_name.to_string(), "qovery_cluster_long_id".to_string()]),
+        _ => None,
+    }
+}
 
 // Reads a `<<TAG` / `<<-TAG` opener at `i`, returning the tag, whether it was the indented
 // (`<<-`) form, and the offset just past the opener line. Returns None when what follows `<<`
@@ -874,13 +889,40 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                             // does not declare. The qbm.yml -> variables.tf check below cannot
                             // catch it: it only walks what qbm.yml already declares, so a
                             // blueprint declaring neither is self-consistent and passes.
-                            for injected in ENGINE_INJECTED_VARIABLES {
+                            for injected in ALWAYS_INJECTED_VARIABLES {
                                 if !tf_names.iter().any(|n| n.as_str() == injected) {
                                     errors.push(format!(
-                                        "{}: '{}' is injected by the engine into every Terraform blueprint but is not declared in variables.tf. \
-                                         Add a `variable \"{}\"` block, plus a contextVariables entry in qbm.yml unless a spec.variables entry already supplies it.",
+                                        "{}: '{}' is injected into every Terraform blueprint but is not declared in variables.tf. \
+                                         Add a `variable \"{}\"` block.",
                                         vd.full_path, injected, injected
                                     ));
+                                }
+                            }
+                            // The engine injects exactly what contextVariables declares, so each
+                            // entry's source must be one it knows and must land in variables.tf.
+                            for cv in &spec.context_variables {
+                                let Some(source) = cv.source.as_deref() else {
+                                    errors.push(format!(
+                                        "{}: contextVariables entry '{}' has no 'source'; the engine would never fill it",
+                                        vd.full_path, cv.name
+                                    ));
+                                    continue;
+                                };
+                                match source_targets(source, &cv.name) {
+                                    None => errors.push(format!(
+                                        "{}: contextVariables entry '{}' has unknown source '{}'. Known sources: cluster.region, cluster.name, cluster.id",
+                                        vd.full_path, cv.name, source
+                                    )),
+                                    Some(targets) => {
+                                        for target in targets {
+                                            if !tf_names.contains(&target) {
+                                                errors.push(format!(
+                                                    "{}: source '{}' fills '{}' but variables.tf does not declare it",
+                                                    vd.full_path, source, target
+                                                ));
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             for var in spec.context_variables.iter().chain(spec.variables.iter()) {
