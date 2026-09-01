@@ -40,8 +40,6 @@ spec:
       source: "cluster.name"
     - name: "qovery_cluster_id"
       source: "cluster.id"
-    - name: "qovery_cluster_long_id"
-      source: "cluster.long_id"
 
   variables:
     - name: "bucket_name"

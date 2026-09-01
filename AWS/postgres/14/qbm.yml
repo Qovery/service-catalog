@@ -42,10 +42,6 @@ spec:
       source: "cluster.name"
     - name: "qovery_cluster_id"
       source: "cluster.id"
-    - name: "qovery_cluster_long_id"
-      source: "cluster.long_id"
-    - name: "qovery_user_provided_network"
-      source: "cluster.user_provided_network"
 
   variables:
     - name: "db_name"
