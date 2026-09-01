@@ -23,7 +23,7 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The 
 | `comment`             | string | `Managed by Qovery blueprint` | Distribution comment shown in the AWS console         |
 | `enabled`             | bool   | `true`                      | Whether the distribution accepts end-user requests      |
 | `is_ipv6_enabled`     | bool   | `true`                      | Enable IPv6                                             |
-| `default_root_object` | string | `""`                        | Object returned for the root URL (e.g. `index.html`)    |
+| `default_root_object` | string |                             | Object returned for the root URL (e.g. `index.html`)    |
 | `price_class`         | string | `PriceClass_100`            | `PriceClass_100`, `PriceClass_200`, or `PriceClass_All` |
 
 ### Origin
@@ -47,10 +47,10 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The 
 
 | Name                        | Type   | Default | Description                                                                       |
 | --------------------------- | ------ | ------- | --------------------------------------------------------------------------------- |
-| `aliases`                   | string | `""`    | Comma-separated custom domains (CNAMEs). Requires `acm_certificate_arn`.           |
-| `acm_certificate_arn`       | string | `""`    | ACM cert ARN for the custom domains (**must be in us-east-1**).                    |
+| `aliases`                   | string |         | Comma-separated custom domains (CNAMEs). Requires `acm_certificate_arn`.           |
+| `acm_certificate_arn`       | string |         | ACM cert ARN for the custom domains (**must be in us-east-1**).                    |
 | `geo_restriction_type`      | string | `none`  | `none`, `whitelist`, or `blacklist`                                               |
-| `geo_restriction_locations` | string | `""`    | Comma-separated ISO country codes (e.g. `US,FR`). Required when type is not `none`. |
+| `geo_restriction_locations` | string |         | Comma-separated ISO country codes (e.g. `US,FR`). Required when type is not `none`. |
 
 ## Outputs
 

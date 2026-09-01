@@ -139,6 +139,34 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
 
+## `qbm.yml` variable defaults — never `default: ""` (terraform/opentofu)
+
+**The Qovery terraform provider rejects an empty variable value.** `Variable.Validate()` returns
+`variable value is required` for `Value == ""`, before any API call. q-core materialises a
+manifest default into a real variable, so a `qbm.yml` variable defaulting to `""` sends an
+empty-valued one, the provider refuses it while the engine applies the meta-module, and no
+Terraform service is ever created.
+
+This applies to `terraform` and `opentofu` blueprints, on **every** provider — `AWS`, `GCP`, `SCW`
+and `EXTERNAL` alike. It is not about `credentials.default: env`; the rejection is on the variable,
+with no branch on provider or credentials mode. Helm blueprints interpolate `values.yaml` instead
+and never reach that check.
+
+Two questions, in order:
+
+1. **Must the caller always supply a value?** → `required: true`, no `default`. If a value has to be
+   passed, the variable is not optional — say so rather than faking it with an empty default.
+2. **Otherwise it is optional and has a default.** Declare it (`default: "startup-2"`) — *unless
+   that default is the empty string*, in which case omit the `default:` line entirely. Say what
+   unset means in the description ("Unset = create no record").
+
+**This is a `qbm.yml` rule only. Leave `variables.tf` alone.** `default = ""` there is correct and
+must stay: the provider never reads that file — it is consulted by the deployed terraform job, a
+different execution from the one that rejects. Omitting the variable then falls back to that
+default, and the usual `count = var.record_name != "" ? 1 : 0` guard does the right thing. Deleting
+it would make the variable required, and `default = null` with `!= null` is no better — `!= ""`
+also covers a value explicitly set to empty, where `!= null` would fall through.
+
 ## Keep `README.md` in sync with `qbm.yml`
 
 Not CI-enforced, but expected on every PR: if a variable's `required` flag, default, type, or description changes in `qbm.yml`, update the matching row in `README.md`'s `## Variables` tables — including moving the row between the `### Required` table and its sizing/optional table when `required` flips. The `### Required` tables have no `Default` column; when a variable that still ships a `default:` in `qbm.yml` becomes required, fold that default into the description as "Default suggestion: `<value>`" rather than dropping it.

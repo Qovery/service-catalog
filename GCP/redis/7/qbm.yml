@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "gcp-memorystore-redis"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "GCP Memorystore for Redis 7 instance with configurable tier, memory size, auth, TLS, persistence, maintenance window, and optional read replicas"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -88,7 +88,6 @@ spec:
     - name: "authorized_network"
       type: "string"
       required: false
-      default: ""
       description: "VPC network self-link the instance connects to. Empty = the project's default network. Set this to your Qovery cluster's VPC self-link so pods in the cluster can reach the instance."
     - name: "connect_mode"
       type: "string"
@@ -101,7 +100,6 @@ spec:
     - name: "reserved_ip_range"
       type: "string"
       required: false
-      default: ""
       description: "CIDR /29 (DIRECT_PEERING) or named allocated range (PRIVATE_SERVICE_ACCESS) reserved for the instance. Empty = GCP picks an unused range automatically."
     - name: "maxmemory_policy"
       type: "string"
@@ -138,7 +136,6 @@ spec:
     - name: "maintenance_day"
       type: "string"
       required: false
-      default: ""
       description: "Day of week for the scheduled maintenance window. Empty disables a fixed window (GCP may perform maintenance at any time)."
       allowedValues:
         - ""
@@ -166,7 +163,6 @@ spec:
     - name: "gcp_project_id"
       type: "string"
       required: false
-      default: ""
       description: "GCP project ID override. Empty = inferred from the credentials used to deploy (cluster credentials or the env-mode service account)."
 
   outputs:

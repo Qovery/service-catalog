@@ -24,8 +24,8 @@ A PlanetScale **service token**: `planetscale_service_token_id` + `planetscale_s
 | Name            | Type   | Default      | Description                                                     |
 | --------------- | ------ | ------------ | --------------------------------------------------------------- |
 | `branch_name`   | string | `main`       | Production branch to create                                     |
-| `cluster_size`  | string | `""`         | Vitess cluster size (e.g. `PS-10`). Empty = plan default.       |
-| `region`        | string | `""`         | Region slug (e.g. `us-east`). Empty = org default.              |
+| `cluster_size`  | string |              | Vitess cluster size (e.g. `PS-10`). Unset = plan default.       |
+| `region`        | string |              | Region slug (e.g. `us-east`). Unset = org default.              |
 | `role`          | string | `readwriter` | `reader`, `writer`, `readwriter`, or `admin`                    |
 
 ## Outputs

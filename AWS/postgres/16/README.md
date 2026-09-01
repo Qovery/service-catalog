@@ -31,8 +31,8 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | ---------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------- |
 | `multi_az`             | bool   | `false` | Enable Multi-AZ deployment                                                                               |
 | `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                                                               |
-| `db_subnet_group_name` | string | `""`    | Optional DB subnet group override. Empty = the Qovery cluster DB subnet group.                           |
-| `security_group_ids`   | string | `""`    | Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group. |
+| `db_subnet_group_name` | string |         | Optional DB subnet group override. Unset = the Qovery cluster DB subnet group.                           |
+| `security_group_ids`   | string |         | Optional comma-separated security group ids override. Unset = the Qovery cluster workers security group. |
 
 By default the instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve; set `db_subnet_group_name` and `security_group_ids` explicitly in that case.
 
@@ -41,7 +41,7 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | Name                               | Type   | Default | Description                                                                            |
 | ---------------------------------- | ------ | ------- | -------------------------------------------------------------------------------------- |
 | `read_replica_count`               | number | `0`     | Number of same-region read replicas (0 disables; max 15). Requires backups enabled.    |
-| `read_replica_instance_class`      | string | `""`    | Instance class for replicas. Empty = same as the primary.                              |
+| `read_replica_instance_class`      | string |         | Instance class for replicas. Unset = same as the primary.                              |
 | `read_replica_publicly_accessible` | bool   | `false` | Expose replicas to the public internet.                                                |
 | `read_replica_multi_az`            | bool   | `false` | Enable Multi-AZ for replicas.                                                           |
 
@@ -73,14 +73,14 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | `performance_insights_enabled`          | bool   | `false`             | Enable RDS Performance Insights                                                |
 | `performance_insights_retention_period` | number | `7`                 | PI retention in days (only when enabled). 7, 31, or k·31 ≤ 731.                |
 | `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval seconds. `0` disables. 0/1/5/10/15/30/60.         |
-| `monitoring_role_arn`                   | string | `""`                | IAM role ARN for enhanced monitoring. Required when `monitoring_interval > 0`. |
+| `monitoring_role_arn`                   | string |                     | IAM role ARN for enhanced monitoring. Required when `monitoring_interval > 0`. |
 | `ca_cert_identifier`                    | string | `rds-ca-rsa2048-g1` | CA certificate identifier                                                      |
 
 ### Misc
 
 | Name                                  | Type   | Default | Description                                        |
 | ------------------------------------- | ------ | ------- | -------------------------------------------------- |
-| `option_group_name`                   | string | `""`    | Optional option group. Empty = AWS default.        |
+| `option_group_name`                   | string |         | Optional option group. Unset = AWS default.        |
 | `deletion_protection`                 | bool   | `false` | Prevent deletion via TF/API                        |
 | `iam_database_authentication_enabled` | bool   | `false` | Enable IAM DB authentication                       |
 | `dedicated_log_volume`                | bool   | `false` | Provision a dedicated EBS volume for database logs |

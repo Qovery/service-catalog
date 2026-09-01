@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-msk"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network"
   icon: "app://qovery-console/kafka"
   serviceFamily: "msk"
@@ -49,12 +49,10 @@ spec:
     - name: "subnet_ids"
       type: "string"
       required: false
-      default: ""
       description: "Optional comma-separated subnet IDs override. Empty = auto-discover the Qovery cluster VPC subnets."
     - name: "security_group_ids"
       type: "string"
       required: false
-      default: ""
       description: "Optional comma-separated security group IDs override. Empty = the Qovery cluster workers security group."
 
   outputs:

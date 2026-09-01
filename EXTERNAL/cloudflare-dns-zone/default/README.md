@@ -23,9 +23,9 @@ A **Cloudflare API token** supplied as the sensitive `cloudflare_api_token` vari
 | Name             | Type   | Default | Description                                                       |
 | ---------------- | ------ | ------- | ----------------------------------------------------------------- |
 | `zone_type`      | string | `full`  | `full` (Cloudflare hosts DNS) or `partial` (CNAME/partner setup)  |
-| `record_name`    | string | `""`    | Optional DNS record name (`www`, `@`, or a host). Empty = none.   |
+| `record_name`    | string |         | Optional DNS record name (`www`, `@`, or a host). Unset = none.   |
 | `record_type`    | string | `A`     | `A`, `AAAA`, `CNAME`, `TXT`, `MX`, `NS`                            |
-| `record_content` | string | `""`    | Record value. Required when `record_name` is set.                 |
+| `record_content` | string |         | Record value. Required when `record_name` is set.                 |
 | `record_ttl`     | number | `1`     | TTL seconds (`1` = automatic; must be `1` when proxied)           |
 | `record_proxied` | bool   | `false` | Proxy through Cloudflare (orange cloud). A/AAAA/CNAME only.        |
 
