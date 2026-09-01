@@ -303,10 +303,19 @@ jobs:
           # while the engine applies the meta-module, so an unfilled payload would report success
           # and never create a service, while an omitted one is rejected by name. Prints nothing
           # when the manifest could pre-fill everything.
+          #
+          # $2 is the shape of one entry, which the caller has to supply: `variables` is a list on
+          # a create payload and a merge-patch map on an update, so a bare list of names would not
+          # tell a tester what to actually write.
           list_to_add() {
-            NAMES=$(jq -r 'map("`" + .name + "`" + (if .is_secret then " (secret — add `\"is_secret\": true`)" else "" end)) | join(", ")' <<<"$1")
+            NAMES=$(jq -r 'map("`" + .name + "`" + (if .is_secret then " (secret)" else "" end)) | join(", ")' <<<"$1")
             [ -n "$NAMES" ] || return 0
+            SHAPE="Each goes in as \`$2\`"
+            if jq -e 'any(.is_secret // false)' >/dev/null <<<"$1"; then
+              SHAPE="${SHAPE}, with \`\"is_secret\": true\` alongside the value on the secret ones"
+            fi
             echo "Add to \`variables\` before running — required, no default in \`qbm.yml\`: ${NAMES}."
+            echo "${SHAPE}."
             echo
           }
 
@@ -324,6 +333,11 @@ jobs:
             echo
             echo "</details>"
           }
+
+          # The two entry shapes list_to_add documents: a create payload's `variables` is a list,
+          # an update payload's is a merge-patch map keyed by name.
+          CREATE_ENTRY='{"name": "…", "value": "…"}'
+          UPDATE_ENTRY='"<name>": {"value": "…"}'
 
           # One section per changed blueprint, rendered field-by-field rather than as one giant jq
           # expression so the three options stay readable.
@@ -347,7 +361,7 @@ jobs:
             echo
             echo "**1. Test a new deployment**"
             echo
-            list_to_add "$(jq -c '.variables_to_add' <<<"$bp")"
+            list_to_add "$(jq -c '.variables_to_add' <<<"$bp")" "$CREATE_ENTRY"
             open_snippet
             echo "mise run deploy-service-rc \$ENVIRONMENT_ID \\"
             echo "  $RC_TAG \\"
@@ -366,7 +380,7 @@ jobs:
             echo
             echo "_a. Against an existing **test** service_"
             echo
-            list_to_add "$(jq -c '.update_variables_to_add' <<<"$bp")"
+            list_to_add "$(jq -c '.update_variables_to_add' <<<"$bp")" "$UPDATE_ENTRY"
             open_snippet
             echo "mise run update-service-rc \$BLUEPRINT_ID \\"
             echo "  $RC_TAG \\"
@@ -384,7 +398,7 @@ jobs:
             echo "run 2a against it. Starting from \`$BASE_TAG\` is what makes step 2 an actual"
             echo "upgrade; creating at the rc tag would diff against itself and show nothing."
             echo
-            list_to_add "$(jq -c '.base_variables_to_add' <<<"$bp")"
+            list_to_add "$(jq -c '.base_variables_to_add' <<<"$bp")" "$CREATE_ENTRY"
             open_snippet
             echo "# i. create a throwaway service on the currently published tag"
             echo "mise run deploy-service-rc \$ENVIRONMENT_ID \\"
