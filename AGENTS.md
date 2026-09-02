@@ -136,7 +136,7 @@ CI regenerates it and diffs (ignoring `generatedAt`); a stale `catalog.json` fai
 
 - **Sensitive variables:** any variable whose name matches `password|secret|token|api_key|access_key|private_key|credential` **must** be `sensitive: true` (or rename it). For Terraform blueprints, `qbm.yml` `sensitive` must equal `variables.tf` `sensitive = true`.
 - Each Terraform `qbm.yml` variable must exist in `variables.tf`.
-- **Context variables:** every `contextVariables` entry must carry a `source` the engine knows, and the variables that source fills must exist in `variables.tf`. `qovery_user_provided_network` must be declared by every Terraform blueprint. Missing any of these fails the build — see [Context variables](#context-variables--declare-what-you-consume-ci-validate-qbm).
+- **Context variables:** every `contextVariables` entry must carry a `source` q-core knows (checked for every engine type), and for Terraform the variables that source fills must exist in `variables.tf` **without a `default`**. Missing any of these fails the build — see [Context variables](#context-variables--declare-what-you-consume-ci-validate-qbm).
 - `spec.engine.type` ∈ `terraform | opentofu | helm`; `terraform`/`opentofu` require a `version`; `helm` requires a `chart` `{repository, name, version}`.
 
 Terraform blueprints are additionally `terraform init -backend=false && terraform validate`d (CI: `validate-terraform`).
@@ -210,6 +210,11 @@ Everything a source fills MUST also be declared in `variables.tf`, and **without
 variable "qovery_cluster_id" {
   type        = string
   description = "Qovery cluster short id (engine kubernetes_cluster_id)"
+}
+
+variable "qovery_cluster_long_id" {
+  type        = string
+  description = "Qovery cluster long id."
 }
 ```
 

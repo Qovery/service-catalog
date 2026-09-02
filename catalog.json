@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-02T07:26:28Z",
+  "generatedAt": "2026-09-02T13:02:49Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -404,7 +404,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.1.4"
+          "latestTag": "SCW/object-storage/default/1.1.5"
         }
       ]
     },

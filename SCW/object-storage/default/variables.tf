@@ -14,13 +14,17 @@ variable "qovery_cluster_long_id" {
   description = "Qovery cluster long id."
 }
 
-# Qovery-injected infra tags (the engine sets them via TF_VAR_qovery_*). Empty default so the module
-# still plans if absent. Emitted as cost/identification tags on the bucket.
+# Emitted as cost/identification tags on the bucket. `qovery_cluster_id` is filled from the
+# `cluster.id` context variable and carries no default, so a value that never arrives fails at
+# variable resolution rather than tagging the bucket with an empty id.
 variable "qovery_cluster_id" {
   type        = string
   description = "Qovery cluster short id (engine kubernetes_cluster_id)."
 }
 
+# The three below have no context variable declaring them, so nothing fills them and their tags
+# render empty. They keep a default until a source exists, since requiring them would only move the
+# failure without producing a value.
 variable "qovery_client_id" {
   type        = string
   default     = ""
