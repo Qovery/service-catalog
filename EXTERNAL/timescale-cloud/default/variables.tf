@@ -84,11 +84,6 @@ variable "qovery_cluster_name" {
   description = "Qovery cluster name, injected from the qbm.yml `cluster.name` context variable"
 }
 
-variable "qovery_user_provided_network" {
-  type        = bool
-  description = "True when the cluster VPC was provided by the user, so Qovery resource naming conventions do not apply to it."
-}
-
 variable "region" {
   type        = string
   description = "Qovery cluster region, injected from the qbm.yml `cluster.region` context variable"

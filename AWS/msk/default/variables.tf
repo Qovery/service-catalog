@@ -11,18 +11,12 @@ variable "qovery_cluster_id" {
 
 variable "qovery_cluster_name" {
   type        = string
-  default     = ""
   description = "Qovery cluster name, used for resource tagging."
 }
 
 variable "qovery_cluster_long_id" {
   type        = string
   description = "Qovery cluster long id."
-}
-
-variable "qovery_user_provided_network" {
-  type        = bool
-  description = "True when the cluster VPC was provided by the user, so Qovery resource naming conventions do not apply to it."
 }
 
 # User-provided variables

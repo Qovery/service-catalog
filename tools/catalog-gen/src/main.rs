@@ -553,11 +553,6 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 // Validation
 // ---------------------------------------------------------------------------
 
-// Injected into every Terraform blueprint whether or not the manifest asks: plumbing for the
-// cluster-network lookups rather than context an author selects. Undeclared, terraform prints
-// "Value for undeclared variable" into plan output the update preview shows users verbatim.
-const ALWAYS_INJECTED_VARIABLES: [&str; 1] = ["qovery_user_provided_network"];
-
 /// Terraform variables a `contextVariables[].source` fills, given the entry's declared name.
 /// Mirrors q-core's `BlueprintContextResolver`; anything else is a typo that would leave the
 /// variable silently unset, which is how `qovery_cluster_id` went missing for a whole release.
@@ -674,13 +669,29 @@ fn strip_hcl_comments(tf: &str) -> String {
 // (until the next closing `}`). Assumes no nested braces inside variable blocks, which holds
 // for the catalog's flat declarations. Comments are stripped first so a commented-out block is
 // not read as a declaration — terraform would still reject the missing variable at apply.
-fn parse_tf_variables(tf: &str) -> HashMap<String, bool> {
+/// `name -> (sensitive, has_default)`.
+fn parse_tf_variables(tf: &str) -> HashMap<String, TfVariable> {
     let tf = strip_hcl_comments(tf);
     let re = Regex::new(r#"(?s)variable\s+"(\w+)"\s*\{([^}]*)\}"#).unwrap();
     let sensitive_re = Regex::new(r#"(?m)^\s*sensitive\s*=\s*true\b"#).unwrap();
+    let default_re = Regex::new(r#"(?m)^\s*default\s*="#).unwrap();
     re.captures_iter(&tf)
-        .map(|c| (c[1].to_string(), sensitive_re.is_match(&c[2])))
+        .map(|c| {
+            (
+                c[1].to_string(),
+                TfVariable {
+                    sensitive: sensitive_re.is_match(&c[2]),
+                    has_default: default_re.is_match(&c[2]),
+                },
+            )
+        })
         .collect()
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TfVariable {
+    sensitive: bool,
+    has_default: bool,
 }
 
 fn validate_blueprints(root: &Path) -> Result<()> {
@@ -755,6 +766,23 @@ fn validate_blueprints(root: &Path) -> Result<()> {
         } else {
             let engine = spec.engine.as_ref();
             let engine_type = engine.and_then(|e| e.type_.as_deref());
+
+            // Every engine type consumes cluster context: terraform through tfvars, helm through
+            // the values.yaml Tera render, which aborts on an undefined variable. An unrecognised
+            // source is a variable q-core will never send, so reject it whatever the engine.
+            for cv in &spec.context_variables {
+                match cv.source.as_deref() {
+                    None => errors.push(format!(
+                        "{}: contextVariables entry '{}' has no 'source'; nothing would ever fill it",
+                        vd.full_path, cv.name
+                    )),
+                    Some(source) if source_targets(source, &cv.name).is_none() => errors.push(format!(
+                        "{}: contextVariables entry '{}' has unknown source '{}'. Known sources: cluster.region, cluster.name, cluster.id",
+                        vd.full_path, cv.name, source
+                    )),
+                    Some(_) => {}
+                }
+            }
             let engine_provider = engine.and_then(|e| e.provider.as_ref());
             let engine_chart = engine.and_then(|e| e.chart.as_ref());
 
@@ -884,44 +912,28 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                         Ok(tf) => {
                             let tf_vars = parse_tf_variables(&tf);
                             let tf_names: HashSet<&String> = tf_vars.keys().collect();
-                            // The engine passes these as -var to every Terraform blueprint,
-                            // EXTERNAL included, and terraform aborts on a -var the root module
-                            // does not declare. The qbm.yml -> variables.tf check below cannot
-                            // catch it: it only walks what qbm.yml already declares, so a
-                            // blueprint declaring neither is self-consistent and passes.
-                            for injected in ALWAYS_INJECTED_VARIABLES {
-                                if !tf_names.iter().any(|n| n.as_str() == injected) {
-                                    errors.push(format!(
-                                        "{}: '{}' is injected into every Terraform blueprint but is not declared in variables.tf. \
-                                         Add a `variable \"{}\"` block.",
-                                        vd.full_path, injected, injected
-                                    ));
-                                }
-                            }
-                            // The engine injects exactly what contextVariables declares, so each
-                            // entry's source must be one it knows and must land in variables.tf.
+                            // Terraform-only half: whatever a source fills has to exist here,
+                            // and without a default. The source name itself is validated above,
+                            // for every engine type.
                             for cv in &spec.context_variables {
-                                let Some(source) = cv.source.as_deref() else {
-                                    errors.push(format!(
-                                        "{}: contextVariables entry '{}' has no 'source'; the engine would never fill it",
-                                        vd.full_path, cv.name
-                                    ));
-                                    continue;
-                                };
-                                match source_targets(source, &cv.name) {
-                                    None => errors.push(format!(
-                                        "{}: contextVariables entry '{}' has unknown source '{}'. Known sources: cluster.region, cluster.name, cluster.id",
-                                        vd.full_path, cv.name, source
-                                    )),
-                                    Some(targets) => {
-                                        for target in targets {
-                                            if !tf_names.contains(&target) {
-                                                errors.push(format!(
-                                                    "{}: source '{}' fills '{}' but variables.tf does not declare it",
-                                                    vd.full_path, source, target
-                                                ));
-                                            }
-                                        }
+                                let Some(source) = cv.source.as_deref() else { continue };
+                                let Some(targets) = source_targets(source, &cv.name) else { continue };
+                                for target in targets {
+                                    match tf_vars.get(&target) {
+                                        None => errors.push(format!(
+                                            "{}: source '{}' fills '{}' but variables.tf does not declare it",
+                                            vd.full_path, source, target
+                                        )),
+                                        // A default turns "nobody injected this" into an empty
+                                        // string flowing into the module, which is how
+                                        // `qovery_cluster_id` reached a cluster lookup as "" and
+                                        // failed with "no matching EC2 VPC found".
+                                        Some(v) if v.has_default => errors.push(format!(
+                                            "{}: '{}' is filled by source '{}', so it must not have a `default` in variables.tf — \
+                                             a missing injection has to fail at variable resolution, not silently resolve to the default",
+                                            vd.full_path, target, source
+                                        )),
+                                        Some(_) => {}
                                     }
                                 }
                             }
@@ -936,15 +948,15 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                                 validate_sensitive_naming(&vd.full_path, var, &mut errors);
                                 // Cross-check sensitivity between TF and qbm.yml so the console
                                 // can't accidentally render a sensitive value as plaintext.
-                                if let Some(tf_sensitive) = tf_vars.get(&var.name) {
+                                if let Some(tf_sensitive) = tf_vars.get(&var.name).map(|v| v.sensitive) {
                                     let qbm_sensitive = var.sensitive.unwrap_or(false);
-                                    if *tf_sensitive && !qbm_sensitive {
+                                    if tf_sensitive && !qbm_sensitive {
                                         errors.push(format!(
                                             "{}: '{}' is sensitive in variables.tf but qbm.yml does not set sensitive: true",
                                             vd.full_path, var.name
                                         ));
                                     }
-                                    if !*tf_sensitive && qbm_sensitive {
+                                    if !tf_sensitive && qbm_sensitive {
                                         errors.push(format!(
                                             "{}: '{}' is marked sensitive: true in qbm.yml but variables.tf does not set sensitive = true",
                                             vd.full_path, var.name

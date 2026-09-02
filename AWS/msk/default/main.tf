@@ -22,15 +22,9 @@ data "aws_subnets" "cluster" {
 data "aws_security_group" "cluster_workers" {
   count = var.security_group_ids == "" ? 1 : 0
 
-  # A user-provided VPC's worker security group follows no Qovery naming convention, so the name
-  # filter would match nothing there. The cluster-ownership tag below identifies it in both cases.
-  dynamic "filter" {
-    for_each = var.qovery_user_provided_network ? [] : [1]
-
-    content {
-      name   = "tag:Name"
-      values = ["qovery-${var.qovery_cluster_id}-sg-workers", "qovery-eks-workers"]
-    }
+  filter {
+    name   = "tag:Name"
+    values = ["qovery-${var.qovery_cluster_id}-sg-workers", "qovery-eks-workers"]
   }
 
   filter {

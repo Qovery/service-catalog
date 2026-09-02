@@ -223,12 +223,6 @@ An unknown `source` is a build error, not a silently unset variable. Adding a so
 in three places: q-core's `BlueprintContextResolver`, `source_targets` in `tools/catalog-gen`,
 and the table above.
 
-`qovery_user_provided_network` (bool) is the exception: sent with **every** Terraform blueprint
-and not declarable in `contextVariables`. It is plumbing for the cluster-network lookups — true when
-the cluster VPC was supplied by the user, so Qovery naming conventions do not apply to it — rather
-than context an author selects. Declare it in `variables.tf` regardless; undeclared, terraform prints
-`Value for undeclared variable` into plan output that the update preview shows users verbatim.
-
 Resources do not have to reference a declared context variable; declaring it is what satisfies the
 contract, and leaving it unused is fine.
 
@@ -240,12 +234,13 @@ does not control which wins. If a blueprint needs both, give the user-facing one
 provider-specific name — `confluent_region`, `planetscale_region` — or mark the context entry
 `overridable: true`.
 
-**Do not expose a cloud resource id the module can derive.** No `db_subnet_group_name`,
-`security_group_ids`, `subnet_ids` and the like in `spec.variables`: they ask users for raw ids with
-no validation or discovery, and a wrong value silently attaches the resource to the wrong network.
-The native managed-database path never exposed them — it derives the subnet group and security
-groups from its own lookups — and neither should a blueprint. `publicly_accessible` is a product
-choice, not an id, and is fine.
+**Keep the network override variables.** `db_subnet_group_name`, `security_group_ids` and
+`subnet_ids` look like ids a blueprint could derive, and the tag lookups do derive them on a
+Qovery-managed network. They are the only escape hatch on a **user-provided** network: the engine
+creates no worker security group there and tags no VPC with `ClusterId`, so both lookups resolve to
+nothing. The native managed-database path covers that case with explicit subnet ids from cluster
+config (`rds-user-network.j2.tf`), which a blueprint cannot reach. Removing them makes those
+clusters undeployable with no remedy.
 
 ## Helm blueprint conventions
 
