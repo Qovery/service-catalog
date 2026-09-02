@@ -22,27 +22,6 @@ variable "qovery_cluster_id" {
   description = "Qovery cluster short id (engine kubernetes_cluster_id)."
 }
 
-# The three below have no context variable declaring them, so nothing fills them and their tags
-# render empty. They keep a default until a source exists, since requiring them would only move the
-# failure without producing a value.
-variable "qovery_client_id" {
-  type        = string
-  default     = ""
-  description = "Qovery organization (client) short id."
-}
-
-variable "qovery_environment_id" {
-  type        = string
-  default     = ""
-  description = "Qovery environment short id."
-}
-
-variable "qovery_project_id" {
-  type        = string
-  default     = ""
-  description = "Qovery project short id."
-}
-
 # User-provided variables
 variable "bucket_name" {
   type        = string

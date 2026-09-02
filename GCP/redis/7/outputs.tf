@@ -39,5 +39,5 @@ output "redis_read_endpoint_port" {
   # read_endpoint_port is a number that the API returns as 0 (not absent) when there is no
   # read endpoint, so try() never falls back here — gate on replica_count instead and stringify
   # the active port so the output type is consistent ("" vs a string) either way.
-  value       = var.replica_count > 0 ? tostring(google_redis_instance.this.read_endpoint_port) : ""
+  value = var.replica_count > 0 ? tostring(google_redis_instance.this.read_endpoint_port) : ""
 }

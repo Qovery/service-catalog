@@ -12,8 +12,9 @@ variable "qovery_cluster_name" {
   type        = string
 }
 
-# Qovery-injected infra tags (the engine sets them via base64 TF_VAR_qovery_*). Empty default so the
-# module still plans if absent. Emitted as cost/identification tags on the bucket.
+# Emitted as cost/identification tags on the bucket. Filled from the qbm.yml context variables and
+# carrying no default, so a value that never arrives fails at variable resolution rather than
+# tagging the bucket with an empty id.
 variable "qovery_cluster_id" {
   description = "Qovery cluster short id (engine kubernetes_cluster_id)."
   type        = string
@@ -22,30 +23,6 @@ variable "qovery_cluster_id" {
 variable "qovery_cluster_long_id" {
   description = "Qovery cluster long id."
   type        = string
-}
-
-variable "qovery_client_id" {
-  description = "Qovery organization (client) short id."
-  type        = string
-  default     = ""
-}
-
-variable "qovery_environment_id" {
-  description = "Qovery environment short id."
-  type        = string
-  default     = ""
-}
-
-variable "qovery_environment_long_id" {
-  description = "Qovery environment long id."
-  type        = string
-  default     = ""
-}
-
-variable "qovery_project_id" {
-  description = "Qovery project short id."
-  type        = string
-  default     = ""
 }
 
 variable "qovery_project_long_id" {

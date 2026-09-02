@@ -8,13 +8,10 @@ locals {
   # qovery_cluster_name with spaces or uppercase letters).
   labels = {
     for k, v in {
-      managed_by       = "qovery-blueprint"
-      blueprint        = "gcp-memorystore-redis"
-      cluster_name     = var.qovery_cluster_name
-      cluster_id       = var.qovery_cluster_id
-      q_client_id      = var.qovery_client_id
-      q_environment_id = var.qovery_environment_id
-      q_project_id     = var.qovery_project_id
+      managed_by   = "qovery-blueprint"
+      blueprint    = "gcp-memorystore-redis"
+      cluster_name = var.qovery_cluster_name
+      cluster_id   = var.qovery_cluster_id
     } : k => lower(replace(v, "/[^a-zA-Z0-9_-]/", "-"))
   }
 
@@ -41,8 +38,8 @@ resource "google_redis_instance" "this" {
   # leaving them null when unset keeps the GCP-assigned defaults in state instead of
   # producing a perpetual diff.
   authorized_network = var.authorized_network != "" ? var.authorized_network : null
-  connect_mode        = var.connect_mode
-  reserved_ip_range   = var.reserved_ip_range != "" ? var.reserved_ip_range : null
+  connect_mode       = var.connect_mode
+  reserved_ip_range  = var.reserved_ip_range != "" ? var.reserved_ip_range : null
 
   redis_configs = {
     "maxmemory-policy" = var.maxmemory_policy

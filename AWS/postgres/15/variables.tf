@@ -19,30 +19,6 @@ variable "qovery_cluster_long_id" {
   description = "Qovery cluster long id."
 }
 
-variable "qovery_client_id" {
-  type        = string
-  default     = ""
-  description = "Qovery organization (client) short id."
-}
-
-variable "qovery_environment_id" {
-  type        = string
-  default     = ""
-  description = "Qovery environment short id."
-}
-
-variable "qovery_environment_long_id" {
-  type        = string
-  default     = ""
-  description = "Qovery environment long id."
-}
-
-variable "qovery_project_id" {
-  type        = string
-  default     = ""
-  description = "Qovery project short id."
-}
-
 variable "qovery_project_long_id" {
   type        = string
   default     = ""
