@@ -286,7 +286,9 @@ jobs:
             echo "- \`jq\`"
             echo "- \`curl\`"
             echo
-            echo "Payloads are pre-filled from this branch's \`qbm.yml\` — fill in the empty values."
+            echo "Payloads carry every variable this branch's \`qbm.yml\` gives a \`default:\`. One"
+            echo "without a default is left out on purpose — sending it empty is what makes a deploy"
+            echo "fail silently — so each command lists the required ones to add before running it."
           } > comment.md
 
           # Pretty-print a payload and shell-quote it: readable in the snippet, still safe to
@@ -295,6 +297,47 @@ jobs:
           quote_payload() {
             jq -rn --arg s "$(sed '2,$s/^/  /')" '$s | @sh'
           }
+
+          # Required variables with no manifest default. They are deliberately absent from the
+          # payload rather than sent empty: the terraform provider rejects an empty variable value
+          # while the engine applies the meta-module, so an unfilled payload would report success
+          # and never create a service, while an omitted one is rejected by name. Prints nothing
+          # when the manifest could pre-fill everything.
+          #
+          # $2 is the shape of one entry, which the caller has to supply: `variables` is a list on
+          # a create payload and a merge-patch map on an update, so a bare list of names would not
+          # tell a tester what to actually write.
+          list_to_add() {
+            NAMES=$(jq -r 'map("`" + .name + "`" + (if .is_secret then " (secret)" else "" end)) | join(", ")' <<<"$1")
+            [ -n "$NAMES" ] || return 0
+            SHAPE="Each goes in as \`$2\`"
+            if jq -e 'any(.is_secret // false)' >/dev/null <<<"$1"; then
+              SHAPE="${SHAPE}, with \`\"is_secret\": true\` alongside the value on the secret ones"
+            fi
+            echo "Add to \`variables\` before running — required, no default in \`qbm.yml\`: ${NAMES}."
+            echo "${SHAPE}."
+            echo
+          }
+
+          # GitHub renders the fenced block inside <details> only with a blank line after
+          # </summary> and before </details>.
+          open_snippet() {
+            echo "<details>"
+            echo "<summary>Expand to get the command 👇</summary>"
+            echo
+            echo '```sh'
+          }
+
+          close_snippet() {
+            echo '```'
+            echo
+            echo "</details>"
+          }
+
+          # The two entry shapes list_to_add documents: a create payload's `variables` is a list,
+          # an update payload's is a merge-patch map keyed by name.
+          CREATE_ENTRY='{"name": "…", "value": "…"}'
+          UPDATE_ENTRY='"<name>": {"value": "…"}'
 
           # One section per changed blueprint, rendered field-by-field rather than as one giant jq
           # expression so the three options stay readable.
@@ -308,7 +351,7 @@ jobs:
             NAME=$(jq -r '"rc-" + (.dir | ascii_downcase | gsub("[^a-z0-9]+"; "-"))' <<<"$bp")
             # Create payloads take a list of variables; the update payload is a merge-patch map and
             # carries ONLY what this branch adds — resending existing keys would overwrite the
-            # deployed values, and an empty required secret is rejected outright.
+            # deployed values.
             CREATE_RC=$(jq --arg n "$NAME" '{name: $n, icon: .icon, variables: .variables}' <<<"$bp" | quote_payload)
             CREATE_BASE=$(jq --arg n "$NAME" '{name: $n, icon: .base_icon, variables: .base_variables}' <<<"$bp" | quote_payload)
             UPDATE=$(jq --arg n "$NAME" '{name: $n, icon: .icon, variables: (.update_variables | map({key: .name, value: ({value: .value} + (if .is_secret then {is_secret: true} else {} end))}) | from_entries)}' <<<"$bp" | quote_payload)
@@ -318,11 +361,12 @@ jobs:
             echo
             echo "**1. Test a new deployment**"
             echo
-            echo '```sh'
+            list_to_add "$(jq -c '.variables_to_add' <<<"$bp")" "$CREATE_ENTRY"
+            open_snippet
             echo "mise run deploy-service-rc \$ENVIRONMENT_ID \\"
             echo "  $RC_TAG \\"
             echo "  $CREATE_RC"
-            echo '```'
+            close_snippet
 
             if [ -z "$BASE_TAG" ]; then
               echo
@@ -336,11 +380,12 @@ jobs:
             echo
             echo "_a. Against an existing **test** service_"
             echo
-            echo '```sh'
+            list_to_add "$(jq -c '.update_variables_to_add' <<<"$bp")" "$UPDATE_ENTRY"
+            open_snippet
             echo "mise run update-service-rc \$BLUEPRINT_ID \\"
             echo "  $RC_TAG \\"
             echo "  $UPDATE"
-            echo '```'
+            close_snippet
             echo
             echo "> **⚠️ Only ever point this at a disposable test service.**"
             echo "> It pins that service to an rc tag that is **deleted as soon as this PR is"
@@ -353,14 +398,15 @@ jobs:
             echo "run 2a against it. Starting from \`$BASE_TAG\` is what makes step 2 an actual"
             echo "upgrade; creating at the rc tag would diff against itself and show nothing."
             echo
-            echo '```sh'
+            list_to_add "$(jq -c '.base_variables_to_add' <<<"$bp")" "$CREATE_ENTRY"
+            open_snippet
             echo "# i. create a throwaway service on the currently published tag"
             echo "mise run deploy-service-rc \$ENVIRONMENT_ID \\"
             echo "  $BASE_TAG \\"
             echo "  $CREATE_BASE"
             echo
             echo "# ii. then run 2a with the blueprint id it returns, and delete the service when done"
-            echo '```'
+            close_snippet
           done >> comment.md
 
           {

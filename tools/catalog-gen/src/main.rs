@@ -1135,24 +1135,33 @@ fn validate_blueprint_tag(tag: &str) -> Result<()> {
     Ok(())
 }
 
-/// Manifest-derived inputs for the PR comment's ready-to-run payloads. `required_names` is carried
-/// alongside the payload rather than as a field on each entry, so the flag never leaks into the JSON
-/// a tester pastes.
+/// Manifest-derived inputs for the PR comment's ready-to-run payloads. `declared_names` and
+/// `required_names` are carried alongside the payload rather than as fields on each entry, so the
+/// flags never leak into the JSON a tester pastes.
 #[derive(Default)]
 struct PayloadHints {
     icon: String,
+    /// Payload entries, one per variable carrying a non-empty `default:`.
     variables: Vec<serde_json::Value>,
+    /// `{name, is_secret}` for each required variable the manifest cannot pre-fill — named in the
+    /// comment so a tester adds them deliberately instead of discovering them from a rejected call.
+    variables_to_add: Vec<serde_json::Value>,
+    /// Every variable the manifest declares, whether or not it made it into `variables`.
+    declared_names: HashSet<String>,
     required_names: HashSet<String>,
 }
 
 /// Icon and create-payload variables from a manifest, so `prerelease` can emit a payload a tester
-/// can run as-is instead of transcribing `qbm.yml` by hand. Required variables without a default
-/// come out with an empty value — the two or three fields that actually need filling in.
+/// can run as-is instead of transcribing `qbm.yml` by hand. Only variables carrying a non-empty
+/// `default:` become entries; every other one is left out of the payload entirely.
 ///
-/// EVERY variable is emitted, optional ones carrying their `default:`. Optional variables have to be
-/// sent explicitly because the platform does not apply manifest defaults to API-created services:
-/// the engine renders `values.yaml` with Tera using only the variables in the request, so an omitted
-/// optional leaves `{{ var }}` undefined and the deployment fails before it reaches Helm.
+/// Sending a variable with no value is not a neutral placeholder, it is the one shape that fails
+/// silently: the Qovery terraform provider rejects an empty variable value while the engine applies
+/// the meta-module, so the call succeeds and no Terraform service is ever created — the same defect
+/// the `default: ""` ban keeps out of the manifests (see AGENTS.md). Omitting the variable instead
+/// resolves it from `variables.tf` or a `{% if var %}` guard, and for a required one fails the API
+/// call outright, naming it. So required variables with no default come back in `variables_to_add`
+/// for the comment to list, not as empty payload entries.
 fn payload_hints_from_yaml(content: &str) -> PayloadHints {
     let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
         return PayloadHints::default();
@@ -1166,6 +1175,8 @@ fn payload_hints_from_yaml(content: &str) -> PayloadHints {
         .to_string();
 
     let mut variables = Vec::new();
+    let mut variables_to_add = Vec::new();
+    let mut declared_names = HashSet::new();
     let mut required_names = HashSet::new();
 
     if let Some(seq) = doc
@@ -1177,20 +1188,39 @@ fn payload_hints_from_yaml(content: &str) -> PayloadHints {
             let Some(name) = var.get("name").and_then(serde_yaml::Value::as_str) else {
                 continue;
             };
-            let mut entry = serde_json::json!({ "name": name, "value": yaml_str(var, "default") });
+            declared_names.insert(name.to_string());
+            let required = yaml_bool(var, "required");
+            if required {
+                required_names.insert(name.to_string());
+            }
+            // An explicit `default: ""` counts as no default: an empty value is exactly what the
+            // provider refuses, so it could never be delivered anyway.
+            let default = yaml_str(var, "default");
+            let (target, mut entry) = if default.is_empty() {
+                // An optional variable with no default is simply absent — nothing for a tester to
+                // do, since unset is what its description already documents.
+                if !required {
+                    continue;
+                }
+                (&mut variables_to_add, serde_json::json!({ "name": name }))
+            } else {
+                (
+                    &mut variables,
+                    serde_json::json!({ "name": name, "value": default }),
+                )
+            };
             if yaml_bool(var, "sensitive") {
                 entry["is_secret"] = serde_json::Value::Bool(true);
             }
-            variables.push(entry);
-            if yaml_bool(var, "required") {
-                required_names.insert(name.to_string());
-            }
+            target.push(entry);
         }
     }
 
     PayloadHints {
         icon,
         variables,
+        variables_to_add,
+        declared_names,
         required_names,
     }
 }
@@ -1523,9 +1553,10 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         let hints = payload_hints_from_yaml(&content);
 
         // An update is a JSON-merge-patch: any key present overwrites the deployed value. Sending
-        // every required variable would therefore clobber the live config — and for a required
-        // secret an empty value is rejected outright. So the update payload carries only variables
-        // this branch newly introduces, which are the ones an existing service cannot already have.
+        // every required variable would therefore clobber the live config with whatever the
+        // manifest happens to know, which for a required one is nothing at all. So the update
+        // payload carries only variables this branch newly introduces, which are the ones an
+        // existing service cannot already have.
         let base_qbm = format!("{}:{}/qbm.yml", args.base_ref, dir);
         let base_manifest = run_git_or_empty(&root, &["show", &base_qbm]);
         let is_new_blueprint = base_manifest.trim().is_empty();
@@ -1544,22 +1575,27 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
         //     its `{{ var }}` would be undefined at render time);
         //   - one promoted from optional to required, since a service created before the promotion
         //     may never have been given a value for it.
-        let base_declared: HashSet<&str> = base_hints
-            .variables
-            .iter()
-            .filter_map(|v| v.get("name").and_then(serde_json::Value::as_str))
-            .collect();
+        // Judged against every variable the base manifest declared, not just the ones it could
+        // pre-fill: a variable the base already had is one the deployed service may hold a value
+        // for, whether or not that value came from a default.
+        let is_new_to_branch = |v: &serde_json::Value| {
+            v.get("name")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|n| {
+                    !base_hints.declared_names.contains(n)
+                        || (hints.required_names.contains(n)
+                            && !base_hints.required_names.contains(n))
+                })
+        };
         let update_variables: Vec<&serde_json::Value> = hints
             .variables
             .iter()
-            .filter(|v| {
-                v.get("name")
-                    .and_then(serde_json::Value::as_str)
-                    .is_some_and(|n| {
-                        !base_declared.contains(n)
-                            || (hints.required_names.contains(n) && !base_hints.required_names.contains(n))
-                    })
-            })
+            .filter(|v| is_new_to_branch(v))
+            .collect();
+        let update_variables_to_add: Vec<&serde_json::Value> = hints
+            .variables_to_add
+            .iter()
+            .filter(|v| is_new_to_branch(v))
             .collect();
 
         entries.push(serde_json::json!({
@@ -1567,11 +1603,14 @@ fn prerelease(args: &PrereleaseArgs) -> Result<()> {
             "dir": dir,
             "icon": hints.icon,
             "variables": hints.variables,
+            "variables_to_add": hints.variables_to_add,
             "update_variables": update_variables,
+            "update_variables_to_add": update_variables_to_add,
             "is_new_blueprint": is_new_blueprint,
             "base_tag": base_tag,
             "base_icon": base_hints.icon,
             "base_variables": base_hints.variables,
+            "base_variables_to_add": base_hints.variables_to_add,
         }));
         tags.push(tag);
     }
