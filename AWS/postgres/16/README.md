@@ -31,8 +31,10 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | ---------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------- |
 | `multi_az`             | bool   | `false` | Enable Multi-AZ deployment                                                                               |
 | `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                                                               |
+| `db_subnet_group_name` | string |         | Optional DB subnet group override. Unset = the Qovery cluster DB subnet group.                           |
+| `security_group_ids`   | string |         | Optional comma-separated security group ids override. Unset = the Qovery cluster workers security group. |
 
-The instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. Both are derived from the cluster, matching the native managed-database behaviour — there is nothing to configure. On a cluster deployed into an existing VPC the security group is matched on its cluster-ownership tag alone, since Qovery naming conventions do not apply to a user-provided network.
+By default the instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve; set `db_subnet_group_name` and `security_group_ids` explicitly in that case.
 
 ### Read replicas
 
