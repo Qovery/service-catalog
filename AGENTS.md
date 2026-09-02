@@ -181,7 +181,7 @@ Must match: `feat|fix|patch|chore(<scope>): <message>` — e.g. `fix(redis): mov
 
 ### Context variables — declare what you consume (CI: `validate-qbm`)
 
-`spec.contextVariables` decides which cluster context the engine injects. A blueprint receives
+`spec.contextVariables` decides which cluster context q-core resolves and sends. A blueprint receives
 exactly the sources it declares — nothing more:
 
 ```yaml
@@ -220,10 +220,10 @@ started depending on it. With no default, a missing injection fails at variable 
 the variable.
 
 An unknown `source` is a build error, not a silently unset variable. Adding a source means adding it
-in three places: the engine's `inject_context_variables`, `source_targets` in `tools/catalog-gen`,
+in three places: q-core's `BlueprintContextResolver`, `source_targets` in `tools/catalog-gen`,
 and the table above.
 
-`qovery_user_provided_network` (bool) is the exception: injected into **every** Terraform blueprint
+`qovery_user_provided_network` (bool) is the exception: sent with **every** Terraform blueprint
 and not declarable in `contextVariables`. It is plumbing for the cluster-network lookups — true when
 the cluster VPC was supplied by the user, so Qovery naming conventions do not apply to it — rather
 than context an author selects. Declare it in `variables.tf` regardless; undeclared, terraform prints

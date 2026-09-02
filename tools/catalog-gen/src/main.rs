@@ -559,7 +559,7 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
 const ALWAYS_INJECTED_VARIABLES: [&str; 1] = ["qovery_user_provided_network"];
 
 /// Terraform variables a `contextVariables[].source` fills, given the entry's declared name.
-/// Mirrors the engine's `inject_context_variables`; anything else is a typo that would leave the
+/// Mirrors q-core's `BlueprintContextResolver`; anything else is a typo that would leave the
 /// variable silently unset, which is how `qovery_cluster_id` went missing for a whole release.
 fn source_targets(source: &str, declared_name: &str) -> Option<Vec<String>> {
     match source {
