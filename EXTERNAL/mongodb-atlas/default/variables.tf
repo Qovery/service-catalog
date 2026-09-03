@@ -82,11 +82,11 @@ variable "backup_enabled" {
 # Database user
 variable "db_username" {
   type        = string
-  default     = "qoveryadmin"
-  description = "Database user to create (SCRAM auth, readWriteAnyDatabase)"
+  default     = ""
+  description = "Database user to create (SCRAM auth, readWriteAnyDatabase). Empty uses qoveryadmin, the login the native managed databases used."
 
   validation {
-    condition     = length(var.db_username) > 0
+    condition     = var.db_username == "" || (length(var.db_username) > 0)
     error_message = "db_username must not be empty."
   }
 }

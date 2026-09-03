@@ -91,13 +91,12 @@ spec:
     - name: "db_username"
       type: "string"
       required: false
-      default: "qoveryadmin"
-      description: "Database user to create (SCRAM auth, readWriteAnyDatabase)"
+      description: "Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin."
     - name: "db_password"
       type: "string"
       required: false
       sensitive: true
-      description: "Password for the database user (min 8 chars). Leave empty to let Qovery generate a 32-character alphanumeric password."
+      description: "Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: min 8 chars."
     - name: "ip_access_list_cidr"
       type: "string"
       required: false

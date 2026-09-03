@@ -52,22 +52,22 @@ variable "db_name" {
 
 variable "db_username" {
   type        = string
-  default     = "qoveryadmin"
-  description = "Database username (letters, digits, underscores; must start with a letter; max 63 chars)"
+  default     = ""
+  description = "Database username (letters, digits, underscores; must start with a letter; max 63 chars). Empty uses qoveryadmin, the login the native managed databases used."
 
   validation {
-    condition     = length(var.db_username) >= 1 && length(var.db_username) <= 63
+    condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 63)
     error_message = "db_username must be between 1 and 63 characters."
   }
 
   validation {
-    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
+    condition     = var.db_username == "" || (can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username)))
     error_message = "db_username must start with a letter and contain only letters, digits, and underscores."
   }
 
   validation {
     # Scaleway managed PostgreSQL reserved user names (rdb_admin is Scaleway's internal admin)
-    condition     = !contains(["rdb_admin", "postgres"], lower(var.db_username)) && !startswith(lower(var.db_username), "pg_")
+    condition     = var.db_username == "" || (!contains(["rdb_admin", "postgres"], lower(var.db_username)) && !startswith(lower(var.db_username), "pg_"))
     error_message = "db_username must not be a reserved word. Reserved names: rdb_admin, postgres, and any name starting with 'pg_'."
   }
 }
@@ -76,7 +76,7 @@ variable "db_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Database user password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character alphanumeric password."
+  description = "Database user password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character password."
 
   validation {
     condition     = var.db_password == "" || (length(var.db_password) >= 8 && length(var.db_password) <= 128)

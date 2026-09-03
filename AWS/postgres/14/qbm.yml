@@ -54,8 +54,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: false
-      default: "qoveryadmin"
-      description: "Master username. Letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
+      description: "Leave empty to use qoveryadmin, the login the native managed databases used. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
@@ -63,7 +62,7 @@ spec:
       type: "string"
       required: false
       sensitive: true
-      description: 'Master password. 8–128 chars. Must not contain /, @, ", or spaces. Leave empty to let Qovery generate a 32-character alphanumeric password.'
+      description: 'Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces.'
       pattern: '^[^/@" ]+$'
       minLength: 8
       maxLength: 128

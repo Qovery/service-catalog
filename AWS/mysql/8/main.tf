@@ -95,6 +95,7 @@ resource "random_password" "master" {
 }
 
 locals {
+  db_username = var.db_username != "" ? var.db_username : "qoveryadmin"
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
 }
 
@@ -114,7 +115,7 @@ resource "aws_db_instance" "this" {
   iops = var.disk_iops == 0 || !contains(["io1", "io2", "gp3"], var.storage_type) ? null : var.disk_iops
 
   db_name  = var.db_name
-  username = var.db_username
+  username = local.db_username
   password = local.db_password
 
   parameter_group_name = aws_db_parameter_group.mysql.name

@@ -19,13 +19,20 @@ locals {
 
 resource "random_password" "master" {
   length      = 32
-  special     = false
   min_lower   = 1
   min_upper   = 1
   min_numeric = 1
+
+  # The Scaleway RDB API requires "at least one digit, one uppercase, one lowercase and one
+  # special character". The set is narrowed to characters db_password's own pattern accepts
+  # (no /, @, " or space) and that need no escaping inside a connection URI.
+  special          = true
+  min_special      = 1
+  override_special = "-_.!*"
 }
 
 locals {
+  db_username = var.db_username != "" ? var.db_username : "qoveryadmin"
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
 }
 
@@ -41,7 +48,7 @@ resource "scaleway_rdb_instance" "this" {
   volume_size_in_gb = var.volume_type == "lssd" ? null : var.volume_size_gb
 
   # Initial admin user — required by the Scaleway provider on instance create.
-  user_name = var.db_username
+  user_name = local.db_username
   password  = local.db_password
 
   region = var.region

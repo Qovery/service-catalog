@@ -36,6 +36,6 @@ output "db_password" {
 
 output "connection_uri" {
   description = "Ready-to-use SRV connection URI with the db user credentials embedded"
-  value       = replace(mongodbatlas_advanced_cluster.this.connection_strings[0].standard_srv, "mongodb+srv://", "mongodb+srv://${var.db_username}:${local.db_password}@")
+  value       = replace(mongodbatlas_advanced_cluster.this.connection_strings[0].standard_srv, "mongodb+srv://", "mongodb+srv://${local.db_username}:${local.db_password}@")
   sensitive   = true
 }

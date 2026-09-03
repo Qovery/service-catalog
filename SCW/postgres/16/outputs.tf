@@ -15,7 +15,7 @@ output "db_name" {
 
 output "db_username" {
   description = "Database username"
-  value       = var.db_username
+  value       = local.db_username
 }
 
 output "db_password" {

@@ -18,10 +18,19 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 
 ### Credentials
 
+Both are optional — omit them and Qovery supplies the values, the way native managed
+databases did. Omit the variable entirely rather than sending an empty string: the platform
+rejects an empty variable value.
+
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Master username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). |
-| `db_password` | string | yes | _generated_ | Master password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces. Leave empty and Qovery generates a 32-character alphanumeric password, readable from the `db_password` output. |
+| `db_username` | string |  | `qoveryadmin` | Leave empty to use qoveryadmin, the login the native managed databases used. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: admin, rdsadmin, mysql. |
+| `db_password` | string | yes | _generated_ | Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
+
+Adoption (`import_identifier` set) requires both explicitly. `username` is `ForceNew` on
+`aws_db_instance`, so a defaulted value would plan a replacement and destroy the live
+database; and RDS never returns the master password, so a generated one would be published
+as the credential without ever being applied.
 
 ### Instance & storage
 

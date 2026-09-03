@@ -27,10 +27,14 @@ This removes the resource from state without touching the user in Scaleway; the 
 
 ### Credentials
 
+Both are optional — omit them and Qovery supplies the values, the way native managed
+databases did. Omit the variable entirely rather than sending an empty string: the platform
+rejects an empty variable value.
+
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Database username. Letters, digits, underscores; must start with a letter; max 63 chars. |
-| `db_password` | string | yes | _generated_ | Database user password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces. Leave empty and Qovery generates a 32-character alphanumeric password, readable from the `db_password` output. |
+| `db_username` | string |  | `qoveryadmin` | Leave empty to use qoveryadmin, the login the native managed databases used. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: rdb_admin, postgres, or any name starting with 'pg_'. |
+| `db_password` | string | yes | _generated_ | Leave empty and Qovery generates a 32-character password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
 
 ### Engine & sizing
 

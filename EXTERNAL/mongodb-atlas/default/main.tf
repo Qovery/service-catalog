@@ -27,12 +27,13 @@ resource "random_password" "master" {
 }
 
 locals {
+  db_username = var.db_username != "" ? var.db_username : "qoveryadmin"
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
 }
 
 resource "mongodbatlas_database_user" "this" {
   project_id         = var.project_id
-  username           = var.db_username
+  username           = local.db_username
   password           = local.db_password
   auth_database_name = "admin"
 

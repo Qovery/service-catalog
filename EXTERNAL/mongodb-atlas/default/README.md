@@ -19,10 +19,14 @@ A MongoDB Atlas **programmatic API key** (public + private) supplied as variable
 
 ### Credentials
 
+Both are optional — omit them and Qovery supplies the values, the way native managed
+databases did. Omit the variable entirely rather than sending an empty string: the platform
+rejects an empty variable value.
+
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Database user to create (readWriteAnyDatabase) |
-| `db_password` | string | yes | _generated_ | Password for the database user (min 8 chars). Leave empty and Qovery generates a 32-character alphanumeric password, readable from the `db_password` output. |
+| `db_username` | string |  | `qoveryadmin` | Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin. |
+| `db_password` | string | yes | _generated_ | Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: min 8 chars. |
 
 ### Cluster shape
 
