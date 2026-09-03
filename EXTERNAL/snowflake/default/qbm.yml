@@ -1,0 +1,165 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "snowflake-database"
+  version: "1.0.0"
+  description: "Provision a Snowflake database, schema, warehouse and application role, with an optional SERVICE user and generated key pair so an application on any cloud — AWS, Azure, Scaleway or GCP — can connect"
+  icon: "app://qovery-console/snowflake"
+  serviceFamily: "snowflake"
+  categories:
+    - "data-warehouse"
+    - "analytics"
+    - "snowflake"
+
+spec:
+  engine:
+    type: terraform
+    provider: EXTERNAL
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
+  variables:
+    - name: "snowflake_organization_name"
+      type: "string"
+      required: true
+      description: "Snowflake organization name — the first half of the account identifier (the ORGNAME in ORGNAME-ACCOUNTNAME)"
+    - name: "snowflake_account_name"
+      type: "string"
+      required: true
+      description: "Snowflake account name — the second half of the account identifier, not the legacy account locator"
+    - name: "snowflake_user"
+      type: "string"
+      required: true
+      description: "Snowflake user Terraform authenticates as. Its RSA public key must already be registered on the user."
+    - name: "snowflake_private_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "PEM-encoded PKCS#8 private key matching the public key registered on snowflake_user"
+    - name: "snowflake_private_key_passphrase"
+      type: "string"
+      required: false
+      sensitive: true
+      description: "Passphrase protecting snowflake_private_key. Empty = the key is unencrypted."
+    - name: "snowflake_role"
+      type: "string"
+      required: false
+      default: "ACCOUNTADMIN"
+      description: "Role Terraform runs as. It must be able to create databases, warehouses, roles and users, and to grant them — SYSADMIN alone cannot create a role."
+    - name: "database_name"
+      type: "string"
+      required: true
+      description: "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier."
+      pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
+      maxLength: 255
+    - name: "schema_name"
+      type: "string"
+      required: false
+      default: "APP"
+      description: "Schema created inside the database. Upper-cased before use."
+      pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
+      maxLength: 255
+    - name: "warehouse_name"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the database name as <database_name>_WH. Set it only to match an existing naming convention."
+    - name: "warehouse_size"
+      type: "string"
+      required: false
+      default: "XSMALL"
+      description: "Compute size of the created warehouse. Each step up doubles the credit burn per second of runtime."
+      allowedValues:
+        - "XSMALL"
+        - "SMALL"
+        - "MEDIUM"
+        - "LARGE"
+        - "XLARGE"
+        - "XXLARGE"
+        - "XXXLARGE"
+        - "X4LARGE"
+    - name: "auto_suspend_seconds"
+      type: "number"
+      required: false
+      default: "60"
+      description: "Idle seconds before the warehouse suspends. This is the main cost control: a warehouse bills for every second it stays up."
+      min: 60
+      max: 3600
+    - name: "data_retention_time_in_days"
+      type: "number"
+      required: false
+      default: "1"
+      description: "Time Travel window on the database, in days. Above 1 requires Enterprise Edition; 0 disables Time Travel and with it UNDROP."
+      min: 0
+      max: 90
+    - name: "role_name"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the database name as <database_name>_APP. This is the account role holding the grants."
+    - name: "schema_privileges"
+      type: "string"
+      required: false
+      default: "USAGE,CREATE TABLE,CREATE VIEW,CREATE STAGE"
+      description: "Comma-separated privileges granted to the role on the schema itself"
+    - name: "table_privileges"
+      type: "string"
+      required: false
+      default: "SELECT,INSERT,UPDATE,DELETE"
+      description: "Comma-separated privileges granted to the role on future tables in the schema"
+    - name: "grant_future_table_privileges"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Grant table_privileges on future tables in the schema. Set false to manage table grants yourself."
+    - name: "create_service_user"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Create a SERVICE user with a generated RSA key pair and grant it the role, so an application on any cloud can connect. Set false to attach your own users to the role."
+    - name: "service_user_name"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the database name as <database_name>_APP_USER. Only used when create_service_user is true."
+    - name: "grant_role_to_user"
+      type: "string"
+      required: false
+      description: "Existing Snowflake user to also grant the role to. Unset = grant it to nobody beyond the created service user."
+
+  outputs:
+    - name: "account_identifier"
+      description: "Account identifier (ORGNAME-ACCOUNTNAME)"
+    - name: "account_url"
+      description: "Account URL to connect to"
+    - name: "database_name"
+      description: "Database created by this blueprint"
+    - name: "schema_name"
+      description: "Schema created inside the database"
+    - name: "warehouse_name"
+      description: "Warehouse created by this blueprint"
+    - name: "role_name"
+      description: "Account role holding the grants on the database, schema and warehouse"
+    - name: "service_user_name"
+      description: "SERVICE user granted the role (empty when create_service_user is false)"
+    - name: "service_user_private_key"
+      description: "PEM-encoded PKCS#8 private key for the SERVICE user, as the Snowflake drivers expect for key-pair auth"
+      sensitive: true
+    - name: "jdbc_url"
+      description: "JDBC URL preset to the created database, schema, warehouse and role"

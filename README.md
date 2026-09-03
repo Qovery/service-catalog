@@ -45,12 +45,15 @@ They authenticate through their own sensitive variables (`credentials` mode is `
 | Service          | Path                                | Description                                    |
 | ---------------- | ----------------------------------- | ---------------------------------------------- |
 | Aiven Kafka      | `EXTERNAL/aiven-kafka/default/`     | Managed Kafka on Aiven                         |
+| AWS Bedrock      | `EXTERNAL/bedrock/default/`         | Scoped Bedrock model access (IAM policy, optional user + keys, optional invocation logging) |
+| BigQuery         | `EXTERNAL/bigquery/default/`        | Google BigQuery dataset with an optional service account and key |
 | Cloudflare DNS   | `EXTERNAL/cloudflare-dns-zone/default/` | Cloudflare DNS zone and records            |
 | Cloudflare Workers | `EXTERNAL/cloudflare-workers/default/` | Cloudflare Worker script with optional route |
 | Confluent Kafka  | `EXTERNAL/confluent-kafka/default/` | Managed Kafka on Confluent Cloud               |
 | MongoDB Atlas    | `EXTERNAL/mongodb-atlas/default/`   | MongoDB Atlas cluster                          |
 | PlanetScale      | `EXTERNAL/planetscale/default/`     | PlanetScale MySQL database                     |
 | Redpanda Kafka   | `EXTERNAL/redpanda-kafka/default/`  | Managed Kafka-compatible Redpanda cluster      |
+| Snowflake        | `EXTERNAL/snowflake/default/`       | Snowflake database, schema, warehouse and app role, with an optional SERVICE user |
 | Temporal Cloud   | `EXTERNAL/temporal-cloud/default/`  | Temporal Cloud namespace                       |
 | Timescale Cloud  | `EXTERNAL/timescale-cloud/default/` | Timescale Cloud service                        |
 

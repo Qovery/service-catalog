@@ -1,0 +1,130 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "bigquery-dataset"
+  version: "1.0.0"
+  description: "Provision a Google BigQuery dataset with an optional dedicated service account and key, so an application on any cloud — AWS, Azure, Scaleway or GCP — can query it"
+  icon: "app://qovery-console/bigquery"
+  serviceFamily: "bigquery"
+  categories:
+    - "data-warehouse"
+    - "analytics"
+    - "bigquery"
+
+spec:
+  engine:
+    type: terraform
+    provider: EXTERNAL
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
+  variables:
+    - name: "gcp_service_account_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when create_service_account is true."
+    - name: "gcp_project_id"
+      type: "string"
+      required: true
+      description: "Google Cloud project the dataset is created in"
+      pattern: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+    - name: "dataset_id"
+      type: "string"
+      required: true
+      description: "BigQuery dataset id, up to 1024 chars of letters, digits and underscores (BigQuery rejects hyphens)"
+      pattern: "^[a-zA-Z0-9_]+$"
+      maxLength: 1024
+    - name: "location"
+      type: "string"
+      required: false
+      default: "US"
+      description: "Dataset location: a multi-region (US, EU) or a region (europe-west1, us-central1). Immutable — changing it recreates the dataset and destroys its tables."
+    - name: "friendly_name"
+      type: "string"
+      required: false
+      description: "Display name shown in the BigQuery console. Empty = show the dataset id."
+    - name: "dataset_description"
+      type: "string"
+      required: false
+      description: "Free-text description attached to the dataset. Empty = no description."
+    - name: "default_table_expiration_ms"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Lifetime in milliseconds of a table created without its own expiration. 0 = tables never expire. BigQuery rejects anything below 3600000 (1 hour)."
+      min: 0
+    - name: "default_partition_expiration_ms"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Lifetime in milliseconds of a partition created without its own expiration. 0 = partitions never expire. BigQuery rejects anything below 3600000 (1 hour)."
+      min: 0
+    - name: "delete_contents_on_destroy"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Allow destroying the dataset while it still holds tables. Left false, a destroy fails rather than silently dropping data."
+    - name: "create_service_account"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Create a dedicated service account with a key so an application running on any cloud can reach the dataset. Set false to manage access yourself."
+    - name: "service_account_id"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the dataset id as qovery-bq-<dataset>. Set it only when that derived id collides with an existing service account in the project."
+      pattern: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+    - name: "service_account_role"
+      type: "string"
+      required: false
+      default: "roles/bigquery.dataEditor"
+      description: "Dataset-level role granted to the created service account"
+      allowedValues:
+        - "roles/bigquery.dataViewer"
+        - "roles/bigquery.dataEditor"
+        - "roles/bigquery.dataOwner"
+    - name: "grant_job_user"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Also grant the created service account roles/bigquery.jobUser on the project. Without it the account can read and write table data but cannot run a query — job creation is a project-level right that no dataset role carries."
+
+  outputs:
+    - name: "dataset_id"
+      description: "BigQuery dataset id"
+    - name: "project_id"
+      description: "Project the dataset lives in"
+    - name: "location"
+      description: "Dataset location"
+    - name: "dataset_reference"
+      description: "Fully qualified dataset reference (project.dataset), the form BigQuery SQL and client libraries expect"
+    - name: "self_link"
+      description: "Dataset REST resource URI"
+    - name: "service_account_email"
+      description: "Email of the created service account (empty when create_service_account is false)"
+    - name: "service_account_key_json"
+      description: "Service account key as raw JSON, for GOOGLE_APPLICATION_CREDENTIALS or a client library"
+      sensitive: true
+    - name: "service_account_key_base64"
+      description: "Same key, base64-encoded as the API returns it — the friendlier form for a single-line environment variable"
+      sensitive: true

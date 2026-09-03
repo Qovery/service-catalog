@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-03T08:12:32Z",
+  "generatedAt": "2026-09-03T13:37:47Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -128,6 +128,44 @@
       ]
     },
     {
+      "name": "aws-bedrock-access",
+      "kind": "ServiceBlueprint",
+      "description": "Provision scoped AWS Bedrock access — an IAM policy, an optional IAM user with keys, and optional invocation logging — so an application on any cloud (AWS, Azure, Scaleway or GCP) can call Bedrock models",
+      "icon": "app://qovery-console/bedrock",
+      "categories": [
+        "ai",
+        "llm",
+        "bedrock"
+      ],
+      "provider": "EXTERNAL",
+      "serviceFamily": "bedrock",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "EXTERNAL/bedrock/default/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "bigquery-dataset",
+      "kind": "ServiceBlueprint",
+      "description": "Provision a Google BigQuery dataset with an optional dedicated service account and key, so an application on any cloud — AWS, Azure, Scaleway or GCP — can query it",
+      "icon": "app://qovery-console/bigquery",
+      "categories": [
+        "data-warehouse",
+        "analytics",
+        "bigquery"
+      ],
+      "provider": "EXTERNAL",
+      "serviceFamily": "bigquery",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "EXTERNAL/bigquery/default/1.0.0"
+        }
+      ]
+    },
+    {
       "name": "cloudflare-dns-zone",
       "kind": "ServiceBlueprint",
       "description": "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider",
@@ -237,6 +275,25 @@
         {
           "serviceVersion": "default",
           "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.3"
+        }
+      ]
+    },
+    {
+      "name": "snowflake-database",
+      "kind": "ServiceBlueprint",
+      "description": "Provision a Snowflake database, schema, warehouse and application role, with an optional SERVICE user and generated key pair so an application on any cloud — AWS, Azure, Scaleway or GCP — can connect",
+      "icon": "app://qovery-console/snowflake",
+      "categories": [
+        "data-warehouse",
+        "analytics",
+        "snowflake"
+      ],
+      "provider": "EXTERNAL",
+      "serviceFamily": "snowflake",
+      "majorVersions": [
+        {
+          "serviceVersion": "default",
+          "latestTag": "EXTERNAL/snowflake/default/1.0.0"
         }
       ]
     },
