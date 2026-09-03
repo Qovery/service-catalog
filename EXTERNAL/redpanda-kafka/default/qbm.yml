@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "redpanda-kafka"
-  version: "1.0.1"
+  version: "1.0.3"
   description: "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider"
   icon: "app://qovery-console/kafka"
   serviceFamily: "redpanda-kafka"

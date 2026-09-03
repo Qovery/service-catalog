@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-08-31T17:23:56Z",
+  "generatedAt": "2026-09-03T06:51:07Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -17,7 +17,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/cloudfront/default/1.0.2"
+          "latestTag": "AWS/cloudfront/default/1.0.4"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/msk/default/1.0.1"
+          "latestTag": "AWS/msk/default/1.0.3"
         }
       ]
     },
@@ -55,7 +55,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/2.0.1"
+          "latestTag": "AWS/mysql/8/2.0.5"
         }
       ]
     },
@@ -74,19 +74,19 @@
       "majorVersions": [
         {
           "serviceVersion": "14",
-          "latestTag": "AWS/postgres/14/3.0.1"
+          "latestTag": "AWS/postgres/14/3.0.5"
         },
         {
           "serviceVersion": "15",
-          "latestTag": "AWS/postgres/15/3.0.1"
+          "latestTag": "AWS/postgres/15/3.0.5"
         },
         {
           "serviceVersion": "16",
-          "latestTag": "AWS/postgres/16/3.0.1"
+          "latestTag": "AWS/postgres/16/3.0.5"
         },
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/3.0.1"
+          "latestTag": "AWS/postgres/17/3.0.5"
         }
       ]
     },
@@ -104,7 +104,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.1.2"
+          "latestTag": "AWS/s3/default/1.1.6"
         }
       ]
     },
@@ -123,7 +123,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/aiven-kafka/default/1.0.1"
+          "latestTag": "EXTERNAL/aiven-kafka/default/1.0.3"
         }
       ]
     },
@@ -141,7 +141,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/cloudflare-dns-zone/default/1.0.2"
+          "latestTag": "EXTERNAL/cloudflare-dns-zone/default/1.0.4"
         }
       ]
     },
@@ -160,7 +160,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/cloudflare-workers/default/1.0.3"
+          "latestTag": "EXTERNAL/cloudflare-workers/default/1.0.5"
         }
       ]
     },
@@ -179,7 +179,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.1"
+          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.3"
         }
       ]
     },
@@ -198,7 +198,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/mongodb-atlas/default/1.0.2"
+          "latestTag": "EXTERNAL/mongodb-atlas/default/1.0.4"
         }
       ]
     },
@@ -217,7 +217,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/planetscale/default/1.0.2"
+          "latestTag": "EXTERNAL/planetscale/default/1.0.4"
         }
       ]
     },
@@ -236,7 +236,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.1"
+          "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.3"
         }
       ]
     },
@@ -255,7 +255,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/temporal-cloud/default/1.0.2"
+          "latestTag": "EXTERNAL/temporal-cloud/default/1.0.4"
         }
       ]
     },
@@ -274,7 +274,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.2"
+          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.4"
         }
       ]
     },
@@ -293,7 +293,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "GCP/redis/7/1.0.1"
+          "latestTag": "GCP/redis/7/1.0.4"
         }
       ]
     },
@@ -312,7 +312,7 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "HELM/datadog/7/3.0.0"
+          "latestTag": "HELM/datadog/7/3.0.1"
         }
       ]
     },
@@ -386,7 +386,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.3.0"
+          "latestTag": "SCW/mysql/8/1.3.3"
         }
       ]
     },
@@ -404,7 +404,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.1.2"
+          "latestTag": "SCW/object-storage/default/1.1.6"
         }
       ]
     },
@@ -423,7 +423,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.3.0"
+          "latestTag": "SCW/postgres/16/1.3.3"
         }
       ]
     }

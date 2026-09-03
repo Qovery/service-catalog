@@ -49,10 +49,10 @@ variable "kafka_version" {
 
 variable "qovery_cluster_name" {
   type        = string
-  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+  description = "Qovery cluster name, injected from the qbm.yml `cluster.name` context variable"
 }
 
 variable "region" {
   type        = string
-  description = "Qovery cluster region, injected by the engine on every Terraform blueprint"
+  description = "Qovery cluster region, injected from the qbm.yml `cluster.region` context variable"
 }

@@ -6,14 +6,17 @@ variable "region" {
 
 variable "qovery_cluster_id" {
   type        = string
-  default     = ""
   description = "Qovery cluster short id; used to auto-discover the cluster VPC/subnets/security group."
 }
 
 variable "qovery_cluster_name" {
   type        = string
-  default     = ""
   description = "Qovery cluster name, used for resource tagging."
+}
+
+variable "qovery_cluster_long_id" {
+  type        = string
+  description = "Qovery cluster long id."
 }
 
 # User-provided variables

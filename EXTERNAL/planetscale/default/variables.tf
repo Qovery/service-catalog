@@ -71,5 +71,5 @@ variable "role" {
 
 variable "qovery_cluster_name" {
   type        = string
-  description = "Qovery cluster name, injected by the engine on every Terraform blueprint"
+  description = "Qovery cluster name, injected from the qbm.yml `cluster.name` context variable"
 }

@@ -6,7 +6,6 @@ variable "region" {
 
 variable "qovery_cluster_name" {
   type        = string
-  default     = ""
   description = "Qovery cluster name, used for resource tagging"
 }
 

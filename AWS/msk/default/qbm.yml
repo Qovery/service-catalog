@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-msk"
-  version: "1.0.1"
+  version: "1.0.3"
   description: "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network"
   icon: "app://qovery-console/kafka"
   serviceFamily: "msk"
@@ -39,6 +39,8 @@ spec:
       overridable: true
     - name: "qovery_cluster_name"
       source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
 
   variables:
     - name: "cluster_name"
