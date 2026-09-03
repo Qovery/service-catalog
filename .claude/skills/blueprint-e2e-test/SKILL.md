@@ -191,20 +191,43 @@ keeps its *previous* terminal state for a while, so `state != DEPLOYING` reads a
 deployment that has not started yet — and a stale `DEPLOYMENT_ERROR` from an earlier round looks
 like your run failed. Wait on the deployment record instead:
 
+Scope that to **your** service, not `.results[0]`. Each history record carries the services it
+covers, so filter on the `service_id` instead of taking the newest deployment in the environment —
+otherwise on a shared environment you are watching whatever somebody else deployed last:
+
 ```sh
 while true; do
   S=$(curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
-    "$API/environment/$ENVIRONMENT_ID/deploymentHistory?pageSize=1" | jq -r '.results[0].status')
+    "$API/environment/$ENVIRONMENT_ID/deploymentHistory" \
+    | jq -r --arg svc "$SERVICE_ID" '
+        [.results[] | select(any(.terraforms[]?; .id == $svc))][0] as $d
+        | if $d == null then "NOT_IN_WINDOW"
+          else ([$d.terraforms[] | select(.id == $svc) | .status][0] // "UNKNOWN") end')
   case "$S" in
-    DEPLOYING|QUEUED|BUILDING|DELETING|""|null) sleep 20 ;;
+    *QUEUED|DEPLOYING|BUILDING|DELETING|""|null) sleep 20 ;;
     *) echo "terminal: $S"; break ;;
   esac
 done
 ```
 
-Also note the environment-level state aggregates **every** service in it. On a shared test
-environment a `DEPLOYMENT_ERROR` there is usually somebody else's broken service; judge your own
-run by its deployment status and its service logs, not by the environment.
+Three details that matter, all of them observed rather than assumed:
+
+- The entries are keyed `.terraforms[].id` — the service id directly. There is no
+  `.identifier.service_id` here, unlike the per-service status blocks elsewhere in the API.
+- Read the status off the **service** entry, not the record. They differ: a record reporting
+  `DEPLOYED` at environment level had `DELETED` for the service that had just been torn down.
+- The history window is finite and `pageSize` is ignored (asking for 3 returns 20), so a service
+  whose deployment has aged out returns nothing. That is `NOT_IN_WINDOW` above, and it means "no
+  longer visible", not "still running" — treat it as terminal-unknown rather than looping forever.
+
+Use `.helms[]?` instead of `.terraforms[]?` for a Helm blueprint. There is no per-service
+deployment-status endpoint, so this filter is the only way to scope the wait; a dedicated
+environment avoids the problem entirely and is worth it if you have one.
+
+The same aggregation applies to the environment-level state, which covers **every** service in the
+environment. On a shared test environment a `DEPLOYMENT_ERROR` there is usually somebody else's
+broken service; judge your own run by its scoped deployment status and its service logs, never by
+the environment.
 
 **Check the HTTP status, don't just `jq` the body.** This API answers an unknown route with
 `404` and a JSON error object, so `jq '.results | length'` on it prints `0` and

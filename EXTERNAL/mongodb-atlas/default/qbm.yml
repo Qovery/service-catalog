@@ -91,7 +91,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: false
-      description: "Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin."
+      description: "Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin. Atlas keys users by (username, auth database) per project, so a second database in the same Atlas project needs a distinct username."
     - name: "db_password"
       type: "string"
       required: false

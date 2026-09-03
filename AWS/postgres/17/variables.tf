@@ -48,7 +48,7 @@ variable "db_name" {
 variable "db_username" {
   type        = string
   default     = ""
-  description = "Master username (letters, digits, underscores; must start with a letter; max 63 chars). Empty uses qoveryadmin, the login the native managed databases used."
+  description = "Master username (letters, digits, underscores; must start with a letter; max 63 chars). Empty uses qoveryadmin, the login used by native managed databases."
 
   validation {
     condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 63)

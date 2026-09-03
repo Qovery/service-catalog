@@ -61,7 +61,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: false
-      description: "Leave empty to use qoveryadmin, the login the native managed databases used. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: rdb_admin, mysql."
+      description: "Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: rdb_admin, mysql."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,31}$"
       minLength: 1
       maxLength: 32

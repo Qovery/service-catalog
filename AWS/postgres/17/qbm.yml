@@ -54,7 +54,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: false
-      description: "Leave empty to use qoveryadmin, the login the native managed databases used. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
+      description: "Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63

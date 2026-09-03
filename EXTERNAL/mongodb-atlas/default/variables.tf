@@ -83,11 +83,13 @@ variable "backup_enabled" {
 variable "db_username" {
   type        = string
   default     = ""
-  description = "Database user to create (SCRAM auth, readWriteAnyDatabase). Empty uses qoveryadmin, the login the native managed databases used."
+  description = "Database user to create (SCRAM auth, readWriteAnyDatabase). Empty uses qoveryadmin, the login used by native managed databases. Atlas keys users by (username, auth database) per project, so a second database in the same Atlas project needs a distinct username."
 
   validation {
-    condition     = var.db_username == "" || (length(var.db_username) > 0)
-    error_message = "db_username must not be empty."
+    # Empty is the sentinel that selects the qoveryadmin fallback. Anything supplied has to be a
+    # real username, so a blank-but-not-empty value is rejected instead of used verbatim.
+    condition     = var.db_username == "" || trimspace(var.db_username) != ""
+    error_message = "db_username must not be blank. Omit it entirely to use the qoveryadmin default."
   }
 }
 
