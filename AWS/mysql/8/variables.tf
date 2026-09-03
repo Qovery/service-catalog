@@ -46,6 +46,7 @@ variable "db_name" {
 
 variable "db_username" {
   type        = string
+  default     = "qoveryadmin"
   description = "Master username (letters, digits, underscores; must start with a letter; max 32 chars)"
 
   validation {
@@ -68,10 +69,11 @@ variable "db_username" {
 variable "db_password" {
   type        = string
   sensitive   = true
-  description = "Master password (8–128 chars; must not contain /, @, \", or spaces)"
+  default     = ""
+  description = "Master password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character alphanumeric password."
 
   validation {
-    condition     = length(var.db_password) >= 8 && length(var.db_password) <= 128
+    condition     = var.db_password == "" || (length(var.db_password) >= 8 && length(var.db_password) <= 128)
     error_message = "db_password must be between 8 and 128 characters."
   }
 

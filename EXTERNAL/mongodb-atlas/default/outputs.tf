@@ -30,12 +30,12 @@ output "db_username" {
 
 output "db_password" {
   description = "Database user password"
-  value       = var.db_password
+  value       = local.db_password
   sensitive   = true
 }
 
 output "connection_uri" {
   description = "Ready-to-use SRV connection URI with the db user credentials embedded"
-  value       = replace(mongodbatlas_advanced_cluster.this.connection_strings[0].standard_srv, "mongodb+srv://", "mongodb+srv://${var.db_username}:${var.db_password}@")
+  value       = replace(mongodbatlas_advanced_cluster.this.connection_strings[0].standard_srv, "mongodb+srv://", "mongodb+srv://${var.db_username}:${local.db_password}@")
   sensitive   = true
 }

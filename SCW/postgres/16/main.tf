@@ -17,6 +17,22 @@ locals {
   ]
 }
 
+# Native managed databases had Qovery mint the master credentials, so an empty db_password keeps
+# that behaviour instead of forcing the user to invent one. Alphanumeric only, to stay inside every
+# engine's allowed password character set. Created unconditionally: behind a conditional count, the
+# unselected branch of the local below would index an empty list.
+resource "random_password" "master" {
+  length      = 32
+  special     = false
+  min_lower   = 1
+  min_upper   = 1
+  min_numeric = 1
+}
+
+locals {
+  db_password = var.db_password != "" ? var.db_password : random_password.master.result
+}
+
 resource "scaleway_rdb_instance" "this" {
   name           = "${var.qovery_cluster_name}-${var.instance_name}"
   node_type      = var.node_type
@@ -30,7 +46,7 @@ resource "scaleway_rdb_instance" "this" {
 
   # Initial admin user — required by the Scaleway provider on instance create.
   user_name = var.db_username
-  password  = var.db_password
+  password  = local.db_password
 
   region = var.region
 

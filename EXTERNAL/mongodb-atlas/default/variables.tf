@@ -82,6 +82,7 @@ variable "backup_enabled" {
 # Database user
 variable "db_username" {
   type        = string
+  default     = "qoveryadmin"
   description = "Database user to create (SCRAM auth, readWriteAnyDatabase)"
 
   validation {
@@ -93,10 +94,11 @@ variable "db_username" {
 variable "db_password" {
   type        = string
   sensitive   = true
-  description = "Password for the database user"
+  default     = ""
+  description = "Password for the database user. Empty generates a 32-character alphanumeric password."
 
   validation {
-    condition     = length(var.db_password) >= 8
+    condition     = var.db_password == "" || length(var.db_password) >= 8
     error_message = "db_password must be at least 8 characters."
   }
 }

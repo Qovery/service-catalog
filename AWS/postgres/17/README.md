@@ -11,10 +11,15 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | Name          | Type   | Sensitive | Description                                                                                                                   |
 | ------------- | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `db_name`     | string |           | PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed. |
-| `db_username` | string |           | Master username. Letters, digits, underscores; must start with a letter; max 63 chars.                                        |
-| `db_password` | string | yes       | Master password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                                      |
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
 | `allocated_storage` | number |           | Allocated storage in GiB (min 20, max 65536). Default suggestion: `20`.                             |
+
+### Credentials
+
+| Name | Type | Sensitive | Default | Description |
+| ---- | ---- | --------- | ------- | ----------- |
+| `db_username` | string |  | `qoveryadmin` | Master username. Letters, digits, underscores; must start with a letter; max 63 chars. |
+| `db_password` | string | yes | _generated_ | Master password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces. Leave empty and Qovery generates a 32-character alphanumeric password, readable from the `db_password` output. |
 
 ### Instance & storage
 
@@ -95,7 +100,7 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | `db_port`                  |           | RDS instance port                                          |
 | `db_name`                  |           | Database name                                              |
 | `db_username`              |           | Master username                                            |
-| `db_password`              | yes       | Master password (echo of the input)                        |
+| `db_password`              | yes       | Master password (generated when the input was left empty)                        |
 | `db_resource_id`           |           | RDS internal resource ID (used in IAM DB auth ARNs)        |
 | `db_arn`                   |           | RDS instance ARN                                           |
 | `db_engine_version_actual` |           | Engine version actually running (incl. AWS-chosen minor)   |

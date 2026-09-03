@@ -20,7 +20,7 @@ output "db_username" {
 
 output "db_password" {
   description = "Database user password"
-  value       = var.db_password
+  value       = local.db_password
   sensitive   = true
 }
 

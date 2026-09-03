@@ -22,10 +22,15 @@ This removes the resource from state without touching the user in Scaleway; the 
 | --------------- | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `instance_name` | string |           | Instance name suffix. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars.                |
 | `db_name`       | string |           | PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed. |
-| `db_username`   | string |           | Database username. Letters, digits, underscores; must start with a letter; max 63 chars.                                      |
-| `db_password`   | string | yes       | Database user password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                               |
 | `node_type`      | string |          | Scaleway node type (e.g. `DB-DEV-S`, `DB-GP-XS`). Default suggestion: `DB-DEV-S`.         |
 | `volume_size_gb` | number |          | Volume size in GB (min 5, max 10000). Default suggestion: `5`.                     |
+
+### Credentials
+
+| Name | Type | Sensitive | Default | Description |
+| ---- | ---- | --------- | ------- | ----------- |
+| `db_username` | string |  | `qoveryadmin` | Database username. Letters, digits, underscores; must start with a letter; max 63 chars. |
+| `db_password` | string | yes | _generated_ | Database user password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces. Leave empty and Qovery generates a 32-character alphanumeric password, readable from the `db_password` output. |
 
 ### Engine & sizing
 
@@ -51,7 +56,7 @@ This removes the resource from state without touching the user in Scaleway; the 
 | `endpoint_port` |           | Database endpoint port (Load Balancer)                            |
 | `db_name`       |           | Database name                                                     |
 | `db_username`   |           | Database username                                                 |
-| `db_password`   | yes       | Database user password (echo of the input)                        |
+| `db_password`   | yes       | Database user password (generated when the input was left empty)                        |
 | `instance_id`   |           | Scaleway RDB instance ID                                          |
 | `certificate`   | yes       | TLS CA certificate served by the database (PEM, verify-full SSL)  |
 

@@ -16,8 +16,13 @@ A MongoDB Atlas **programmatic API key** (public + private) supplied as variable
 | `atlas_private_key` | string | yes       | Atlas programmatic API key — private key                |
 | `project_id`        | string |           | Existing Atlas project ID                               |
 | `cluster_name`      | string |           | Cluster name (`^[a-zA-Z0-9-]{1,64}$`)                   |
-| `db_username`       | string |           | Database user to create (readWriteAnyDatabase)          |
-| `db_password`       | string | yes       | Password for the database user (min 8 chars)            |
+
+### Credentials
+
+| Name | Type | Sensitive | Default | Description |
+| ---- | ---- | --------- | ------- | ----------- |
+| `db_username` | string |  | `qoveryadmin` | Database user to create (readWriteAnyDatabase) |
+| `db_password` | string | yes | _generated_ | Password for the database user (min 8 chars). Leave empty and Qovery generates a 32-character alphanumeric password, readable from the `db_password` output. |
 
 ### Cluster shape
 
@@ -40,7 +45,7 @@ A MongoDB Atlas **programmatic API key** (public + private) supplied as variable
 | `connection_string_srv`      |           | SRV connection string (`mongodb+srv://`)               |
 | `mongo_db_version`           |           | Running MongoDB version                                |
 | `db_username`                |           | Created database username                              |
-| `db_password`                | yes       | Database user password (echo of the input)             |
+| `db_password`                | yes       | Database user password (generated when the input was left empty)             |
 | `connection_uri`             | yes       | Ready-to-use SRV URI with credentials embedded         |
 
 ## Notes
