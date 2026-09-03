@@ -86,10 +86,6 @@ locals {
   )
 }
 
-# Native managed databases had Qovery mint the master credentials, so an empty db_password keeps
-# that behaviour instead of forcing the user to invent one. Alphanumeric only, to stay inside every
-# engine's allowed password character set. Created unconditionally: behind a conditional count, the
-# unselected branch of the local below would index an empty list.
 resource "random_password" "master" {
   length      = 32
   special     = false
