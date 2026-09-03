@@ -25,18 +25,6 @@ variable "qovery_cluster_long_id" {
   type        = string
 }
 
-variable "qovery_project_long_id" {
-  description = "Qovery project long id."
-  type        = string
-  default     = ""
-}
-
-variable "qovery_aws_apn_id" {
-  description = "AWS Partner Network id (AWS Marketplace measurement)."
-  type        = string
-  default     = ""
-}
-
 # -----------------------------------------------------------------------------
 # User Variables
 # -----------------------------------------------------------------------------

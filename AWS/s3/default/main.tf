@@ -12,11 +12,9 @@ resource "aws_s3_bucket" "this" {
     ClusterName = var.qovery_cluster_name
 
     # Native-parity Qovery context tags, filled from the qbm.yml context variables.
-    cluster_id        = var.qovery_cluster_id
-    cluster_long_id   = var.qovery_cluster_long_id
-    region            = var.region
-    q_project_long_id = var.qovery_project_long_id
-    "aws-apn-id"      = var.qovery_aws_apn_id
+    cluster_id      = var.qovery_cluster_id
+    cluster_long_id = var.qovery_cluster_long_id
+    region          = var.region
   }
 }
 

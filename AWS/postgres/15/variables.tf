@@ -19,18 +19,6 @@ variable "qovery_cluster_long_id" {
   description = "Qovery cluster long id."
 }
 
-variable "qovery_project_long_id" {
-  type        = string
-  default     = ""
-  description = "Qovery project long id."
-}
-
-variable "qovery_aws_apn_id" {
-  type        = string
-  default     = ""
-  description = "AWS Partner Network id (AWS Marketplace measurement)."
-}
-
 # Adoption-only: set to the live RDS identifier to import an existing instance
 # instead of creating one. Empty = normal create. See docs/db-blueprint-adoption-migration.md.
 variable "import_identifier" {
