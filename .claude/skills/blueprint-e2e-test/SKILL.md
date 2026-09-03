@@ -18,15 +18,19 @@ works is to deploy it.
 MongoDB Atlas cluster. Confirm the target with the operator before the first call, and state what
 you are about to create.
 
+Needs `QOVERY_API_TOKEN` for the target org, plus `mise`, `jq` and `curl`. Set the shell up once;
+every snippet below reuses these:
+
 ```sh
+export QOVERY_API_TOKEN=...                        # token for the TARGET org
+API="${QOVERY_API_URL:-https://api.qovery.com}"
+ENVIRONMENT_ID=...
+
 curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
   "$API/environment/$ENVIRONMENT_ID" | jq '{name, mode, cluster_name}'
 ```
 
 Proceed only against a test organization in `DEVELOPMENT` mode. Never production.
-
-Needs `QOVERY_API_TOKEN` for the target org, plus `mise`, `jq` and `curl`.
-`API` is `https://api.qovery.com` unless `QOVERY_API_URL` says otherwise.
 
 ## Pick the tag
 
@@ -44,8 +48,27 @@ tags, so a blueprint under test never appears there. There is no `qovery` CLI pa
 
 The PR comment pre-fills every variable that has a `default:` in **this branch's** `qbm.yml`.
 Variables that are required with no default are deliberately left out and listed above the command
-— add them by hand. For `AWS/postgres` that is `db_name`, `db_username`, and `db_password` with
-`"is_secret": true`.
+— add them by hand. For `AWS/postgres` those are `db_name`, `db_username` and `db_password`. Mark
+**only** `db_password` with `"is_secret": true`; `db_name` and `db_username` are ordinary
+identifiers, and flagging them diverges from the generated payload for no benefit. Set `is_secret`
+from the variable's `sensitive: true` in `qbm.yml`, not from a guess.
+
+**Create and update take different shapes for `variables`.** Get this wrong and the call is
+rejected or silently patches nothing:
+
+```jsonc
+// deploy-service-rc -- a LIST of entries
+"variables": [
+  { "name": "db_name",     "value": "probedb" },
+  { "name": "db_password", "value": "…", "is_secret": true }
+]
+
+// update-service-rc -- a name-keyed merge-patch MAP, only the keys you are changing
+"variables": { "instance_class": "db.t3.small" }
+```
+
+`mise.toml` names this: `deploy-service-rc` takes `variables`, `update-service-rc` takes a
+`variables patch map`. An empty `{}` is valid and normal for an update that only moves the tag.
 
 Two rules that are not optional:
 
@@ -62,7 +85,8 @@ Set teardown-friendly values up front where the blueprint offers them —
 ## Flow A — new deploy
 
 ```sh
-mise run deploy-service-rc "$ENVIRONMENT_ID" "$TAG" '<json>'
+TAG=AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc     # from the PR comment
+mise run deploy-service-rc "$ENVIRONMENT_ID" "$TAG" '<json, variables as a LIST>'
 ```
 
 **This fails for every `EXTERNAL` blueprint** with:
@@ -75,10 +99,10 @@ The task posts `?deploy=true`, which q-core refuses for `credentialsMode=ENV` �
 `EXTERNAL` blueprint uses, non-overridably. For those, split it into two calls:
 
 ```sh
-# 1. create (no deploy chaining) -- returns the blueprint id
-curl -s -X POST "$API/environment/$ENVIRONMENT_ID/blueprint" \
+# 1. create (no deploy chaining). The mise task injects the tag; here you add it yourself.
+BLUEPRINT_ID=$(curl -s -X POST "$API/environment/$ENVIRONMENT_ID/blueprint" \
   -H "Authorization: Token $QOVERY_API_TOKEN" -H "Content-Type: application/json" \
-  -d '<json with "tag" included>' | jq -r .id
+  -d '{"name":"…","icon":"…","tag":"'"$TAG"'","variables":[…]}' | jq -r .id)
 
 # 2. deploy it
 curl -s -X POST "$API/blueprint/$BLUEPRINT_ID/deploy" -H "Authorization: Token $QOVERY_API_TOKEN"
@@ -93,14 +117,32 @@ it is the one bugs hide in. Creating a service directly at the tag under test di
 itself and shows nothing.
 
 ```sh
-# 1. create the throwaway on the currently PUBLISHED tag
-mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.0 '<json>'
+# 1. create the throwaway on the currently PUBLISHED tag -- variables is a LIST
+mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.0 '{
+  "name": "rc-test-postgres-17",
+  "icon": "app://qovery-console/postgresql",
+  "variables": [
+    { "name": "db_name",     "value": "probedb" },
+    { "name": "db_username", "value": "probeuser" },
+    { "name": "db_password", "value": "…", "is_secret": true },
+    { "name": "multi_az",    "value": "true" }
+  ]
+}'
 
 # 2. wait for it to finish -- see below; step 3 against a half-built service proves nothing
 
-# 3. move that service to the tag under test
-mise run update-service-rc "$BLUEPRINT_ID" AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '<json>'
+# 3. move that service to the tag under test -- variables is a MERGE-PATCH MAP.
+#    {} keeps every value from step 1 and changes only the tag, which is what you
+#    usually want: the diff then shows the blueprint change, not a config change.
+mise run update-service-rc "$BLUEPRINT_ID" AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '{
+  "name": "rc-test-postgres-17",
+  "icon": "app://qovery-console/postgresql",
+  "variables": {}
+}'
 ```
+
+`$BLUEPRINT_ID` is the `id` returned by step 1 — the blueprint id, not the service id. Passing the
+service id gets you `Cannot find organization for Blueprint <id>`.
 
 Read the plan in step 3 carefully. `Plan: N to add, 0 to change, 0 to destroy` on an *update* means
 the change is additive. Any `to destroy`, or a `must be replaced`, is the finding — that is a
