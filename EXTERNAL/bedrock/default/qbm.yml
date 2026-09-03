@@ -1,0 +1,99 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-bedrock-access"
+  version: "1.0.0"
+  description: "Provision scoped AWS Bedrock access — an IAM policy limited to the models you name, plus an optional IAM user with keys — so an application on any cloud (AWS, Azure, Scaleway or GCP) can call Bedrock models"
+  icon: "app://qovery-console/bedrock"
+  serviceFamily: "bedrock"
+  categories:
+    - "ai"
+    - "llm"
+    - "bedrock"
+
+spec:
+  engine:
+    type: terraform
+    provider: EXTERNAL
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: env
+      allowedValues: ["env"]
+      overridable: false
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+
+  variables:
+    - name: "aws_access_key_id"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Access key id of the AWS principal Terraform authenticates as. Needs IAM write access on users, policies and access keys — including the delete and detach actions, or destroy fails. The blueprint README lists the full set."
+    - name: "aws_secret_access_key"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Secret access key matching aws_access_key_id"
+    - name: "aws_region"
+      type: "string"
+      required: false
+      default: "us-east-1"
+      description: "Region Bedrock is called in. Model availability differs per region — check the model you want is offered there before changing it."
+      pattern: "^[a-z]{2}(-gov)?-[a-z]+-[0-9]$"
+    - name: "name_prefix"
+      type: "string"
+      required: true
+      description: "Prefix for the resources this blueprint names: the IAM user (<prefix>-bedrock) and its policy (<prefix>-bedrock-invoke). Must be unique within the AWS account."
+      pattern: "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,47}$"
+    - name: "allowed_model_ids"
+      type: "string"
+      required: true
+      description: "Comma-separated Bedrock model ids the credentials may invoke, e.g. anthropic.claude-sonnet-4-5-20250929-v1:0. A cross-region id (us.anthropic.…) is expanded to both the inference profile and the underlying foundation model. Pass * to allow every foundation model in the account — deliberately not the default, since that also covers every model added in future."
+    - name: "allow_list_foundation_models"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Also allow read-only discovery calls (ListFoundationModels, GetFoundationModel, ListInferenceProfiles, GetInferenceProfile). Most SDK samples and model pickers call these before invoking."
+    - name: "create_iam_user"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Create an IAM user with a long-lived access key. This is what makes Bedrock reachable from a cluster outside AWS, which has no IAM role to assume. Set false on an AWS cluster and use attach_to_role_name instead."
+    - name: "attach_to_role_name"
+      type: "string"
+      required: false
+      description: "Existing IAM role in the same account to attach the invoke policy to — the keyless path for a workload that already has an AWS identity (IRSA, EC2 instance profile). Unset = attach to nothing."
+
+  outputs:
+    - name: "aws_region"
+      description: "Region the credentials are scoped to call Bedrock in"
+    - name: "account_id"
+      description: "AWS account the Bedrock access was created in"
+    - name: "policy_arn"
+      description: "ARN of the Bedrock invoke policy, for attaching to further principals"
+    - name: "iam_user_name"
+      description: "IAM user holding the invoke policy (empty when create_iam_user is false)"
+    - name: "access_key_id"
+      description: "Access key id for the created IAM user — set it as AWS_ACCESS_KEY_ID"
+      sensitive: true
+    - name: "secret_access_key"
+      description: "Secret access key for the created IAM user — set it as AWS_SECRET_ACCESS_KEY"
+      sensitive: true
+    - name: "bedrock_endpoint"
+      description: "Bedrock runtime endpoint for the region, built from the partition DNS suffix"
+    - name: "allowed_model_arns"
+      description: "Model and inference profile ARNs the credentials may invoke"
