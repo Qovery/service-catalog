@@ -57,18 +57,25 @@ from the variable's `sensitive: true` in `qbm.yml`, not from a guess.
 rejected or silently patches nothing:
 
 ```jsonc
-// deploy-service-rc -- a LIST of entries
+// deploy-service-rc -- a LIST of entries, each carrying its own name
 "variables": [
   { "name": "db_name",     "value": "probedb" },
   { "name": "db_password", "value": "…", "is_secret": true }
 ]
 
-// update-service-rc -- a name-keyed merge-patch MAP, only the keys you are changing
-"variables": { "instance_class": "db.t3.small" }
+// update-service-rc -- a merge-patch MAP keyed by name, only the keys you are changing.
+// The value is an OBJECT, not a bare string.
+"variables": {
+  "instance_class": { "value": "db.t3.small" },
+  "db_password":    { "value": "…", "is_secret": true }
+}
 ```
 
 `mise.toml` names this: `deploy-service-rc` takes `variables`, `update-service-rc` takes a
 `variables patch map`. An empty `{}` is valid and normal for an update that only moves the tag.
+
+If in doubt, copy the shapes straight out of the PR comment — `.github/workflows/validate.yml`
+generates both from the same manifest, so they are correct by construction.
 
 Two rules that are not optional:
 
@@ -117,8 +124,10 @@ it is the one bugs hide in. Creating a service directly at the tag under test di
 itself and shows nothing.
 
 ```sh
-# 1. create the throwaway on the currently PUBLISHED tag -- variables is a LIST
-mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.0 '{
+# 1. create the throwaway on the currently PUBLISHED tag -- variables is a LIST.
+#    The task echoes a "POST <url>" line before the body, so trim to the JSON
+#    before parsing; piping it straight into jq fails on that first line.
+BLUEPRINT_ID=$(mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.0 '{
   "name": "rc-test-postgres-17",
   "icon": "app://qovery-console/postgresql",
   "variables": [
@@ -127,7 +136,7 @@ mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.0 '{
     { "name": "db_password", "value": "…", "is_secret": true },
     { "name": "multi_az",    "value": "true" }
   ]
-}'
+}' | sed -n '/^{/,$p' | jq -r .id)
 
 # 2. wait for it to finish -- see below; step 3 against a half-built service proves nothing
 
