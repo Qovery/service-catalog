@@ -195,30 +195,61 @@ Scope that to **your** service, not `.results[0]`. Each history record carries t
 covers, so filter on the `service_id` instead of taking the newest deployment in the environment —
 otherwise on a shared environment you are watching whatever somebody else deployed last:
 
+**A status alone is not enough — you have to know it belongs to the operation you just triggered.**
+Right after a completed deploy the newest record for that service still reads `DEPLOYED`, so a loop
+that breaks on "any non-running status" returns instantly on the *previous* operation. Capture the
+record id before triggering, and wait for a different one:
+
 ```sh
-while true; do
-  S=$(curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
+# the newest deployment record covering this service, or "none"
+svc_deployment() {
+  curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
     "$API/environment/$ENVIRONMENT_ID/deploymentHistory" \
-    | jq -r --arg svc "$SERVICE_ID" '
-        [.results[] | select(any(.terraforms[]?; .id == $svc))][0] as $d
-        | if $d == null then "NOT_IN_WINDOW"
-          else ([$d.terraforms[] | select(.id == $svc) | .status][0] // "UNKNOWN") end')
+    | jq -c --arg svc "$SERVICE_ID" \
+        '[.results[] | select(any(.terraforms[]?; .id == $svc))][0] // {}'
+}
+
+BEFORE=$(svc_deployment | jq -r '.id // "none"')   # BEFORE you trigger anything
+
+# ... trigger the deploy / update / delete here ...
+
+while true; do
+  D=$(svc_deployment)
+  ID=$(jq -r '.id // "none"' <<<"$D")
+  S=$(jq -r --arg svc "$SERVICE_ID" \
+        '[.terraforms[]? | select(.id == $svc) | .status][0] // "UNKNOWN"' <<<"$D")
+
+  # still showing the pre-trigger record, or nothing yet: our operation has not surfaced
+  if [ "$ID" = "$BEFORE" ] || [ "$ID" = "none" ]; then sleep 20; continue; fi
+
   case "$S" in
-    *QUEUED|DEPLOYING|BUILDING|DELETING|""|null) sleep 20 ;;
-    *) echo "terminal: $S"; break ;;
+    *QUEUED|DEPLOYING|BUILDING|DELETING|UNKNOWN) sleep 20 ;;
+    *) echo "terminal: $S (deployment $ID)"; break ;;
   esac
 done
 ```
 
-Three details that matter, all of them observed rather than assumed:
+For **teardown** do not use this at all — a delete removes the service, so wait for it to disappear
+rather than for a status:
+
+```sh
+until ! curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
+  "$API/environment/$ENVIRONMENT_ID/terraform" \
+  | jq -e --arg svc "$SERVICE_ID" 'any(.results[]?; .id == $svc)' >/dev/null; do sleep 20; done
+echo "service gone"
+```
+
+Four details that matter, all of them observed rather than assumed:
 
 - The entries are keyed `.terraforms[].id` — the service id directly. There is no
   `.identifier.service_id` here, unlike the per-service status blocks elsewhere in the API.
 - Read the status off the **service** entry, not the record. They differ: a record reporting
   `DEPLOYED` at environment level had `DELETED` for the service that had just been torn down.
+- The record id is `<environment id>-<counter>`, incrementing per environment, which is what makes
+  the `BEFORE` comparison work.
 - The history window is finite and `pageSize` is ignored (asking for 3 returns 20), so a service
-  whose deployment has aged out returns nothing. That is `NOT_IN_WINDOW` above, and it means "no
-  longer visible", not "still running" — treat it as terminal-unknown rather than looping forever.
+  whose deployment has aged out returns nothing. That is indistinguishable from "has not started
+  yet", which is exactly why the loop gates on the record id rather than on the status alone.
 
 Use `.helms[]?` instead of `.terraforms[]?` for a Helm blueprint. There is no per-service
 deployment-status endpoint, so this filter is the only way to scope the wait; a dedicated
@@ -299,8 +330,9 @@ curl -s -X DELETE "$API/terraform/$SERVICE_ID" -H "Authorization: Token $QOVERY_
 ```
 
 `$SERVICE_ID` is the blueprint's `service_id` (use `/helm/{id}` when `service_type` is `HELM`).
-Then wait for the teardown deployment to reach a terminal status with the `deploymentHistory` loop
-above — a `202` only means the destroy was queued.
+A `202` only means the destroy was queued, so wait for it with the **disappearance** loop above —
+not the status loop, which would read the still-present `DEPLOYED` record from the deploy that
+preceded the delete.
 
 Then confirm all of:
 

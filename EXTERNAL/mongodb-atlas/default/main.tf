@@ -27,7 +27,9 @@ resource "random_password" "master" {
 }
 
 locals {
-  db_username = var.db_username != "" ? var.db_username : "qoveryadmin"
+  # trimspace here so the value matches what the validation accepted: " user " passes a
+  # not-blank check but would otherwise create a user literally named with spaces.
+  db_username = trimspace(var.db_username) != "" ? trimspace(var.db_username) : "qoveryadmin"
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
 }
 
