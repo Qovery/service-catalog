@@ -20,7 +20,7 @@ variable (`credentials.default: env`). The account it belongs to needs:
 | `roles/bigquery.admin`        | create the dataset and set dataset IAM                 |
 | `roles/iam.serviceAccountAdmin` | create the application service account (`create_service_account = true`) |
 | `roles/iam.serviceAccountKeyAdmin` | issue its key (`create_service_account = true`)   |
-| `roles/resourcemanager.projectIamAdmin` | grant `roles/bigquery.jobUser` (`grant_job_user = true`) |
+| `roles/resourcemanager.projectIamAdmin` | grant `roles/bigquery.jobUser` (`grant_job_user = true`, the default) |
 
 Drop the last three by setting `create_service_account = false` and managing access yourself.
 
@@ -68,6 +68,9 @@ Drop the last three by setting `create_service_account = false` and managing acc
   a dataset role lets the account read and write rows, but running a `SELECT` creates a job, which
   is a project-level right. Turning it off yields an account that fails every query with
   `Permission bigquery.jobs.create denied`.
+- **The service account key must be a real key object.** The variable rejects any JSON that is not
+  an object carrying `type: "service_account"`, `client_email` and `private_key`, so a wrong paste
+  fails at variable resolution rather than as an opaque OAuth error minutes into the apply.
 - **The service account key is a long-lived credential.** It is surfaced as a sensitive output and
   stored encrypted by Qovery. On a GCP cluster you can set `create_service_account = false` and use
   Workload Identity instead; on any other cloud the key is the only option.

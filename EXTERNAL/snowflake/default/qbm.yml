@@ -68,9 +68,9 @@ spec:
     - name: "database_name"
       type: "string"
       required: true
-      description: "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier."
+      description: "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier. Capped at 246 chars because the derived warehouse, role and user names append up to 9 more."
       pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
-      maxLength: 255
+      maxLength: 246
     - name: "schema_name"
       type: "string"
       required: false
@@ -82,6 +82,8 @@ spec:
       type: "string"
       required: false
       description: "Leave empty — derived from the database name as <database_name>_WH. Set it only to match an existing naming convention."
+      pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
+      maxLength: 255
     - name: "warehouse_size"
       type: "string"
       required: false
@@ -114,6 +116,8 @@ spec:
       type: "string"
       required: false
       description: "Leave empty — derived from the database name as <database_name>_APP. This is the account role holding the grants."
+      pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
+      maxLength: 255
     - name: "schema_privileges"
       type: "string"
       required: false
@@ -138,10 +142,14 @@ spec:
       type: "string"
       required: false
       description: "Leave empty — derived from the database name as <database_name>_APP_USER. Only used when create_service_user is true."
+      pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
+      maxLength: 255
     - name: "grant_role_to_user"
       type: "string"
       required: false
       description: "Existing Snowflake user to also grant the role to. Unset = grant it to nobody beyond the created service user."
+      pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
+      maxLength: 255
 
   outputs:
     - name: "account_identifier"

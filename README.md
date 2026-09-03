@@ -45,7 +45,7 @@ They authenticate through their own sensitive variables (`credentials` mode is `
 | Service          | Path                                | Description                                    |
 | ---------------- | ----------------------------------- | ---------------------------------------------- |
 | Aiven Kafka      | `EXTERNAL/aiven-kafka/default/`     | Managed Kafka on Aiven                         |
-| AWS Bedrock      | `EXTERNAL/bedrock/default/`         | Scoped Bedrock model access (IAM policy, optional user + keys, optional invocation logging) |
+| AWS Bedrock      | `EXTERNAL/bedrock/default/`         | Scoped Bedrock model access (IAM policy limited to named models, optional user + keys) |
 | BigQuery         | `EXTERNAL/bigquery/default/`        | Google BigQuery dataset with an optional service account and key |
 | Cloudflare DNS   | `EXTERNAL/cloudflare-dns-zone/default/` | Cloudflare DNS zone and records            |
 | Cloudflare Workers | `EXTERNAL/cloudflare-workers/default/` | Cloudflare Worker script with optional route |

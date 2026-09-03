@@ -1,6 +1,5 @@
 terraform {
-  # Cross-variable validation (default_table_expiration_ms against its "0 = unset" sentinel)
-  # requires TF 1.9+.
+  # Matches the floor the catalog's terraform engine offers (qbm.yml allowedValues start at 1.9.7).
   required_version = ">= 1.9"
 
   required_providers {

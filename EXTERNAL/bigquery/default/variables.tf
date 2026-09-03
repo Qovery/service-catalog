@@ -1,11 +1,21 @@
 variable "gcp_service_account_key" {
   type        = string
   sensitive   = true
-  description = "JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when create_service_account is true."
+  description = "JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when create_service_account is true, and Project IAM Admin when grant_job_user is true."
 
   validation {
     condition     = can(jsondecode(var.gcp_service_account_key))
     error_message = "gcp_service_account_key must be the raw JSON key file contents, not a file path or a base64 blob."
+  }
+
+  # Any JSON parses, including "null", 123 and {} — all of which only surface much later as an
+  # unusable credential. Assert the shape of an actual service account key instead.
+  validation {
+    condition = alltrue([
+      for field in ["type", "client_email", "private_key"] :
+      try(jsondecode(var.gcp_service_account_key)[field], null) != null
+    ]) && try(jsondecode(var.gcp_service_account_key)["type"], "") == "service_account"
+    error_message = "gcp_service_account_key must be a service account key: a JSON object with type = \"service_account\", client_email and private_key."
   }
 }
 

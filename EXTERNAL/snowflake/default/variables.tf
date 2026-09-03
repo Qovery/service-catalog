@@ -56,9 +56,12 @@ variable "database_name" {
   type        = string
   description = "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier."
 
+  # 246, not Snowflake's 255: the derived warehouse/role/user names append up to "_APP_USER", so a
+  # 255-char database name would produce a 264-char identifier that fails at apply. Set
+  # warehouse_name / role_name / service_user_name explicitly if you need the full 255 here.
   validation {
-    condition     = can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.database_name)) && length(var.database_name) <= 255
-    error_message = "database_name must start with a letter or underscore, contain only letters, digits, underscores and $, and be at most 255 chars."
+    condition     = can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.database_name)) && length(var.database_name) <= 246
+    error_message = "database_name must start with a letter or underscore, contain only letters, digits, underscores and $, and be at most 246 chars (the derived names append up to 9 more)."
   }
 }
 
@@ -77,6 +80,11 @@ variable "warehouse_name" {
   type        = string
   default     = ""
   description = "Leave empty — derived from the database name as <database_name>_WH. Set it only to match an existing naming convention."
+
+  validation {
+    condition     = var.warehouse_name == "" || (can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.warehouse_name)) && length(var.warehouse_name) <= 255)
+    error_message = "warehouse_name must be a Snowflake identifier: start with a letter or underscore, letters/digits/underscores/$ only, at most 255 chars."
+  }
 }
 
 variable "warehouse_size" {
@@ -118,6 +126,11 @@ variable "role_name" {
   type        = string
   default     = ""
   description = "Leave empty — derived from the database name as <database_name>_APP. This is the account role granted the privileges below."
+
+  validation {
+    condition     = var.role_name == "" || (can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.role_name)) && length(var.role_name) <= 255)
+    error_message = "role_name must be a Snowflake identifier: start with a letter or underscore, letters/digits/underscores/$ only, at most 255 chars."
+  }
 }
 
 variable "schema_privileges" {
@@ -148,12 +161,22 @@ variable "service_user_name" {
   type        = string
   default     = ""
   description = "Leave empty — derived from the database name as <database_name>_APP_USER. Only used when create_service_user is true."
+
+  validation {
+    condition     = var.service_user_name == "" || (can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.service_user_name)) && length(var.service_user_name) <= 255)
+    error_message = "service_user_name must be a Snowflake identifier: start with a letter or underscore, letters/digits/underscores/$ only, at most 255 chars."
+  }
 }
 
 variable "grant_role_to_user" {
   type        = string
   default     = ""
   description = "Existing Snowflake user to also grant the role to. Unset = grant it to nobody beyond the created service user."
+
+  validation {
+    condition     = var.grant_role_to_user == "" || (can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.grant_role_to_user)) && length(var.grant_role_to_user) <= 255)
+    error_message = "grant_role_to_user must be a Snowflake identifier: start with a letter or underscore, letters/digits/underscores/$ only, at most 255 chars."
+  }
 }
 
 variable "qovery_cluster_name" {

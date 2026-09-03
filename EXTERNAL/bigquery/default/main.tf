@@ -40,10 +40,12 @@ resource "google_bigquery_dataset" "this" {
 resource "google_service_account" "app" {
   count = var.create_service_account ? 1 : 0
 
-  project      = var.gcp_project_id
-  account_id   = local.service_account_id
-  display_name = "Qovery BigQuery access to ${var.dataset_id}"
-  description  = "Created by the Qovery bigquery blueprint for cluster ${var.qovery_cluster_name}"
+  project    = var.gcp_project_id
+  account_id = local.service_account_id
+  # IAM caps display_name at 100 chars and description at 256, while dataset_id allows 1024 and a
+  # Qovery cluster name is unbounded — so both are truncated rather than failing the create.
+  display_name = substr("Qovery BigQuery access to ${var.dataset_id}", 0, 100)
+  description  = substr("Created by the Qovery bigquery blueprint for cluster ${var.qovery_cluster_name}", 0, 256)
 }
 
 resource "google_bigquery_dataset_iam_member" "app" {

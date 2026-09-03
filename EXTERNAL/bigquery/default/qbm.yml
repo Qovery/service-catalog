@@ -42,7 +42,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when create_service_account is true."
+      description: "JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when create_service_account is true, and Project IAM Admin when grant_job_user is true."
     - name: "gcp_project_id"
       type: "string"
       required: true

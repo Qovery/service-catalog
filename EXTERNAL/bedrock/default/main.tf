@@ -3,12 +3,15 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
-  iam_user_name  = "${var.name_prefix}-bedrock"
-  policy_name    = "${var.name_prefix}-bedrock-invoke"
-  log_group_name = "/aws/bedrock/${var.name_prefix}"
+  iam_user_name = "${var.name_prefix}-bedrock"
+  policy_name   = "${var.name_prefix}-bedrock-invoke"
 
-  model_ids  = compact([for m in split(",", var.allowed_model_ids) : trimspace(m)])
-  all_models = contains(local.model_ids, "*") || length(local.model_ids) == 0
+  model_ids = compact([for m in split(",", var.allowed_model_ids) : trimspace(m)])
+
+  # Only a literal "*" widens the grant. An empty or comma-only list used to land here as
+  # `length == 0` and open up every model — it is rejected in variables.tf instead, so this
+  # cannot fail open.
+  all_models = contains(local.model_ids, "*")
 
   # A cross-region id (us.anthropic.…) names an inference profile, not a foundation model, and
   # invoking through one is authorized against BOTH arns — the profile in this account and the
@@ -109,83 +112,4 @@ resource "aws_iam_role_policy_attachment" "existing_role" {
 
   role       = var.attach_to_role_name
   policy_arn = aws_iam_policy.invoke.arn
-}
-
-resource "aws_cloudwatch_log_group" "bedrock" {
-  count = var.enable_invocation_logging ? 1 : 0
-
-  name              = local.log_group_name
-  retention_in_days = var.log_retention_days
-  tags              = local.tags
-}
-
-data "aws_iam_policy_document" "logging_assume" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["bedrock.amazonaws.com"]
-    }
-
-    # Confused-deputy guards: only this account's Bedrock, acting for this account's invocations.
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [data.aws_caller_identity.current.account_id]
-    }
-
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = ["arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"]
-    }
-  }
-}
-
-resource "aws_iam_role" "logging" {
-  count = var.enable_invocation_logging ? 1 : 0
-
-  name               = "${var.name_prefix}-bedrock-logging"
-  assume_role_policy = data.aws_iam_policy_document.logging_assume.json
-  tags               = local.tags
-}
-
-data "aws_iam_policy_document" "logging" {
-  count = var.enable_invocation_logging ? 1 : 0
-
-  statement {
-    effect  = "Allow"
-    actions = ["logs:CreateLogStream", "logs:PutLogEvents"]
-
-    resources = ["${aws_cloudwatch_log_group.bedrock[0].arn}:log-stream:*"]
-  }
-}
-
-resource "aws_iam_role_policy" "logging" {
-  count = var.enable_invocation_logging ? 1 : 0
-
-  name   = "${var.name_prefix}-bedrock-logging"
-  role   = aws_iam_role.logging[0].id
-  policy = data.aws_iam_policy_document.logging[0].json
-}
-
-# Account-wide per region, not per user — see the variable description and the README.
-resource "aws_bedrock_model_invocation_logging_configuration" "this" {
-  count = var.enable_invocation_logging ? 1 : 0
-
-  logging_config {
-    text_data_delivery_enabled      = var.log_text_prompts_and_completions
-    image_data_delivery_enabled     = false
-    embedding_data_delivery_enabled = false
-    video_data_delivery_enabled     = false
-
-    cloudwatch_config {
-      log_group_name = aws_cloudwatch_log_group.bedrock[0].name
-      role_arn       = aws_iam_role.logging[0].arn
-    }
-  }
-
-  depends_on = [aws_iam_role_policy.logging]
 }

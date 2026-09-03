@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-03T13:37:47Z",
+  "generatedAt": "2026-09-03T15:16:39Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -130,7 +130,7 @@
     {
       "name": "aws-bedrock-access",
       "kind": "ServiceBlueprint",
-      "description": "Provision scoped AWS Bedrock access — an IAM policy, an optional IAM user with keys, and optional invocation logging — so an application on any cloud (AWS, Azure, Scaleway or GCP) can call Bedrock models",
+      "description": "Provision scoped AWS Bedrock access — an IAM policy limited to the models you name, plus an optional IAM user with keys — so an application on any cloud (AWS, Azure, Scaleway or GCP) can call Bedrock models",
       "icon": "app://qovery-console/bedrock",
       "categories": [
         "ai",

@@ -31,16 +31,11 @@ output "secret_access_key" {
 }
 
 output "bedrock_endpoint" {
-  description = "Bedrock runtime endpoint for the region, for an SDK that needs it spelled out"
-  value       = "https://bedrock-runtime.${var.aws_region}.amazonaws.com"
+  description = "Bedrock runtime endpoint for the region, built from the partition DNS suffix so it is correct in GovCloud and China too"
+  value       = "https://bedrock-runtime.${var.aws_region}.${data.aws_partition.current.dns_suffix}"
 }
 
 output "allowed_model_arns" {
   description = "Model and inference profile ARNs the credentials may invoke"
   value       = concat(local.foundation_model_arns, local.inference_profile_arns)
-}
-
-output "log_group_name" {
-  description = "CloudWatch log group receiving invocation logs (empty when enable_invocation_logging is false)"
-  value       = var.enable_invocation_logging ? aws_cloudwatch_log_group.bedrock[0].name : ""
 }

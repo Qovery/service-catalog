@@ -38,7 +38,7 @@ retiring single-factor password sign-in, so it is the one credential shape guara
 | `snowflake_account_name`      | string |           | ACCOUNTNAME half — not the legacy account locator               |
 | `snowflake_user`              | string |           | User Terraform authenticates as                                 |
 | `snowflake_private_key`       | string | yes       | PEM PKCS#8 private key for that user                            |
-| `database_name`               | string |           | Database to create (`^[A-Za-z_][A-Za-z0-9_$]*$`, upper-cased)   |
+| `database_name`               | string |           | Database to create (`^[A-Za-z_][A-Za-z0-9_$]*$`, max 246 chars, upper-cased) |
 
 ### Optional
 
@@ -46,17 +46,17 @@ retiring single-factor password sign-in, so it is the one credential shape guara
 | ---------------------------------- | ------ | ---------------------------------------- | ----------------------------------------------------------------------------- |
 | `snowflake_private_key_passphrase` | string |                                          | Passphrase for the key. Empty = unencrypted key (sensitive)                   |
 | `snowflake_role`                   | string | `ACCOUNTADMIN`                           | Role Terraform runs as                                                       |
-| `schema_name`                      | string | `APP`                                    | Schema created in the database                                               |
-| `warehouse_name`                   | string |                                          | Leave empty — derived as `<database_name>_WH`                                 |
+| `schema_name`                      | string | `APP`                                    | Schema created in the database (same pattern, max 255 chars)                 |
+| `warehouse_name`                   | string |                                          | Leave empty — derived as `<database_name>_WH`. Same identifier rules if set   |
 | `warehouse_size`                   | string | `XSMALL`                                 | `XSMALL` … `X4LARGE`; each step doubles credit burn per second                |
 | `auto_suspend_seconds`             | number | `60`                                     | Idle seconds before suspend (60–3600). The main cost control                  |
 | `data_retention_time_in_days`      | number | `1`                                      | Time Travel window (0–90). Above 1 needs Enterprise Edition                   |
-| `role_name`                        | string |                                          | Leave empty — derived as `<database_name>_APP`                                |
+| `role_name`                        | string |                                          | Leave empty — derived as `<database_name>_APP`. Same identifier rules if set  |
 | `schema_privileges`                | string | `USAGE,CREATE TABLE,CREATE VIEW,CREATE STAGE` | Comma-separated privileges on the schema                                |
 | `table_privileges`                 | string | `SELECT,INSERT,UPDATE,DELETE`            | Comma-separated privileges on future tables in the schema                    |
 | `grant_future_table_privileges`    | bool   | `true`                                   | Apply `table_privileges` to future tables                                    |
 | `create_service_user`              | bool   | `true`                                   | Create a `SERVICE` user with a generated key pair and grant it the role      |
-| `service_user_name`                | string |                                          | Leave empty — derived as `<database_name>_APP_USER`                           |
+| `service_user_name`                | string |                                          | Leave empty — derived as `<database_name>_APP_USER`. Same rules if set        |
 | `grant_role_to_user`               | string |                                          | Existing user to also grant the role to. Unset = nobody beyond the service user |
 
 ## Outputs
@@ -75,6 +75,9 @@ retiring single-factor password sign-in, so it is the one credential shape guara
 
 ## Notes
 
+- **`database_name` caps at 246, not 255.** The derived warehouse, role and user names append up
+  to `_APP_USER`, so a 255-char database would produce a 264-char identifier that Snowflake rejects
+  at apply. Set the three names explicitly to use the full 255 on the database.
 - **Identifiers are upper-cased.** Snowflake upper-cases unquoted identifiers while the provider
   creates objects exactly as named, so `mydb` would become a case-sensitive object that only
   resolves when double-quoted. Every name here goes through `upper()` to avoid that.

@@ -1,7 +1,7 @@
 variable "aws_access_key_id" {
   type        = string
   sensitive   = true
-  description = "Access key id of the AWS principal Terraform authenticates as. Needs IAM write access plus bedrock:* for the optional logging configuration."
+  description = "Access key id of the AWS principal Terraform authenticates as. Needs IAM write access: CreateUser, CreateAccessKey, CreatePolicy, AttachUserPolicy, TagUser/TagPolicy, and AttachRolePolicy when attach_to_role_name is set."
 
   validation {
     condition     = length(var.aws_access_key_id) > 0
@@ -33,7 +33,7 @@ variable "aws_region" {
 
 variable "name_prefix" {
   type        = string
-  description = "Prefix for every resource this blueprint names: the IAM user (<prefix>-bedrock), its policy (<prefix>-bedrock-invoke) and the log group (/aws/bedrock/<prefix>). Must be unique within the AWS account."
+  description = "Prefix for the resources this blueprint names: the IAM user (<prefix>-bedrock) and its policy (<prefix>-bedrock-invoke). Must be unique within the AWS account."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,47}$", var.name_prefix))
@@ -43,8 +43,12 @@ variable "name_prefix" {
 
 variable "allowed_model_ids" {
   type        = string
-  default     = "*"
-  description = "Comma-separated Bedrock model ids the credentials may invoke, e.g. anthropic.claude-sonnet-4-5-20250929-v1:0. * = every foundation model in the account. A cross-region id (us.anthropic.…) is expanded to both the inference profile and the underlying foundation model."
+  description = "Comma-separated Bedrock model ids the credentials may invoke, e.g. anthropic.claude-sonnet-4-5-20250929-v1:0. A cross-region id (us.anthropic.…) is expanded to both the inference profile and the underlying foundation model. Pass \"*\" to allow every foundation model in the account — deliberately not the default, since that also covers every model added in future."
+
+  validation {
+    condition     = length(compact([for m in split(",", var.allowed_model_ids) : trimspace(m)])) > 0
+    error_message = "allowed_model_ids must list at least one model id, or \"*\" for all of them. An empty or comma-only value is rejected rather than silently granting every model."
+  }
 }
 
 variable "allow_list_foundation_models" {
@@ -63,32 +67,6 @@ variable "attach_to_role_name" {
   type        = string
   default     = ""
   description = "Existing IAM role in the same account to attach the invoke policy to — the keyless path for a workload that already has an AWS identity (IRSA, EC2 instance profile). Unset = attach to nothing."
-}
-
-variable "enable_invocation_logging" {
-  type        = bool
-  default     = false
-  description = "Turn on Bedrock model invocation logging to CloudWatch. Off by default because the setting is account-wide per region, not per user: enabling it here overwrites whatever the account already had, and destroying this blueprint removes it for everything else in that region."
-}
-
-variable "log_retention_days" {
-  type        = number
-  default     = 30
-  description = "Retention of the created log group, in days. 0 = keep forever."
-
-  validation {
-    condition = contains(
-      [0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653],
-      var.log_retention_days,
-    )
-    error_message = "log_retention_days must be one of the retention periods CloudWatch accepts: 0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653."
-  }
-}
-
-variable "log_text_prompts_and_completions" {
-  type        = bool
-  default     = false
-  description = "Include prompt and completion text in the invocation logs. Off by default: prompts routinely carry user data, and the logs are readable by anyone with CloudWatch access."
 }
 
 variable "qovery_cluster_name" {
