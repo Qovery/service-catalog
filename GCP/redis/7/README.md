@@ -61,7 +61,7 @@ Replicas are asynchronous, cross-zone, read-only copies of the primary; point an
 
 | Name             | Type   | Default | Description                                                                       |
 | ---------------- | ------ | ------- | ---------------------------------------------------------------------------------- |
-| `gcp_project_id` | string |         | GCP project ID override. Unset = inferred from the credentials used to deploy.    |
+| `gcp_project_id` | string |         | Leave empty — inferred from the deploy credentials. Set only to target another project. |
 
 ## Outputs
 

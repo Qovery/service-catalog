@@ -18,8 +18,8 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). By d
 
 | Name                 | Type   | Default | Description                                                              |
 | -------------------- | ------ | ------- | ------------------------------------------------------------------------ |
-| `subnet_ids`         | string |         | Comma-separated subnet IDs. Unset = auto-discover the cluster VPC subnets. |
-| `security_group_ids` | string |         | Comma-separated SG IDs. Unset = the cluster workers security group.       |
+| `subnet_ids`         | string |         | Leave empty — the cluster VPC subnets. Set only on a user-provided VPC.    |
+| `security_group_ids` | string |         | Leave empty — the cluster workers security group. Set only on a user-provided VPC. |
 
 ## Outputs
 
