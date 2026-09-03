@@ -93,7 +93,11 @@ spec:
       type: "string"
       required: false
       description: "Leave empty — derived from the dataset id as qovery-bq-<dataset>. Set it only when that derived id collides with an existing service account in the project."
-      pattern: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+      # Wrapped optional because an untouched optional field arrives as "" rather than being
+      # omitted, and the platform validates a submitted "" while skipping a variable that is
+      # absent entirely — rejecting "" would fail the create request before the derivation in
+      # main.tf can run. Same reasoning as HELM/datadog/7.
+      pattern: "^([a-z][a-z0-9-]{4,28}[a-z0-9])?$"
     - name: "service_account_role"
       type: "string"
       required: false

@@ -1,7 +1,7 @@
 variable "aws_access_key_id" {
   type        = string
   sensitive   = true
-  description = "Access key id of the AWS principal Terraform authenticates as. Needs IAM write access: CreateUser, CreateAccessKey, CreatePolicy, AttachUserPolicy, TagUser/TagPolicy, and AttachRolePolicy when attach_to_role_name is set."
+  description = "Access key id of the AWS principal Terraform authenticates as. Needs IAM write access on users, policies and access keys — including the delete and detach actions, or destroy fails. The blueprint README lists the full set."
 
   validation {
     condition     = length(var.aws_access_key_id) > 0

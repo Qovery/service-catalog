@@ -44,6 +44,9 @@ resource "google_service_account" "app" {
   account_id = local.service_account_id
   # IAM caps display_name at 100 chars and description at 256, while dataset_id allows 1024 and a
   # Qovery cluster name is unbounded — so both are truncated rather than failing the create.
+  # Best-effort: substr counts Unicode characters while IAM counts code points, so a cluster name
+  # built from combining marks could still land over the limit. That beats the guaranteed failure
+  # on any long ASCII name, which is the case that actually occurs.
   display_name = substr("Qovery BigQuery access to ${var.dataset_id}", 0, 100)
   description  = substr("Created by the Qovery bigquery blueprint for cluster ${var.qovery_cluster_name}", 0, 256)
 }

@@ -57,8 +57,9 @@ variable "database_name" {
   description = "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier."
 
   # 246, not Snowflake's 255: the derived warehouse/role/user names append up to "_APP_USER", so a
-  # 255-char database name would produce a 264-char identifier that fails at apply. Set
-  # warehouse_name / role_name / service_user_name explicitly if you need the full 255 here.
+  # 255-char database name would produce a 264-char identifier that fails at apply. The cap is
+  # unconditional — setting the three names explicitly does not lift it. Nine characters is not
+  # worth three cross-variable validations and two ways for the limit to disagree.
   validation {
     condition     = can(regex("^[A-Za-z_][A-Za-z0-9_$]*$", var.database_name)) && length(var.database_name) <= 246
     error_message = "database_name must start with a letter or underscore, contain only letters, digits, underscores and $, and be at most 246 chars (the derived names append up to 9 more)."

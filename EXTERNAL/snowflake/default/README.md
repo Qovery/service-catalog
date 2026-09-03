@@ -75,9 +75,10 @@ retiring single-factor password sign-in, so it is the one credential shape guara
 
 ## Notes
 
-- **`database_name` caps at 246, not 255.** The derived warehouse, role and user names append up
-  to `_APP_USER`, so a 255-char database would produce a 264-char identifier that Snowflake rejects
-  at apply. Set the three names explicitly to use the full 255 on the database.
+- **`database_name` caps at 246, not Snowflake's 255.** The derived warehouse, role and user names
+  append up to `_APP_USER`, so a 255-char database would produce a 264-char identifier that
+  Snowflake rejects at apply. The cap is unconditional — setting `warehouse_name`, `role_name` and
+  `service_user_name` explicitly does not lift it.
 - **Identifiers are upper-cased.** Snowflake upper-cases unquoted identifiers while the provider
   creates objects exactly as named, so `mydb` would become a case-sensitive object that only
   resolves when double-quoted. Every name here goes through `upper()` to avoid that.
