@@ -205,5 +205,5 @@ variable "replica_count" {
 variable "gcp_project_id" {
   type        = string
   default     = ""
-  description = "GCP project ID override. Empty = inferred from the deploy credentials."
+  description = "Leave empty — inferred from the deploy credentials. Set it only to target a different GCP project."
 }

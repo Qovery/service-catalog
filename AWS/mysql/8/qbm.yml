@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "2.0.5"
+  version: "2.0.6"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -131,11 +131,11 @@ spec:
     - name: "db_subnet_group_name"
       type: "string"
       required: false
-      description: "Optional DB subnet group override. Empty = the Qovery cluster DB subnet group."
+      description: "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
     - name: "security_group_ids"
       type: "string"
       required: false
-      description: "Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group."
+      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
     - name: "apply_changes_now"
       type: "bool"
       required: false

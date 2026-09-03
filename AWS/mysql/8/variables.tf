@@ -172,13 +172,13 @@ variable "publicly_accessible" {
 variable "db_subnet_group_name" {
   type        = string
   default     = ""
-  description = "Optional DB subnet group override. Empty = the Qovery cluster DB subnet group."
+  description = "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Optional comma-separated security group ids override. Empty = the Qovery cluster workers security group."
+  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
 }
 
 variable "apply_changes_now" {

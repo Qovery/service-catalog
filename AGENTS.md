@@ -160,7 +160,7 @@ Two questions, in order:
    passed, the variable is not optional — say so rather than faking it with an empty default.
 2. **Otherwise it is optional and has a default.** Declare it (`default: "startup-2"`) — *unless
    that default is the empty string*, in which case omit the `default:` line entirely. Say what
-   unset means in the description ("Unset = create no record").
+   unset means in the description — see [Variable descriptions](#variable-descriptions--lead-with-what-unset-does).
 
 **This is a `qbm.yml` rule only. Leave `variables.tf` alone.** `default = ""` there is correct and
 must stay: the provider never reads that file — it is consulted by the deployed terraform job, a
@@ -168,6 +168,32 @@ different execution from the one that rejects. Omitting the variable then falls 
 default, and the usual `count = var.record_name != "" ? 1 : 0` guard does the right thing. Deleting
 it would make the variable required, and `default = null` with `!= null` is no better — `!= ""`
 also covers a value explicitly set to empty, where `!= null` would fall through.
+
+## Variable descriptions — lead with what unset does
+
+An optional variable's description is read in a form field, where the reader is deciding whether
+they have to fill it in. Put that answer first.
+
+**When Qovery derives the value, open with "Leave empty".** The field is an escape hatch, not an
+input:
+
+```yaml
+description: "Leave empty — derived from the Qovery cluster's workers security group. Set it
+  (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+```
+
+Not `"Optional comma-separated security group ids override. Empty = the Qovery cluster workers
+security group."` — same facts, but it opens by implying the value is wanted and buries the default
+at the end, so the field reads as required. That wording had people supplying security group ids by
+hand on clusters where the lookup already worked.
+
+**When the *provider* picks the default, keep the plain form** — `"… Empty = AWS default."`,
+`"Unset = create no record"`. "Leave empty" would overclaim: nothing on the Qovery side is deriving
+anything, and empty may not be the right choice for that blueprint.
+
+The distinction is who fills the gap, not whether the variable is optional. Both kinds are optional.
+
+Applies to all three places the sentence lives: `qbm.yml`, `variables.tf` and the `README.md` row.
 
 ## Keep `README.md` in sync with `qbm.yml`
 

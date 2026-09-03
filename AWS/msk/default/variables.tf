@@ -33,11 +33,11 @@ variable "cluster_name" {
 variable "subnet_ids" {
   type        = string
   default     = ""
-  description = "Optional comma-separated subnet IDs override. Empty = auto-discover the Qovery cluster VPC subnets."
+  description = "Leave empty — discovered from the Qovery cluster's VPC subnets. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Optional comma-separated security group IDs override. Empty = the Qovery cluster workers security group."
+  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
 }
