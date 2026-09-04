@@ -55,10 +55,6 @@ spec:
       type: "string"
       required: false
       description: "Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
-      # Wrapped optional because an untouched optional field arrives as "" rather than being
-      # omitted, and the platform validates a submitted "" while skipping a variable that is
-      # absent entirely — rejecting "" would fail the create request before the fallback in
-      # main.tf can run. Same reasoning as EXTERNAL/bigquery/default.
       pattern: "^([a-zA-Z][a-zA-Z0-9_]{0,62})?$"
       maxLength: 63
     - name: "db_password"
@@ -66,10 +62,6 @@ spec:
       required: false
       sensitive: true
       description: 'Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces.'
-      # Wrapped optional because an untouched optional field arrives as "" rather than being
-      # omitted, and the platform validates a submitted "" while skipping a variable that is
-      # absent entirely — rejecting "" would fail the create request before the fallback in
-      # main.tf can run. Same reasoning as EXTERNAL/bigquery/default.
       pattern: '^([^/@" ]+)?$'
       maxLength: 128
     - name: "port"
