@@ -64,7 +64,7 @@ kind: ServiceBlueprint               # required (StackBlueprint needs spec.stage
 metadata:
   name: "aws-rds-postgresql"         # required; by convention kebab-case, provider-then-service
   displayName: "Amazon RDS for PostgreSQL" # optional; customer-facing label
-  primaryCategory: "Databases & Caches" # required for new blueprints; controlled Console section
+  primaryCategory: "Databases & Caches" # required; controlled Console section
   version: "3.1.0"                   # required, blueprint semver — bump on EVERY change
   description: "..."                 # one line, shown in the Console picker
   icon: "app://qovery-console/postgresql"
