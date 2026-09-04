@@ -4,7 +4,8 @@ kind: ServiceBlueprint
 metadata:
   name: "aws-msk"
   displayName: "Amazon MSK"
-  version: "1.0.5"
+  primaryCategory: "Messaging & Streaming"
+  version: "1.0.6"
   description: "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network"
   icon: "app://qovery-console/kafka"
   serviceFamily: "msk"

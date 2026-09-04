@@ -4,7 +4,8 @@ kind: ServiceBlueprint
 metadata:
   name: "bigquery-dataset"
   displayName: "Google BigQuery Dataset"
-  version: "1.0.1"
+  primaryCategory: "Analytics"
+  version: "1.0.2"
   description: "Provision a Google BigQuery dataset with an optional dedicated service account and key, so an application on any cloud — AWS, Azure, Scaleway or GCP — can query it"
   icon: "app://qovery-console/bigquery"
   serviceFamily: "bigquery"

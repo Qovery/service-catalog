@@ -4,7 +4,8 @@ kind: ServiceBlueprint
 metadata:
   name: "helm-redis"
   displayName: "Redis"
-  version: "1.0.1"
+  primaryCategory: "Databases & Caches"
+  version: "1.0.2"
   description: "Redis cache via the community groundhog2k Helm chart (official docker.io/redis image)"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"

@@ -4,7 +4,8 @@ kind: ServiceBlueprint
 metadata:
   name: "cloudflare-workers"
   displayName: "Cloudflare Workers"
-  version: "1.0.6"
+  primaryCategory: "Compute & Runtime"
+  version: "1.0.7"
   description: "Deploy a Cloudflare Worker script (with an optional route) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
   serviceFamily: "cloudflare-workers"

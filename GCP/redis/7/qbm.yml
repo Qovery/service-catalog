@@ -4,7 +4,8 @@ kind: ServiceBlueprint
 metadata:
   name: "gcp-memorystore-redis"
   displayName: "Google Cloud Memorystore for Redis"
-  version: "1.0.6"
+  primaryCategory: "Databases & Caches"
+  version: "1.0.7"
   description: "GCP Memorystore for Redis 7 instance with configurable tier, memory size, auth, TLS, persistence, maintenance window, and optional read replicas"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
