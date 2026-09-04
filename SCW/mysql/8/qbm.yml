@@ -3,7 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "scaleway-mysql"
-  version: "1.4.0"
+  displayName: "Scaleway MySQL"
+  primaryCategory: "Databases & Caches"
+  version: "1.4.2"
   description: "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"

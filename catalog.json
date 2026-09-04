@@ -1,9 +1,11 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-03T16:09:08Z",
+  "generatedAt": "2026-09-04T14:31:11Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
+      "displayName": "AWS CloudFront",
+      "primaryCategory": "Networking & Edge",
       "kind": "ServiceBlueprint",
       "description": "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions",
       "icon": "app://qovery-console/cloudfront",
@@ -17,12 +19,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/cloudfront/default/1.0.4"
+          "latestTag": "AWS/cloudfront/default/1.0.6"
         }
       ]
     },
     {
       "name": "aws-msk",
+      "displayName": "Amazon MSK",
+      "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network",
       "icon": "app://qovery-console/kafka",
@@ -36,12 +40,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/msk/default/1.0.4"
+          "latestTag": "AWS/msk/default/1.0.6"
         }
       ]
     },
     {
       "name": "aws-rds-mysql",
+      "displayName": "Amazon RDS for MySQL",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network",
       "icon": "app://qovery-console/mysql",
@@ -55,12 +61,14 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/2.1.0"
+          "latestTag": "AWS/mysql/8/2.1.2"
         }
       ]
     },
     {
       "name": "aws-rds-postgresql",
+      "displayName": "Amazon RDS for PostgreSQL",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "AWS RDS PostgreSQL 14 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas",
       "icon": "app://qovery-console/postgresql",
@@ -74,24 +82,26 @@
       "majorVersions": [
         {
           "serviceVersion": "14",
-          "latestTag": "AWS/postgres/14/3.1.0"
+          "latestTag": "AWS/postgres/14/3.1.2"
         },
         {
           "serviceVersion": "15",
-          "latestTag": "AWS/postgres/15/3.1.0"
+          "latestTag": "AWS/postgres/15/3.1.2"
         },
         {
           "serviceVersion": "16",
-          "latestTag": "AWS/postgres/16/3.1.0"
+          "latestTag": "AWS/postgres/16/3.1.2"
         },
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/3.1.0"
+          "latestTag": "AWS/postgres/17/3.1.2"
         }
       ]
     },
     {
       "name": "aws-s3",
+      "displayName": "Amazon S3",
+      "primaryCategory": "Storage",
       "kind": "ServiceBlueprint",
       "description": "S3 bucket with encryption, versioning, and public-access blocking",
       "icon": "app://qovery-console/s3",
@@ -104,12 +114,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.1.6"
+          "latestTag": "AWS/s3/default/1.1.8"
         }
       ]
     },
     {
       "name": "aiven-kafka",
+      "displayName": "Aiven for Apache Kafka",
+      "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider",
       "icon": "app://qovery-console/kafka",
@@ -123,12 +135,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/aiven-kafka/default/1.0.3"
+          "latestTag": "EXTERNAL/aiven-kafka/default/1.0.5"
         }
       ]
     },
     {
       "name": "aws-bedrock-access",
+      "displayName": "AWS Bedrock Access",
+      "primaryCategory": "AI",
       "kind": "ServiceBlueprint",
       "description": "Provision scoped AWS Bedrock access — an IAM policy limited to the models you name, plus an optional IAM user with keys — so an application on any cloud (AWS, Azure, Scaleway or GCP) can call Bedrock models",
       "icon": "app://qovery-console/bedrock",
@@ -142,12 +156,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/bedrock/default/1.0.0"
+          "latestTag": "EXTERNAL/bedrock/default/1.0.2"
         }
       ]
     },
     {
       "name": "bigquery-dataset",
+      "displayName": "Google BigQuery Dataset",
+      "primaryCategory": "Analytics",
       "kind": "ServiceBlueprint",
       "description": "Provision a Google BigQuery dataset with an optional dedicated service account and key, so an application on any cloud — AWS, Azure, Scaleway or GCP — can query it",
       "icon": "app://qovery-console/bigquery",
@@ -161,12 +177,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/bigquery/default/1.0.0"
+          "latestTag": "EXTERNAL/bigquery/default/1.0.2"
         }
       ]
     },
     {
       "name": "cloudflare-dns-zone",
+      "displayName": "Cloudflare DNS Zone",
+      "primaryCategory": "Networking & Edge",
       "kind": "ServiceBlueprint",
       "description": "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider",
       "icon": "app://qovery-console/cloudflare",
@@ -179,12 +197,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/cloudflare-dns-zone/default/1.0.4"
+          "latestTag": "EXTERNAL/cloudflare-dns-zone/default/1.0.6"
         }
       ]
     },
     {
       "name": "cloudflare-workers",
+      "displayName": "Cloudflare Workers",
+      "primaryCategory": "Compute & Runtime",
       "kind": "ServiceBlueprint",
       "description": "Deploy a Cloudflare Worker script (with an optional route) via the Cloudflare Terraform provider",
       "icon": "app://qovery-console/cloudflare",
@@ -198,12 +218,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/cloudflare-workers/default/1.0.5"
+          "latestTag": "EXTERNAL/cloudflare-workers/default/1.0.7"
         }
       ]
     },
     {
       "name": "confluent-kafka",
+      "displayName": "Confluent Cloud for Apache Kafka",
+      "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider",
       "icon": "app://qovery-console/kafka",
@@ -217,12 +239,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.3"
+          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.5"
         }
       ]
     },
     {
       "name": "mongodb-atlas-cluster",
+      "displayName": "MongoDB Atlas Cluster",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider",
       "icon": "app://qovery-console/mongodb",
@@ -236,12 +260,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/mongodb-atlas/default/1.1.0"
+          "latestTag": "EXTERNAL/mongodb-atlas/default/1.1.2"
         }
       ]
     },
     {
       "name": "planetscale-database",
+      "displayName": "PlanetScale Database",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider",
       "icon": "app://qovery-console/planetscale",
@@ -255,12 +281,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/planetscale/default/1.0.4"
+          "latestTag": "EXTERNAL/planetscale/default/1.0.6"
         }
       ]
     },
     {
       "name": "redpanda-kafka",
+      "displayName": "Redpanda Cloud",
+      "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider",
       "icon": "app://qovery-console/kafka",
@@ -274,12 +302,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.3"
+          "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.5"
         }
       ]
     },
     {
       "name": "snowflake-database",
+      "displayName": "Snowflake Database",
+      "primaryCategory": "Analytics",
       "kind": "ServiceBlueprint",
       "description": "Provision a Snowflake database, schema, warehouse and application role, with an optional SERVICE user and generated key pair so an application on any cloud — AWS, Azure, Scaleway or GCP — can connect",
       "icon": "app://qovery-console/snowflake",
@@ -293,12 +323,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/snowflake/default/1.0.0"
+          "latestTag": "EXTERNAL/snowflake/default/1.0.2"
         }
       ]
     },
     {
       "name": "temporal-cloud-namespace",
+      "displayName": "Temporal Cloud Namespace",
+      "primaryCategory": "Compute & Runtime",
       "kind": "ServiceBlueprint",
       "description": "Provision a Temporal Cloud namespace (regions, retention, client auth) via the Temporal Cloud Terraform provider",
       "icon": "app://qovery-console/temporal",
@@ -312,12 +344,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/temporal-cloud/default/1.0.4"
+          "latestTag": "EXTERNAL/temporal-cloud/default/1.0.6"
         }
       ]
     },
     {
       "name": "timescale-cloud-service",
+      "displayName": "Timescale Cloud Service",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "Provision a Timescale Cloud (TimescaleDB/Postgres) service with configurable CPU, memory, and HA replicas, via the Timescale Terraform provider",
       "icon": "app://qovery-console/timescaledb",
@@ -331,12 +365,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.4"
+          "latestTag": "EXTERNAL/timescale-cloud/default/1.0.6"
         }
       ]
     },
     {
       "name": "gcp-memorystore-redis",
+      "displayName": "Google Cloud Memorystore for Redis",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "GCP Memorystore for Redis 7 instance with configurable tier, memory size, auth, TLS, persistence, maintenance window, and optional read replicas",
       "icon": "app://qovery-console/redis",
@@ -350,12 +386,14 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "GCP/redis/7/1.0.5"
+          "latestTag": "GCP/redis/7/1.0.7"
         }
       ]
     },
     {
       "name": "helm-datadog",
+      "displayName": "Datadog",
+      "primaryCategory": "Observability",
       "kind": "ServiceBlueprint",
       "description": "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart",
       "icon": "app://qovery-console/datadog",
@@ -369,12 +407,14 @@
       "majorVersions": [
         {
           "serviceVersion": "7",
-          "latestTag": "HELM/datadog/7/3.0.1"
+          "latestTag": "HELM/datadog/7/3.0.3"
         }
       ]
     },
     {
       "name": "helm-newrelic",
+      "displayName": "New Relic",
+      "primaryCategory": "Observability",
       "kind": "ServiceBlueprint",
       "description": "New Relic Kubernetes monitoring (infrastructure agent, kube-state-metrics, events, optional logs) via the official nri-bundle Helm chart",
       "icon": "app://qovery-console/newrelic",
@@ -388,12 +428,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "HELM/newrelic/default/1.0.1"
+          "latestTag": "HELM/newrelic/default/1.0.3"
         }
       ]
     },
     {
       "name": "helm-rabbitmq",
+      "displayName": "RabbitMQ",
+      "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "RabbitMQ message broker via the community groundhog2k Helm chart (official docker.io/rabbitmq image)",
       "icon": "app://qovery-console/rabbitmq",
@@ -406,12 +448,14 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "HELM/rabbitmq/4/2.0.1"
+          "latestTag": "HELM/rabbitmq/4/2.0.3"
         }
       ]
     },
     {
       "name": "helm-redis",
+      "displayName": "Redis",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "Redis cache via the community groundhog2k Helm chart (official docker.io/redis image)",
       "icon": "app://qovery-console/redis",
@@ -424,12 +468,14 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "HELM/redis/8/1.0.0"
+          "latestTag": "HELM/redis/8/1.0.2"
         }
       ]
     },
     {
       "name": "scaleway-mysql",
+      "displayName": "Scaleway MySQL",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL",
       "icon": "app://qovery-console/mysql",
@@ -443,12 +489,14 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.4.0"
+          "latestTag": "SCW/mysql/8/1.4.2"
         }
       ]
     },
     {
       "name": "scaleway-object-storage",
+      "displayName": "Scaleway Object Storage",
+      "primaryCategory": "Storage",
       "kind": "ServiceBlueprint",
       "description": "Scaleway Object Storage bucket",
       "icon": "app://qovery-console/scaleway",
@@ -461,12 +509,14 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "SCW/object-storage/default/1.1.6"
+          "latestTag": "SCW/object-storage/default/1.1.8"
         }
       ]
     },
     {
       "name": "scaleway-managed-postgresql",
+      "displayName": "Scaleway Managed PostgreSQL",
+      "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
       "description": "Scaleway Managed Database PostgreSQL instance with configurable node type, storage, backups, and network ACL",
       "icon": "app://qovery-console/postgresql",
@@ -480,7 +530,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.4.0"
+          "latestTag": "SCW/postgres/16/1.4.2"
         }
       ]
     }

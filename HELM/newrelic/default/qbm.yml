@@ -3,7 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-newrelic"
-  version: "1.0.1"
+  displayName: "New Relic"
+  primaryCategory: "Observability"
+  version: "1.0.3"
   description: "New Relic Kubernetes monitoring (infrastructure agent, kube-state-metrics, events, optional logs) via the official nri-bundle Helm chart"
   icon: "app://qovery-console/newrelic"
   serviceFamily: "newrelic"

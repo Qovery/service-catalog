@@ -63,6 +63,8 @@ kind: ServiceBlueprint               # required (StackBlueprint needs spec.stage
 
 metadata:
   name: "aws-rds-postgresql"         # required; by convention kebab-case, provider-then-service
+  displayName: "Amazon RDS for PostgreSQL" # optional; customer-facing label
+  primaryCategory: "Databases & Caches" # required; controlled Console section
   version: "3.1.0"                   # required, blueprint semver — bump on EVERY change
   description: "..."                 # one line, shown in the Console picker
   icon: "app://qovery-console/postgresql"
@@ -108,6 +110,30 @@ Rules CI checks on this block:
   `type` (`s3`, `gcs`, `azurerm`, …).
 - `overridable` defaults to `false` — fail-closed. If users must be able to change the value, say
   so explicitly.
+
+### Catalog categories
+
+`primaryCategory` is the single customer-facing section where the Console displays a blueprint.
+Use exactly one of these values:
+
+| Primary category | Use for |
+| --- | --- |
+| `Databases & Caches` | Relational, document, time-series, and in-memory data stores |
+| `Storage` | Object storage |
+| `Analytics` | Data warehouses and analytical datasets |
+| `Messaging & Streaming` | Queues, brokers, Kafka, and event streams |
+| `Compute & Runtime` | Serverless runtimes and durable workflow execution |
+| `Networking & Edge` | DNS, CDNs, and traffic delivery |
+| `Observability` | Monitoring, logs, tracing, and metrics |
+| `AI` | AI model access and AI-specific infrastructure |
+
+Do not use a provider name or engine type (`AWS`, `EXTERNAL`, `helm`, `terraform`) as a
+primary category. Those describe how the blueprint is delivered, not the job a customer is trying
+to do.
+
+`categories` remains a list of flexible lowercase search/filter tags, such as
+`["database", "postgresql", "rds"]`. Keep those tags specific and additive; do not put the
+display section name in this list.
 
 ## `qbm.yml` — Helm
 
