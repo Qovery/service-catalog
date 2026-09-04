@@ -46,32 +46,42 @@ variable "db_name" {
 
 variable "db_username" {
   type        = string
-  description = "Master username (letters, digits, underscores; must start with a letter; max 32 chars)"
+  default     = ""
+  description = "Master username (letters, digits, underscores; must start with a letter; max 32 chars). Empty uses qoveryadmin, the login used by native managed databases."
 
   validation {
-    condition     = length(var.db_username) >= 1 && length(var.db_username) <= 32
+    condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 32)
     error_message = "db_username must be between 1 and 32 characters (MySQL limit)."
   }
 
   validation {
-    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
+    condition     = var.db_username == "" || (can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username)))
     error_message = "db_username must start with a letter and contain only letters, digits, and underscores."
   }
 
   validation {
     # AWS RDS MySQL reserved master user names (docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html)
-    condition     = !contains(["admin", "rdsadmin", "mysql"], lower(var.db_username))
+    condition     = var.db_username == "" || (!contains(["admin", "rdsadmin", "mysql"], lower(var.db_username)))
     error_message = "db_username must not be a reserved word. Reserved names: admin, rdsadmin, mysql."
+  }
+
+  validation {
+    # username is ForceNew on aws_db_instance and is absent from the resource's ignore_changes list,
+    # so adopting an instance whose master user differs from the fallback would plan a replacement
+    # and destroy the live database. Adoption has to state the existing username.
+    condition     = var.import_identifier == "" || var.db_username != ""
+    error_message = "db_username must be set to the existing instance's master username when import_identifier is set."
   }
 }
 
 variable "db_password" {
   type        = string
   sensitive   = true
-  description = "Master password (8–128 chars; must not contain /, @, \", or spaces)"
+  default     = ""
+  description = "Master password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character alphanumeric password."
 
   validation {
-    condition     = length(var.db_password) >= 8 && length(var.db_password) <= 128
+    condition     = var.db_password == "" || (length(var.db_password) >= 8 && length(var.db_password) <= 128)
     error_message = "db_password must be between 8 and 128 characters."
   }
 
@@ -79,6 +89,13 @@ variable "db_password" {
     # RDS forbids / @ " and space in passwords.
     condition     = !can(regex("[/@\" ]", var.db_password))
     error_message = "db_password must not contain '/', '@', '\"', or spaces."
+  }
+
+  validation {
+    # RDS never returns the master password, so an adopted instance's real one cannot be read back.
+    # Generating a fresh one here would publish a db_password output that does not authenticate.
+    condition     = var.import_identifier == "" || var.db_password != ""
+    error_message = "db_password must be set to the existing instance's master password when import_identifier is set."
   }
 }
 

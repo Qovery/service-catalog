@@ -15,12 +15,12 @@ output "db_name" {
 
 output "db_username" {
   description = "Database username"
-  value       = var.db_username
+  value       = local.db_username
 }
 
 output "db_password" {
   description = "Database user password"
-  value       = var.db_password
+  value       = local.db_password
   sensitive   = true
 }
 

@@ -16,8 +16,22 @@ A MongoDB Atlas **programmatic API key** (public + private) supplied as variable
 | `atlas_private_key` | string | yes       | Atlas programmatic API key — private key                |
 | `project_id`        | string |           | Existing Atlas project ID                               |
 | `cluster_name`      | string |           | Cluster name (`^[a-zA-Z0-9-]{1,64}$`)                   |
-| `db_username`       | string |           | Database user to create (readWriteAnyDatabase)          |
-| `db_password`       | string | yes       | Password for the database user (min 8 chars)            |
+
+### Credentials
+
+Both are optional — omit them and Qovery supplies the values, the way native managed
+databases did. In the console, leaving the field blank omits it. Through the API or
+Terraform, omit the variable rather than sending an empty string: the platform rejects an
+empty variable value.
+
+Atlas keys database users by (username, auth database) within a project, so two databases in
+the same Atlas project cannot both take the default username — give the second one an
+explicit `db_username` or its user creation collides with the first.
+
+| Name | Type | Sensitive | Default | Description |
+| ---- | ---- | --------- | ------- | ----------- |
+| `db_username` | string |  | `qoveryadmin` | Database user to create (SCRAM auth, readWriteAnyDatabase). Omit to use qoveryadmin. |
+| `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character alphanumeric password. To set your own: min 8 chars. |
 
 ### Cluster shape
 
@@ -40,7 +54,7 @@ A MongoDB Atlas **programmatic API key** (public + private) supplied as variable
 | `connection_string_srv`      |           | SRV connection string (`mongodb+srv://`)               |
 | `mongo_db_version`           |           | Running MongoDB version                                |
 | `db_username`                |           | Created database username                              |
-| `db_password`                | yes       | Database user password (echo of the input)             |
+| `db_password`                | yes       | Database user password (generated when the input was left empty)             |
 | `connection_uri`             | yes       | Ready-to-use SRV URI with credentials embedded         |
 
 ## Notes

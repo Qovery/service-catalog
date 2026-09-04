@@ -22,10 +22,20 @@ This removes the resource from state without touching the user in Scaleway; the 
 | --------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `instance_name` | string |           | Instance name suffix. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars.           |
 | `db_name`       | string |           | MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed. |
-| `db_username`   | string |           | Database username. Letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit).                   |
-| `db_password`   | string | yes       | Database user password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                          |
 | `node_type`      | string |          | Scaleway node type (e.g. `DB-DEV-S`, `DB-GP-XS`). Default suggestion: `DB-DEV-S`.         |
 | `volume_size_gb` | number |          | Volume size in GB (min 5, max 10000). Default suggestion: `5`.                     |
+
+### Credentials
+
+Both are optional — omit them and Qovery supplies the values, the way native managed
+databases did. In the console, leaving the field blank omits it. Through the API or
+Terraform, omit the variable rather than sending an empty string: the platform rejects an
+empty variable value.
+
+| Name | Type | Sensitive | Default | Description |
+| ---- | ---- | --------- | ------- | ----------- |
+| `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: rdb_admin, mysql. |
+| `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
 
 ### Engine & sizing
 
@@ -52,7 +62,7 @@ This removes the resource from state without touching the user in Scaleway; the 
 | `endpoint_port` |           | Database endpoint port (Load Balancer)                            |
 | `db_name`       |           | Database name                                                     |
 | `db_username`   |           | Database username                                                 |
-| `db_password`   | yes       | Database user password (echo of the input)                        |
+| `db_password`   | yes       | Database user password (generated when the input was left empty)                        |
 | `instance_id`   |           | Scaleway RDB instance ID                                          |
 | `certificate`   | yes       | TLS CA certificate served by the database (PEM, verify-full SSL)  |
 

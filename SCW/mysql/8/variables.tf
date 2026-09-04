@@ -52,21 +52,22 @@ variable "db_name" {
 
 variable "db_username" {
   type        = string
-  description = "Database username (letters, digits, underscores; must start with a letter; max 32 chars)"
+  default     = ""
+  description = "Database username (letters, digits, underscores; must start with a letter; max 32 chars). Empty uses qoveryadmin, the login used by native managed databases."
 
   validation {
-    condition     = length(var.db_username) >= 1 && length(var.db_username) <= 32
+    condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 32)
     error_message = "db_username must be between 1 and 32 characters (MySQL limit)."
   }
 
   validation {
-    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
+    condition     = var.db_username == "" || (can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username)))
     error_message = "db_username must start with a letter and contain only letters, digits, and underscores."
   }
 
   validation {
     # Scaleway managed MySQL reserved user names (rdb_admin is Scaleway's internal admin)
-    condition     = !contains(["rdb_admin", "mysql"], lower(var.db_username))
+    condition     = var.db_username == "" || (!contains(["rdb_admin", "mysql"], lower(var.db_username)))
     error_message = "db_username must not be a reserved word. Reserved names: rdb_admin, mysql."
   }
 }
@@ -74,10 +75,11 @@ variable "db_username" {
 variable "db_password" {
   type        = string
   sensitive   = true
-  description = "Database user password (8–128 chars; must not contain /, @, \", or spaces)"
+  default     = ""
+  description = "Database user password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character password."
 
   validation {
-    condition     = length(var.db_password) >= 8 && length(var.db_password) <= 128
+    condition     = var.db_password == "" || (length(var.db_password) >= 8 && length(var.db_password) <= 128)
     error_message = "db_password must be between 8 and 128 characters."
   }
 

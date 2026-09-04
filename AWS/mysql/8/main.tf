@@ -86,6 +86,19 @@ locals {
   )
 }
 
+resource "random_password" "master" {
+  length      = 32
+  special     = false
+  min_lower   = 1
+  min_upper   = 1
+  min_numeric = 1
+}
+
+locals {
+  db_username = var.db_username != "" ? var.db_username : "qoveryadmin"
+  db_password = var.db_password != "" ? var.db_password : random_password.master.result
+}
+
 resource "aws_db_instance" "this" {
   # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
   identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
@@ -102,8 +115,8 @@ resource "aws_db_instance" "this" {
   iops = var.disk_iops == 0 || !contains(["io1", "io2", "gp3"], var.storage_type) ? null : var.disk_iops
 
   db_name  = var.db_name
-  username = var.db_username
-  password = var.db_password
+  username = local.db_username
+  password = local.db_password
 
   parameter_group_name = aws_db_parameter_group.mysql.name
   ca_cert_identifier   = var.ca_cert_identifier

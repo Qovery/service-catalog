@@ -11,10 +11,25 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | Name          | Type   | Sensitive | Description                                                                                                                   |
 | ------------- | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `db_name`     | string |           | PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed. |
-| `db_username` | string |           | Master username. Letters, digits, underscores; must start with a letter; max 63 chars.                                        |
-| `db_password` | string | yes       | Master password. 8–128 chars. Must not contain `/`, `@`, `"`, or spaces.                                                      |
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
 | `allocated_storage` | number |           | Allocated storage in GiB (min 20, max 65536). Default suggestion: `20`.                             |
+
+### Credentials
+
+Both are optional — omit them and Qovery supplies the values, the way native managed
+databases did. In the console, leaving the field blank omits it. Through the API or
+Terraform, omit the variable rather than sending an empty string: the platform rejects an
+empty variable value.
+
+| Name | Type | Sensitive | Default | Description |
+| ---- | ---- | --------- | ------- | ----------- |
+| `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'. |
+| `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
+
+Adoption (`import_identifier` set) requires both explicitly. `username` is `ForceNew` on
+`aws_db_instance`, so a defaulted value would plan a replacement and destroy the live
+database; and RDS never returns the master password, so a generated one would be published
+as the credential without ever being applied.
 
 ### Instance & storage
 
@@ -95,7 +110,7 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | `db_port`                  |           | RDS instance port                                          |
 | `db_name`                  |           | Database name                                              |
 | `db_username`              |           | Master username                                            |
-| `db_password`              | yes       | Master password (echo of the input)                        |
+| `db_password`              | yes       | Master password (generated when the input was left empty)                        |
 | `db_resource_id`           |           | RDS internal resource ID (used in IAM DB auth ARNs)        |
 | `db_arn`                   |           | RDS instance ARN                                           |
 | `db_engine_version_actual` |           | Engine version actually running (incl. AWS-chosen minor)   |

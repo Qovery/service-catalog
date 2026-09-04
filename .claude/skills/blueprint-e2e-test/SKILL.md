@@ -186,6 +186,86 @@ curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
 `latest_deployment.error_message` carries the engine's actual failure text. That is where a
 provider rejection surfaces.
 
+**Do not wait on `environment/{id}/status.state`.** After you trigger a deploy the environment
+keeps its *previous* terminal state for a while, so `state != DEPLOYING` reads as "finished" for a
+deployment that has not started yet — and a stale `DEPLOYMENT_ERROR` from an earlier round looks
+like your run failed. Wait on the deployment record instead:
+
+Scope that to **your** service, not `.results[0]`. Each history record carries the services it
+covers, so filter on the `service_id` instead of taking the newest deployment in the environment —
+otherwise on a shared environment you are watching whatever somebody else deployed last:
+
+**A status alone is not enough — you have to know it belongs to the operation you just triggered.**
+Right after a completed deploy the newest record for that service still reads `DEPLOYED`, so a loop
+that breaks on "any non-running status" returns instantly on the *previous* operation. Capture the
+record id before triggering, and wait for a different one:
+
+```sh
+# the newest deployment record covering this service, or "none"
+svc_deployment() {
+  curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
+    "$API/environment/$ENVIRONMENT_ID/deploymentHistory" \
+    | jq -c --arg svc "$SERVICE_ID" \
+        '[.results[] | select(any(.terraforms[]?; .id == $svc))][0] // {}'
+}
+
+BEFORE=$(svc_deployment | jq -r '.id // "none"')   # BEFORE you trigger anything
+
+# ... trigger the deploy / update / delete here ...
+
+while true; do
+  D=$(svc_deployment)
+  ID=$(jq -r '.id // "none"' <<<"$D")
+  S=$(jq -r --arg svc "$SERVICE_ID" \
+        '[.terraforms[]? | select(.id == $svc) | .status][0] // "UNKNOWN"' <<<"$D")
+
+  # still showing the pre-trigger record, or nothing yet: our operation has not surfaced
+  if [ "$ID" = "$BEFORE" ] || [ "$ID" = "none" ]; then sleep 20; continue; fi
+
+  case "$S" in
+    *QUEUED|DEPLOYING|BUILDING|DELETING|UNKNOWN) sleep 20 ;;
+    *) echo "terminal: $S (deployment $ID)"; break ;;
+  esac
+done
+```
+
+For **teardown** do not use this at all — a delete removes the service, so wait for it to disappear
+rather than for a status:
+
+```sh
+until ! curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
+  "$API/environment/$ENVIRONMENT_ID/terraform" \
+  | jq -e --arg svc "$SERVICE_ID" 'any(.results[]?; .id == $svc)' >/dev/null; do sleep 20; done
+echo "service gone"
+```
+
+Four details that matter, all of them observed rather than assumed:
+
+- The entries are keyed `.terraforms[].id` — the service id directly. There is no
+  `.identifier.service_id` here, unlike the per-service status blocks elsewhere in the API.
+- Read the status off the **service** entry, not the record. They differ: a record reporting
+  `DEPLOYED` at environment level had `DELETED` for the service that had just been torn down.
+- The record id is `<environment id>-<counter>`, incrementing per environment, which is what makes
+  the `BEFORE` comparison work.
+- The history window is finite and `pageSize` is ignored (asking for 3 returns 20), so a service
+  whose deployment has aged out returns nothing. That is indistinguishable from "has not started
+  yet", which is exactly why the loop gates on the record id rather than on the status alone.
+
+Use `.helms[]?` instead of `.terraforms[]?` for a Helm blueprint. There is no per-service
+deployment-status endpoint, so this filter is the only way to scope the wait; a dedicated
+environment avoids the problem entirely and is worth it if you have one.
+
+The same aggregation applies to the environment-level state, which covers **every** service in the
+environment. On a shared test environment a `DEPLOYMENT_ERROR` there is usually somebody else's
+broken service; judge your own run by its scoped deployment status and its service logs, never by
+the environment.
+
+**Check the HTTP status, don't just `jq` the body.** This API answers an unknown route with
+`404` and a JSON error object, so `jq '.results | length'` on it prints `0` and
+`jq '{state}'` prints `null` — both look like a real "absent" answer and will send you chasing a
+non-existent bug. Use `curl -o /dev/null -w '%{http_code}'`, or `curl -i`, whenever a result is
+surprisingly empty.
+
 These endpoints **do not exist** — reaching for them wastes time:
 `/terraform/{id}/status`, `/terraform/{id}/deploymentStatus`,
 `/environment/{id}/service/{id}/deploymentStatus`, `/environment/{id}/service/status`,
@@ -210,17 +290,58 @@ A failure at the provider with deliberately invalid credentials (`401`, `Unauthe
 reached the provider. That is a legitimate result when you have no real account for the service —
 say "installs correctly, not usable" rather than claiming a green deploy.
 
+### Then check the outputs reached the environment
+
+The terraform outputs become environment variables named
+`QOVERY_OUTPUT_TERRAFORM_Z<first 8 of the service id>_<OUTPUT NAME>`, split across two endpoints by
+sensitivity — an output declared `sensitive: true` in `qbm.yml` becomes a secret, everything else a
+plain variable. Both are `BUILT_IN`, and both are removed when the service is deleted:
+
+```sh
+SHORT="Z$(echo "$SERVICE_ID" | cut -c1-8 | tr a-z A-Z)"
+
+# sensitive outputs (values are never returned)
+curl -s -H "Authorization: Token $QOVERY_API_TOKEN" "$API/environment/$ENVIRONMENT_ID/secret" \
+  | jq -r --arg s "$SHORT" '.results[] | select(.key|test($s)) | .key'
+
+# plain outputs, with values
+curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
+  "$API/environment/$ENVIRONMENT_ID/environmentVariable" \
+  | jq -r --arg s "$SHORT" '.results[] | select(.key|test($s)) | "\(.key) = \(.value)"'
+```
+
+`GET /environment/{id}/variable` does **not** exist — it 404s, and `jq` on that body reports zero
+variables, which reads exactly like "the outputs were never created".
+
+These land only once the deployment finishes, so an empty result on a still-running deploy means
+nothing.
+
 ## Clean up — part of the test, not an afterthought
 
 The throwaway is a live billing resource. Delete it, and name explicitly what was deleted.
 
+Delete the **linked service**, not the blueprint: `/blueprint/{id}` only allows
+`GET,HEAD,PATCH,OPTIONS`, so `DELETE` there returns `405` and destroys nothing. `DELETE` lives on
+the service, which is what owns the terraform state:
+
 ```sh
-curl -s -X DELETE "$API/blueprint/$BLUEPRINT_ID" -H "Authorization: Token $QOVERY_API_TOKEN"
+# 202 Accepted — this queues a terraform destroy, it does not delete synchronously
+curl -s -X DELETE "$API/terraform/$SERVICE_ID" -H "Authorization: Token $QOVERY_API_TOKEN"
 ```
 
-Then confirm it is gone from `GET /environment/$ENVIRONMENT_ID/terraform`, and check the cloud
-provider console for anything the delete left behind — a final snapshot, a retained volume, a DNS
-zone.
+`$SERVICE_ID` is the blueprint's `service_id` (use `/helm/{id}` when `service_type` is `HELM`).
+A `202` only means the destroy was queued, so wait for it with the **disappearance** loop above —
+not the status loop, which would read the still-present `DEPLOYED` record from the deploy that
+preceded the delete.
+
+Then confirm all of:
+
+- the service is gone from `GET /environment/$ENVIRONMENT_ID/terraform`
+- `GET /blueprint/$BLUEPRINT_ID` returns `404` (deleting the service removes the blueprint record)
+- its `QOVERY_OUTPUT_TERRAFORM_*` variables and secrets are gone from the two endpoints above
+- the cloud provider console has nothing left behind — a final snapshot, a retained volume, a DNS
+  zone. Without credentials for that account you cannot check this, so say so rather than implying
+  the cloud side was verified.
 
 If the PR merges or closes while a service is still pinned to one of its rc tags, that tag is
 deleted and the service can no longer be deployed *or* cleanly torn down. Delete the throwaway

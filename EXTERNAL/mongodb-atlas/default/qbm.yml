@@ -3,7 +3,7 @@ kind: ServiceBlueprint
 
 metadata:
   name: "mongodb-atlas-cluster"
-  version: "1.0.4"
+  version: "1.1.0"
   description: "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider"
   icon: "app://qovery-console/mongodb"
   serviceFamily: "mongodb-atlas"
@@ -90,13 +90,13 @@ spec:
       description: "Enable cloud backup for the cluster"
     - name: "db_username"
       type: "string"
-      required: true
-      description: "Database user to create (SCRAM auth, readWriteAnyDatabase)"
+      required: false
+      description: "Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin. Atlas keys users by (username, auth database) per project, so a second database in the same Atlas project needs a distinct username."
     - name: "db_password"
       type: "string"
-      required: true
+      required: false
       sensitive: true
-      description: "Password for the database user (min 8 chars)"
+      description: "Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: min 8 chars."
     - name: "ip_access_list_cidr"
       type: "string"
       required: false
@@ -117,7 +117,7 @@ spec:
     - name: "db_username"
       description: "Created database username"
     - name: "db_password"
-      description: "Database user password"
+      description: "Database user password (generated when the input was left empty)"
       sensitive: true
     - name: "connection_uri"
       description: "Ready-to-use SRV connection URI with the db user credentials embedded"

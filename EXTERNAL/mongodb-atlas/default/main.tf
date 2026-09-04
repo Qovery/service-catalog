@@ -18,10 +18,25 @@ resource "mongodbatlas_advanced_cluster" "this" {
   }
 }
 
+resource "random_password" "master" {
+  length      = 32
+  special     = false
+  min_lower   = 1
+  min_upper   = 1
+  min_numeric = 1
+}
+
+locals {
+  # trimspace here so the value matches what the validation accepted: " user " passes a
+  # not-blank check but would otherwise create a user literally named with spaces.
+  db_username = trimspace(var.db_username) != "" ? trimspace(var.db_username) : "qoveryadmin"
+  db_password = var.db_password != "" ? var.db_password : random_password.master.result
+}
+
 resource "mongodbatlas_database_user" "this" {
   project_id         = var.project_id
-  username           = var.db_username
-  password           = var.db_password
+  username           = local.db_username
+  password           = local.db_password
   auth_database_name = "admin"
 
   roles {
