@@ -3,7 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aiven-kafka"
-  version: "1.0.3"
+  displayName: "Aiven for Apache Kafka"
+  version: "1.0.4"
   description: "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider"
   icon: "app://qovery-console/kafka"
   serviceFamily: "aiven-kafka"

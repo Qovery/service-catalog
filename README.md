@@ -89,6 +89,7 @@ apiVersion: "qovery.com/v1"
 kind: ServiceBlueprint
 metadata:
   name: "aws-rds-postgresql"
+  displayName: "Amazon RDS for PostgreSQL" # optional label shown to users
   version: "1.2.0" # semver; CI auto-tags when this bumps
   description: "..." # short, one line
   icon: "app://qovery-console/postgresql"

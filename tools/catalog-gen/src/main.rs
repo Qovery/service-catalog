@@ -112,6 +112,7 @@ struct Qbm {
 #[serde(rename_all = "camelCase")]
 struct QbmMetadata {
     name: String,
+    display_name: Option<String>,
     version: String,
     description: Option<String>,
     icon: Option<String>,
@@ -255,6 +256,8 @@ struct Catalog {
 #[serde(rename_all = "camelCase")]
 struct CatalogBlueprint {
     name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_name: Option<String>,
     kind: String,
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -407,6 +410,7 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
             .unwrap_or_else(|| version_dirs[0].provider.clone());
         catalog_blueprints.push(CatalogBlueprint {
             name: qbm.metadata.name,
+            display_name: qbm.metadata.display_name,
             kind: qbm.kind.unwrap_or_else(|| "ServiceBlueprint".to_string()),
             description: qbm.metadata.description.unwrap_or_default(),
             icon: qbm.metadata.icon,

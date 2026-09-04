@@ -3,7 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-bedrock-access"
-  version: "1.0.0"
+  displayName: "AWS Bedrock Access"
+  version: "1.0.1"
   description: "Provision scoped AWS Bedrock access — an IAM policy limited to the models you name, plus an optional IAM user with keys — so an application on any cloud (AWS, Azure, Scaleway or GCP) can call Bedrock models"
   icon: "app://qovery-console/bedrock"
   serviceFamily: "bedrock"

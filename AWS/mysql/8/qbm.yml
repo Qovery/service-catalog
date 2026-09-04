@@ -3,7 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "aws-rds-mysql"
-  version: "2.1.0"
+  displayName: "Amazon RDS for MySQL"
+  version: "2.1.1"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"

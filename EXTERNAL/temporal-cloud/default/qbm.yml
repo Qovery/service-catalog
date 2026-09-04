@@ -3,7 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "temporal-cloud-namespace"
-  version: "1.0.4"
+  displayName: "Temporal Cloud Namespace"
+  version: "1.0.5"
   description: "Provision a Temporal Cloud namespace (regions, retention, client auth) via the Temporal Cloud Terraform provider"
   icon: "app://qovery-console/temporal"
   serviceFamily: "temporal-cloud"

@@ -3,7 +3,8 @@ kind: ServiceBlueprint
 
 metadata:
   name: "planetscale-database"
-  version: "1.0.4"
+  displayName: "PlanetScale Database"
+  version: "1.0.5"
   description: "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider"
   icon: "app://qovery-console/planetscale"
   serviceFamily: "planetscale"
