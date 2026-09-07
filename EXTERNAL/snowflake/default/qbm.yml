@@ -3,7 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "snowflake-database"
-  version: "1.0.0"
+  displayName: "Snowflake Database"
+  primaryCategory: "Analytics"
+  version: "1.0.2"
   description: "Provision a Snowflake database, schema, warehouse and application role, with an optional SERVICE user and generated key pair so an application on any cloud — AWS, Azure, Scaleway or GCP — can connect"
   icon: "app://qovery-console/snowflake"
   serviceFamily: "snowflake"

@@ -112,6 +112,8 @@ struct Qbm {
 #[serde(rename_all = "camelCase")]
 struct QbmMetadata {
     name: String,
+    display_name: Option<String>,
+    primary_category: Option<String>,
     version: String,
     description: Option<String>,
     icon: Option<String>,
@@ -145,6 +147,8 @@ struct ValidateQbm {
 #[derive(Deserialize)]
 struct ValidateMeta {
     name: Option<String>,
+    #[serde(rename = "primaryCategory")]
+    primary_category: Option<String>,
     version: Option<String>,
 }
 
@@ -215,6 +219,16 @@ const BACKEND_MODES: &[&str] = &["qovery", "user_provided"];
 // Top-level provider dirs the platform can parse (q-core BlueprintIacProvider + HELM).
 // Extending this list is a platform change — ship q-core/console support first (see AGENTS.md).
 const PROVIDERS: &[&str] = &["AWS", "SCW", "GCP", "AZURE", "EXTERNAL", "HELM"];
+const PRIMARY_CATEGORIES: &[&str] = &[
+    "Databases & Caches",
+    "Storage",
+    "Analytics",
+    "Messaging & Streaming",
+    "Compute & Runtime",
+    "Networking & Edge",
+    "Observability",
+    "AI",
+];
 
 #[derive(Deserialize)]
 struct VarDecl {
@@ -255,6 +269,10 @@ struct Catalog {
 #[serde(rename_all = "camelCase")]
 struct CatalogBlueprint {
     name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    primary_category: Option<String>,
     kind: String,
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -407,6 +425,8 @@ fn generate_catalog(root: &Path) -> Result<Catalog> {
             .unwrap_or_else(|| version_dirs[0].provider.clone());
         catalog_blueprints.push(CatalogBlueprint {
             name: qbm.metadata.name,
+            display_name: qbm.metadata.display_name,
+            primary_category: qbm.metadata.primary_category,
             kind: qbm.kind.unwrap_or_else(|| "ServiceBlueprint".to_string()),
             description: qbm.metadata.description.unwrap_or_default(),
             icon: qbm.metadata.icon,
@@ -744,6 +764,16 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                 }
                 if m.version.is_none() {
                     errors.push(format!("{}: missing metadata.version", vd.full_path));
+                }
+                match m.primary_category.as_deref() {
+                    None => errors.push(format!("{}: missing metadata.primaryCategory", vd.full_path)),
+                    Some(category) if !PRIMARY_CATEGORIES.contains(&category) => errors.push(format!(
+                        "{}: metadata.primaryCategory '{}' must be one of: {}",
+                        vd.full_path,
+                        category,
+                        PRIMARY_CATEGORIES.join(", ")
+                    )),
+                    Some(_) => {}
                 }
             }
         }

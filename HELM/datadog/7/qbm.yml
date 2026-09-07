@@ -3,7 +3,9 @@ kind: ServiceBlueprint
 
 metadata:
   name: "helm-datadog"
-  version: "3.0.1"
+  displayName: "Datadog"
+  primaryCategory: "Observability"
+  version: "3.0.3"
   description: "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart"
   icon: "app://qovery-console/datadog"
   serviceFamily: "datadog"
