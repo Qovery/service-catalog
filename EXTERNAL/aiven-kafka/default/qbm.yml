@@ -5,9 +5,9 @@ metadata:
   name: "aiven-kafka"
   displayName: "Aiven for Apache Kafka"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.5"
+  version: "1.0.6"
   description: "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider"
-  icon: "app://qovery-console/kafka"
+  icon: "app://qovery-console/aiven"
   serviceFamily: "aiven-kafka"
   categories:
     - "streaming"

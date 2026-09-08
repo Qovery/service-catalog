@@ -5,9 +5,9 @@ metadata:
   name: "aws-msk"
   displayName: "Amazon MSK"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network"
-  icon: "app://qovery-console/kafka"
+  icon: "app://qovery-console/amazon-msk"
   serviceFamily: "msk"
   categories:
     - "streaming"
