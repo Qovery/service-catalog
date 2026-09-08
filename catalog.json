@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-08T17:04:58Z",
+  "generatedAt": "2026-09-08T17:04:59Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -156,10 +156,6 @@
       "provider": "AWS",
       "serviceFamily": "valkey",
       "majorVersions": [
-        {
-          "serviceVersion": "8",
-          "latestTag": "AWS/valkey/8/1.0.0"
-        },
         {
           "serviceVersion": "9",
           "latestTag": "AWS/valkey/9/1.0.0"
