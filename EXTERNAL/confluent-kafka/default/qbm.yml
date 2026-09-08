@@ -5,9 +5,9 @@ metadata:
   name: "confluent-kafka"
   displayName: "Confluent Cloud for Apache Kafka"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.5"
+  version: "1.0.6"
   description: "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider"
-  icon: "app://qovery-console/kafka"
+  icon: "app://qovery-console/confluent"
   serviceFamily: "confluent-kafka"
   categories:
     - "streaming"

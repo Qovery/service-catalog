@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-04T14:31:11Z",
+  "generatedAt": "2026-09-08T15:13:22Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -29,7 +29,7 @@
       "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network",
-      "icon": "app://qovery-console/kafka",
+      "icon": "app://qovery-console/amazon-msk",
       "categories": [
         "streaming",
         "kafka",
@@ -40,7 +40,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/msk/default/1.0.6"
+          "latestTag": "AWS/msk/default/1.0.7"
         }
       ]
     },
@@ -124,7 +124,7 @@
       "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider",
-      "icon": "app://qovery-console/kafka",
+      "icon": "app://qovery-console/aiven",
       "categories": [
         "streaming",
         "kafka",
@@ -135,7 +135,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/aiven-kafka/default/1.0.5"
+          "latestTag": "EXTERNAL/aiven-kafka/default/1.0.6"
         }
       ]
     },
@@ -228,7 +228,7 @@
       "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider",
-      "icon": "app://qovery-console/kafka",
+      "icon": "app://qovery-console/confluent",
       "categories": [
         "streaming",
         "kafka",
@@ -239,7 +239,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.5"
+          "latestTag": "EXTERNAL/confluent-kafka/default/1.0.6"
         }
       ]
     },
@@ -291,7 +291,7 @@
       "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider",
-      "icon": "app://qovery-console/kafka",
+      "icon": "app://qovery-console/redpanda",
       "categories": [
         "streaming",
         "kafka",
@@ -302,7 +302,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.5"
+          "latestTag": "EXTERNAL/redpanda-kafka/default/1.0.6"
         }
       ]
     },

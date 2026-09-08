@@ -5,9 +5,9 @@ metadata:
   name: "redpanda-kafka"
   displayName: "Redpanda Cloud"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.5"
+  version: "1.0.6"
   description: "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider"
-  icon: "app://qovery-console/kafka"
+  icon: "app://qovery-console/redpanda"
   serviceFamily: "redpanda-kafka"
   categories:
     - "streaming"
