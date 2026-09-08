@@ -3,15 +3,9 @@ output "redis_identifier" {
   value       = aws_elasticache_replication_group.this.replication_group_id
 }
 
-# Same endpoint the native path publishes: the configuration endpoint in cluster mode, the
-# primary endpoint otherwise.
 output "redis_host" {
   description = "Hostname applications connect to (configuration endpoint in cluster mode, primary endpoint otherwise)"
-  value = (
-    aws_elasticache_replication_group.this.configuration_endpoint_address != "" ?
-    aws_elasticache_replication_group.this.configuration_endpoint_address :
-    aws_elasticache_replication_group.this.primary_endpoint_address
-  )
+  value       = local.redis_host
 }
 
 output "redis_port" {
@@ -35,9 +29,7 @@ output "redis_url" {
   value = format(
     "rediss://default:%s@%s:%s/0",
     urlencode(local.redis_password),
-    aws_elasticache_replication_group.this.configuration_endpoint_address != "" ?
-    aws_elasticache_replication_group.this.configuration_endpoint_address :
-    aws_elasticache_replication_group.this.primary_endpoint_address,
+    local.redis_host,
     aws_elasticache_replication_group.this.port,
   )
   sensitive = true
@@ -45,17 +37,17 @@ output "redis_url" {
 
 output "redis_primary_endpoint_address" {
   description = "Primary endpoint hostname (empty in cluster mode)"
-  value       = aws_elasticache_replication_group.this.primary_endpoint_address
+  value       = local.primary_endpoint
 }
 
 output "redis_reader_endpoint_address" {
   description = "Reader endpoint hostname, load-balanced across replicas (empty in cluster mode)"
-  value       = aws_elasticache_replication_group.this.reader_endpoint_address
+  value       = local.reader_endpoint
 }
 
 output "redis_configuration_endpoint_address" {
   description = "Configuration endpoint hostname, for cluster-mode clients (empty when instances_number = 1)"
-  value       = aws_elasticache_replication_group.this.configuration_endpoint_address
+  value       = local.configuration_endpoint
 }
 
 output "redis_arn" {

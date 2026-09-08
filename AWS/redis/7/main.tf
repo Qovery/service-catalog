@@ -151,3 +151,14 @@ resource "aws_elasticache_replication_group" "this" {
     ]
   }
 }
+
+# Endpoint attributes come back null, not "", on the topology that does not publish them:
+# configuration_endpoint_address in non-cluster mode, primary/reader in cluster mode. Normalise
+# to "" here so a null never reaches format() or an output.
+locals {
+  configuration_endpoint = aws_elasticache_replication_group.this.configuration_endpoint_address != null ? aws_elasticache_replication_group.this.configuration_endpoint_address : ""
+  primary_endpoint       = aws_elasticache_replication_group.this.primary_endpoint_address != null ? aws_elasticache_replication_group.this.primary_endpoint_address : ""
+  reader_endpoint        = aws_elasticache_replication_group.this.reader_endpoint_address != null ? aws_elasticache_replication_group.this.reader_endpoint_address : ""
+
+  redis_host = local.configuration_endpoint != "" ? local.configuration_endpoint : local.primary_endpoint
+}
