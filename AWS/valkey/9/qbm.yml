@@ -76,12 +76,11 @@ spec:
     - name: "engine_version"
       type: "string"
       required: false
-      default: "8.0"
+      default: "9.0"
       description: "Valkey engine version"
       allowedValues:
-        - "8.0"
-        - "8.1"
-        - "8.2"
+        - "9.0"
+        - "9.1"
     - name: "port"
       type: "number"
       required: false
@@ -104,7 +103,7 @@ spec:
     - name: "parameter_group_name"
       type: "string"
       required: false
-      description: "Leave empty — derived from the topology: default.valkey8 for a single node group, default.valkey8.cluster.on when instances_number > 1."
+      description: "Leave empty — derived from the topology: default.valkey9 for a single node group, default.valkey9.cluster.on when instances_number > 1."
     - name: "subnet_group_name"
       type: "string"
       required: false

@@ -145,7 +145,7 @@
       "displayName": "Amazon ElastiCache for Valkey",
       "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
-      "description": "AWS ElastiCache for Valkey 8 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance",
+      "description": "AWS ElastiCache for Valkey replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance",
       "icon": "app://qovery-console/redis",
       "categories": [
         "database",
@@ -159,6 +159,10 @@
         {
           "serviceVersion": "8",
           "latestTag": "AWS/valkey/8/1.0.0"
+        },
+        {
+          "serviceVersion": "9",
+          "latestTag": "AWS/valkey/9/1.0.0"
         }
       ]
     },

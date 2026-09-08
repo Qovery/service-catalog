@@ -13,6 +13,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | MySQL      | `AWS/mysql/8/`           | RDS MySQL 8.4 instance                               |
 | Redis      | `AWS/redis/7/`           | ElastiCache for Redis 7 replication group with TLS   |
 | Valkey     | `AWS/valkey/8/`          | ElastiCache for Valkey 8 replication group with TLS  |
+| Valkey     | `AWS/valkey/9/`          | ElastiCache for Valkey 9 replication group with TLS  |
 | CloudFront | `AWS/cloudfront/default/`| CloudFront CDN distribution in front of an HTTP/S origin |
 | MSK        | `AWS/msk/default/`       | MSK Serverless (managed Kafka) with SASL/IAM auth    |
 
