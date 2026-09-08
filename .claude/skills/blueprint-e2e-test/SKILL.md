@@ -222,9 +222,11 @@ while true; do
   # still showing the pre-trigger record, or nothing yet: our operation has not surfaced
   if [ "$ID" = "$BEFORE" ] || [ "$ID" = "none" ]; then sleep 20; continue; fi
 
+  # Break on a KNOWN-TERMINAL status only. Anything else -- QUEUED, DEPLOYING, BUILDING,
+  # EXECUTING, DELETING, UNKNOWN, or a status this list has never seen -- is still in flight.
   case "$S" in
-    *QUEUED|DEPLOYING|BUILDING|DELETING|UNKNOWN) sleep 20 ;;
-    *) echo "terminal: $S (deployment $ID)"; break ;;
+    DEPLOYED|DELETED|CANCELED|*ERROR) echo "terminal: $S (deployment $ID)"; break ;;
+    *) sleep 20 ;;
   esac
 done
 ```
@@ -239,8 +241,14 @@ until ! curl -s -H "Authorization: Token $QOVERY_API_TOKEN" \
 echo "service gone"
 ```
 
-Four details that matter, all of them observed rather than assumed:
+Five details that matter, all of them observed rather than assumed:
 
+- **Gate on a terminal allow-list, never on an in-flight deny-list.** Terraform apply reports
+  `EXECUTING`, which is not `DEPLOYING` and not `BUILDING`: a loop that sleeps on an enumerated set
+  of running statuses and breaks on "anything else" calls a mid-apply service finished, and the
+  verification that follows reads outputs that do not exist yet. Break on
+  `DEPLOYED|DELETED|CANCELED|*ERROR`; treat every other value, including one you have never seen, as
+  still running.
 - The entries are keyed `.terraforms[].id` — the service id directly. There is no
   `.identifier.service_id` here, unlike the per-service status blocks elsewhere in the API.
 - Read the status off the **service** entry, not the record. They differ: a record reporting
