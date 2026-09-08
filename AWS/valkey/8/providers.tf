@@ -1,11 +1,12 @@
 terraform {
-  # Cross-variable validation (redis_password referencing import_identifier) requires TF 1.9+.
+  # Cross-variable validation (valkey_password referencing import_identifier) requires TF 1.9+.
   required_version = ">= 1.9"
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+      source = "hashicorp/aws"
+      # engine = "valkey" is absent from older 5.x releases; 5.100 is what this blueprint was validated against.
+      version = "~> 5.100"
     }
 
     random = {
