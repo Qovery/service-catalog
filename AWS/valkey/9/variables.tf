@@ -1,4 +1,5 @@
-# Qovery-injected variables (auto-filled from cluster context)
+# Qovery-injected variables: required for the module to plan, and filled automatically
+# from cluster context. They carry no default on purpose — see AGENTS.md.
 variable "region" {
   type        = string
   description = "AWS region"
@@ -112,6 +113,13 @@ variable "parameter_group_name" {
   type        = string
   default     = ""
   description = "Leave empty — derived from the topology: default.valkey9 for a single node group, default.valkey9.cluster.on when instances_number > 1."
+
+  validation {
+    # The live group always has a parameter group; leaving this derived on adoption would point an
+    # imported group at the default and reset every tuned parameter.
+    condition     = var.import_identifier == "" || var.parameter_group_name != ""
+    error_message = "parameter_group_name must be set to the existing replication group's parameter group when import_identifier is set."
+  }
 }
 
 variable "instances_number" {

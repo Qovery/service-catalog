@@ -65,7 +65,14 @@ locals {
   )
 }
 
-resource "time_static" "created" {}
+resource "time_static" "created" {
+  # Re-stamped whenever an input that can replace the group changes, so a replacement that keeps
+  # the same identifier cannot reuse the previous generation's final-snapshot name.
+  triggers = {
+    identifier                 = local.redis_identifier
+    at_rest_encryption_enabled = tostring(var.at_rest_encryption_enabled)
+  }
+}
 
 resource "random_password" "auth_token" {
   length      = 32
@@ -117,7 +124,7 @@ resource "aws_elasticache_replication_group" "this" {
   snapshot_window           = var.backup_retention_period > 0 ? var.preferred_backup_window : null
   snapshot_retention_limit  = var.backup_retention_period
   final_snapshot_identifier = var.skip_final_snapshot ? null : local.final_snapshot_name
-  # Read at creation only.
+  # Read at creation only, and ForceNew: see ignore_changes below.
   snapshot_name = var.snapshot_name == "" ? null : var.snapshot_name
 
   tags = {
@@ -140,6 +147,9 @@ resource "aws_elasticache_replication_group" "this" {
       # Write-only: ElastiCache never returns it, so an adopted group shows a perpetual diff.
       # ignore_changes can't be conditional, so rotation isn't managed here — rotate out-of-band.
       auth_token,
+      # Seeding is a create-time choice, but the attribute is ForceNew — without this, editing it
+      # on a live group plans a replacement instead of being the no-op the user expects.
+      snapshot_name,
       # Set outside the blueprint (console, CloudWatch wiring, RBAC), same as the native path
       log_delivery_configuration,
       notification_topic_arn,

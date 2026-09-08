@@ -59,7 +59,7 @@ spec:
       required: false
       sensitive: true
       description: 'Leave empty and Qovery generates a 32-character alphanumeric auth token. To set your own: 16–128 chars, must not contain /, @, ", or spaces.'
-      pattern: '^([^/@" ]+)?$'
+      pattern: '^([^/@" ]{16,128})?$'
       maxLength: 128
     - name: "instance_class"
       type: "string"
