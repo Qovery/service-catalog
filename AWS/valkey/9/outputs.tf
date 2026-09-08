@@ -14,7 +14,7 @@ output "valkey_port" {
 }
 
 output "valkey_username" {
-  description = "Valkey user applications authenticate as — always the built-in 'default' user, like native managed Valkey"
+  description = "Valkey user applications authenticate as — always the built-in 'default' user"
   value       = "default"
 }
 

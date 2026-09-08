@@ -128,8 +128,8 @@ resource "aws_elasticache_replication_group" "this" {
     ServiceFamily = "valkey"
     creationDate  = time_static.created.rfc3339
 
-    # Native-parity tags, filled from the qbm.yml context variables. cluster_id is what the YACE
-    # CloudWatch exporter filters on for database metrics; the rest mirror native database_tags.
+    # Filled from the qbm.yml context variables. cluster_id is what the YACE CloudWatch exporter
+    # filters on for database metrics; the others identify the cluster for cost reporting.
     cluster_id      = var.qovery_cluster_id
     cluster_long_id = var.qovery_cluster_long_id
     region          = var.region
@@ -140,13 +140,13 @@ resource "aws_elasticache_replication_group" "this" {
       # Write-only: ElastiCache never returns it, so an adopted group shows a perpetual diff.
       # ignore_changes can't be conditional, so rotation isn't managed here — rotate out-of-band.
       auth_token,
-      # Set outside the blueprint (console, CloudWatch wiring, RBAC), same as the native path
+      # Set outside the blueprint (console, CloudWatch wiring, RBAC)
       log_delivery_configuration,
       notification_topic_arn,
       user_group_ids,
       # AWS picks the mode ("preferred" vs "required") and reports its own value back
       transit_encryption_mode,
-      # Preserve native tags on adoption: cluster_id is what the YACE exporter reads for metrics
+      # Preserve tags set outside the blueprint on adoption; YACE reads cluster_id for metrics
       tags,
     ]
   }
