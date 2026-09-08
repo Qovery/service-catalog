@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-08T15:13:22Z",
+  "generatedAt": "2026-09-08T17:04:48Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -95,6 +95,28 @@
         {
           "serviceVersion": "17",
           "latestTag": "AWS/postgres/17/3.1.2"
+        }
+      ]
+    },
+    {
+      "name": "aws-elasticache-redis",
+      "displayName": "Amazon ElastiCache for Redis",
+      "primaryCategory": "Databases & Caches",
+      "kind": "ServiceBlueprint",
+      "description": "AWS ElastiCache for Redis 7 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance",
+      "icon": "app://qovery-console/redis",
+      "categories": [
+        "database",
+        "cache",
+        "redis",
+        "elasticache"
+      ],
+      "provider": "AWS",
+      "serviceFamily": "redis",
+      "majorVersions": [
+        {
+          "serviceVersion": "7",
+          "latestTag": "AWS/redis/7/1.0.0"
         }
       ]
     },

@@ -11,6 +11,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | S3         | `AWS/s3/default/`        | S3 bucket with encryption and versioning             |
 | PostgreSQL | `AWS/postgres/17/`       | RDS PostgreSQL 17 instance                           |
 | MySQL      | `AWS/mysql/8/`           | RDS MySQL 8.4 instance                               |
+| Redis      | `AWS/redis/7/`           | ElastiCache for Redis 7 replication group with TLS   |
 | CloudFront | `AWS/cloudfront/default/`| CloudFront CDN distribution in front of an HTTP/S origin |
 | MSK        | `AWS/msk/default/`       | MSK Serverless (managed Kafka) with SASL/IAM auth    |
 
