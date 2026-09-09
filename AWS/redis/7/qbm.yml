@@ -1,0 +1,178 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-elasticache-redis"
+  displayName: "Amazon ElastiCache for Redis"
+  primaryCategory: "Databases & Caches"
+  version: "1.0.0"
+  description: "AWS ElastiCache for Redis 7 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
+  icon: "app://qovery-console/redis"
+  serviceFamily: "redis"
+  categories:
+    - "database"
+    - "cache"
+    - "redis"
+    - "elasticache"
+
+spec:
+  engine:
+    type: terraform
+    provider: AWS
+    terraform:
+      version: "1.9.7"
+      # Pinned to 1.9+: catalog uses cross-variable validation (a variable's validation references another).
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
+
+  variables:
+    - name: "redis_name"
+      type: "string"
+      required: true
+      description: "Replication group name. Must start with a letter, end with a letter or digit, and use single hyphens between them; max 40 chars. Underscores are not allowed."
+      pattern: "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      minLength: 1
+      maxLength: 40
+    - name: "redis_password"
+      type: "string"
+      required: false
+      sensitive: true
+      description: 'Leave empty and Qovery generates a 32-character alphanumeric auth token. To set your own: 16–128 chars, must not contain /, @, ", or spaces.'
+      pattern: '^([^/@" ]{16,128})?$'
+      maxLength: 128
+    - name: "instance_class"
+      type: "string"
+      required: true
+      default: "cache.t3.micro"
+      description: "ElastiCache node type"
+      allowedValues:
+        - "cache.t3.micro"
+        - "cache.t3.small"
+        - "cache.t3.medium"
+        - "cache.t4g.micro"
+        - "cache.r6g.large"
+        - "cache.r6g.xlarge"
+    - name: "engine_version"
+      type: "string"
+      required: false
+      default: "7.0"
+      description: "Redis engine version"
+      allowedValues:
+        - "7.0"
+        - "7.1"
+    - name: "port"
+      type: "number"
+      required: false
+      default: "6379"
+      description: "Redis port"
+      min: 1024
+      max: 65535
+    - name: "instances_number"
+      type: "number"
+      required: false
+      default: "1"
+      description: "Node groups (shards). 1 = a single node with no replica. Above 1 enables cluster mode with one replica per shard, and forces failover and Multi-AZ. Pick it at creation — ElastiCache cannot turn cluster mode on later."
+      min: 1
+      max: 45
+    - name: "at_rest_encryption_enabled"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Encrypt data at rest"
+    - name: "parameter_group_name"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the topology: default.redis7 for a single node group, default.redis7.cluster.on when instances_number > 1."
+    - name: "subnet_group_name"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+    - name: "security_group_ids"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+    - name: "apply_changes_now"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Apply changes immediately instead of waiting for the next maintenance window"
+    - name: "auto_minor_version_upgrade"
+      type: "bool"
+      required: false
+      default: "true"
+      description: "Automatically apply minor version upgrades during the maintenance window"
+    - name: "preferred_maintenance_window"
+      type: "string"
+      required: false
+      default: "Tue:02:00-Tue:04:00"
+      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+    - name: "preferred_backup_window"
+      type: "string"
+      required: false
+      default: "00:00-01:00"
+      description: "Daily snapshot window (UTC), format hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
+    - name: "backup_retention_period"
+      type: "number"
+      required: false
+      default: "14"
+      description: "Days to retain automatic snapshots (0 disables)"
+      min: 0
+      max: 35
+    - name: "skip_final_snapshot"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Skip the final snapshot on deletion. False leaves a snapshot behind after the group is destroyed."
+    - name: "snapshot_name"
+      type: "string"
+      required: false
+      description: "Existing ElastiCache snapshot to seed the group from. Unset = start empty. Read at creation only."
+
+  outputs:
+    - name: "redis_identifier"
+      description: "ElastiCache replication group id (what the AWS console shows as the cluster name)"
+    - name: "redis_host"
+      description: "Hostname applications connect to (configuration endpoint in cluster mode, primary endpoint otherwise)"
+    - name: "redis_port"
+      description: "Redis port"
+    - name: "redis_username"
+      description: "Redis user applications authenticate as — always the built-in 'default' user"
+    - name: "redis_password"
+      description: "Auth token (generated when the input was left empty)"
+      sensitive: true
+    - name: "redis_url"
+      description: "Connection URL over TLS"
+      sensitive: true
+    - name: "redis_primary_endpoint_address"
+      description: "Primary endpoint hostname (empty in cluster mode)"
+    - name: "redis_reader_endpoint_address"
+      description: "Reader endpoint hostname, load-balanced across replicas (empty in cluster mode)"
+    - name: "redis_configuration_endpoint_address"
+      description: "Configuration endpoint hostname (empty when instances_number = 1)"
+    - name: "redis_arn"
+      description: "Replication group ARN"
+    - name: "redis_engine_version_actual"
+      description: "Engine version actually running (may include the patch AWS chose)"
+    - name: "redis_member_clusters"
+      description: "Cache cluster ids that make up the replication group"
