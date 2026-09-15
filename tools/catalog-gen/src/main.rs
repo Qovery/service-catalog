@@ -497,7 +497,10 @@ fn validate_allowed_values_subset(
 }
 
 fn validate_sensitive_naming(path: &str, var: &VarDecl, errors: &mut Vec<String>) {
-    if looks_sensitive(&var.name) && var.sensitive != Some(true) {
+    // A bool named after a secret -- manage_db_password -- switches behaviour rather than holding the
+    // secret, so its name proves nothing. Every other type still has to justify the name.
+    let could_carry_a_secret = var.type_.as_deref() != Some("bool");
+    if could_carry_a_secret && looks_sensitive(&var.name) && var.sensitive != Some(true) {
         errors.push(format!(
             "{}: '{}' name looks sensitive — add sensitive: true to qbm.yml (or rename the variable)",
             path, var.name
@@ -1884,4 +1887,81 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{looks_sensitive, validate_sensitive_naming, VarDecl};
+
+    #[test]
+    fn secret_bearing_names_are_flagged() {
+        for name in [
+            "db_password",
+            "password",
+            "api_key",
+            "access_key",
+            "private_key",
+            "auth_token",
+            "client_secret",
+            "credential",
+        ] {
+            assert!(looks_sensitive(name), "{name} should be flagged");
+        }
+    }
+
+    #[test]
+    fn unrelated_names_are_not_flagged() {
+        for name in ["db_name", "instance_class", "engine_version", "passwordless_login"] {
+            assert!(!looks_sensitive(name), "{name} should not be flagged");
+        }
+    }
+
+    // Built by deserialization so adding a VarDecl field does not break every test.
+    fn var(yaml: &str) -> VarDecl {
+        serde_yaml::from_str(yaml).expect("test fixture should deserialize")
+    }
+
+    #[test]
+    fn bool_named_after_a_secret_is_not_flagged() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: manage_db_password\ntype: bool"),
+            &mut errors,
+        );
+        assert!(errors.is_empty(), "a bool is exempt, got {errors:?}");
+    }
+
+    #[test]
+    fn string_named_after_a_secret_needs_the_sensitive_flag() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: db_password\ntype: string"),
+            &mut errors,
+        );
+        assert_eq!(errors.len(), 1, "expected one error, got {errors:?}");
+    }
+
+    #[test]
+    fn sensitive_flag_clears_a_secret_looking_string() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: db_password\ntype: string\nsensitive: true"),
+            &mut errors,
+        );
+        assert!(errors.is_empty(), "sensitive: true justifies the name, got {errors:?}");
+    }
+
+    #[test]
+    fn number_named_after_a_secret_is_still_flagged() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: db_password\ntype: number"),
+            &mut errors,
+        );
+        assert_eq!(errors.len(), 1, "only bool is exempt, got {errors:?}");
+    }
 }
