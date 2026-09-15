@@ -1891,7 +1891,7 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::looks_sensitive;
+    use super::{looks_sensitive, validate_sensitive_naming, VarDecl};
 
     #[test]
     fn secret_bearing_names_are_flagged() {
@@ -1914,5 +1914,54 @@ mod tests {
         for name in ["db_name", "instance_class", "engine_version", "passwordless_login"] {
             assert!(!looks_sensitive(name), "{name} should not be flagged");
         }
+    }
+
+    // Built by deserialization so adding a VarDecl field does not break every test.
+    fn var(yaml: &str) -> VarDecl {
+        serde_yaml::from_str(yaml).expect("test fixture should deserialize")
+    }
+
+    #[test]
+    fn bool_named_after_a_secret_is_not_flagged() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: manage_db_password\ntype: bool"),
+            &mut errors,
+        );
+        assert!(errors.is_empty(), "a bool is exempt, got {errors:?}");
+    }
+
+    #[test]
+    fn string_named_after_a_secret_needs_the_sensitive_flag() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: db_password\ntype: string"),
+            &mut errors,
+        );
+        assert_eq!(errors.len(), 1, "expected one error, got {errors:?}");
+    }
+
+    #[test]
+    fn sensitive_flag_clears_a_secret_looking_string() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: db_password\ntype: string\nsensitive: true"),
+            &mut errors,
+        );
+        assert!(errors.is_empty(), "sensitive: true justifies the name, got {errors:?}");
+    }
+
+    #[test]
+    fn number_named_after_a_secret_is_still_flagged() {
+        let mut errors = Vec::new();
+        validate_sensitive_naming(
+            "aws/rds/qbm.yml",
+            &var("name: db_password\ntype: number"),
+            &mut errors,
+        );
+        assert_eq!(errors.len(), 1, "only bool is exempt, got {errors:?}");
     }
 }
