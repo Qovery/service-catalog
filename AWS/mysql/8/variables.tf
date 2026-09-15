@@ -99,6 +99,13 @@ variable "db_password" {
   }
 }
 
+variable "manage_db_password" {
+  type        = bool
+  default     = false
+  description = "Adopted instances only, and one-way: once true, leave it true. Changing db_password then rotates the master password on the live instance. Ignored for an instance this blueprint created: it always owns the password."
+}
+
+
 variable "port" {
   type        = number
   default     = 3306

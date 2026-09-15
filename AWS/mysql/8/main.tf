@@ -97,6 +97,15 @@ resource "random_password" "master" {
 locals {
   db_username = var.db_username != "" ? var.db_username : "qoveryadmin"
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
+
+  # An adopted instance keeps the password it already has until the operator hands it over, so the
+  # import plans clean; an instance this blueprint created has always owned its password.
+  manages_password = var.import_identifier == "" || var.manage_db_password
+
+  # Derived, not typed: password_wo is only sent when this number changes, so hashing the password is
+  # what makes changing it reach the instance. 13 hex digits keep the value an exact integer while
+  # leaving a collision -- which would make a rotation a silent no-op -- out of reach.
+  db_password_version = parseint(substr(sha256(local.db_password), 0, 13), 16)
 }
 
 resource "aws_db_instance" "this" {
@@ -116,7 +125,9 @@ resource "aws_db_instance" "this" {
 
   db_name  = var.db_name
   username = local.db_username
-  password = local.db_password
+  # Write-only: never stored in state, so adopting a live instance has nothing to diff against.
+  password_wo         = local.manages_password ? local.db_password : null
+  password_wo_version = local.manages_password ? local.db_password_version : null
 
   parameter_group_name = aws_db_parameter_group.mysql.name
   ca_cert_identifier   = var.ca_cert_identifier
@@ -171,7 +182,8 @@ resource "aws_db_instance" "this" {
     ignore_changes = [
       # Adoption: never mutate a live DB's running version.
       engine_version,
-      # Master password is write-only (AWS never returns it) — ignore so adoption plans stay clean.
+      # Neutralises legacy state: instances created before password_wo carry a value here, and
+      # password is no longer in the configuration, so without this the stale value reads as a removal.
       password,
       # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
       final_snapshot_identifier,

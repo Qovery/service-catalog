@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "3.1.2"
+  version: "4.0.0"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -19,9 +19,9 @@ spec:
     type: terraform
     provider: AWS
     terraform:
-      version: "1.9.7"
-      # Pinned to 1.9+: catalog uses cross-variable validation (a variable's validation references another).
-      allowedValues: ["1.9.7", "1.13.3"]
+      version: "1.13.3"
+      # Pinned to 1.11+: the master password uses a write-only argument, added in 1.11.
+      allowedValues: ["1.13.3"]
       overridable: true
     credentials:
       default: cluster
@@ -63,9 +63,14 @@ spec:
       type: "string"
       required: false
       sensitive: true
-      description: 'Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces.'
+      description: 'Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. Changing it rotates the master password on the live instance (adopted instances: only once manage_db_password is true).'
       pattern: '^([^/@" ]+)?$'
       maxLength: 128
+    - name: "manage_db_password"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Adopted instances only, and one-way: once true, leave it true. Changing db_password then rotates the master password on the live instance. An instance this blueprint created always owns its password."
     - name: "port"
       type: "number"
       required: false

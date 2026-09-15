@@ -27,6 +27,12 @@ empty variable value.
 | ---- | ---- | --------- | ------- | ----------- |
 | `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: admin, rdsadmin, mysql. |
 | `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
+| `manage_db_password` | boolean |  | `false` | Adopted instances only. Once true, changing `db_password` rotates the live instance's master password. An instance this blueprint created always owns its password. |
+
+Changing `db_password` rotates the live instance's master password: the value is sent as a
+write-only argument, triggered by a version derived from the password itself, so a change
+reaches RDS and an unchanged password sends nothing. An adopted instance does not take part
+until `manage_db_password` is set to true, which keeps its import plan clean.
 
 Adoption (`import_identifier` set) requires both explicitly. `username` is `ForceNew` on
 `aws_db_instance`, so a defaulted value would plan a replacement and destroy the live
@@ -106,10 +112,26 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | `db_arn`                   |           | RDS instance ARN                                           |
 | `db_engine_version_actual` |           | Engine version actually running (incl. AWS-chosen minor)   |
 
+### Upgrading from an earlier blueprint version
+
+Read this before repointing a deployment at this version.
+
+- The first apply writes the master password to the instance once. The blueprint now owns it, and old
+  state carries no record of what was last sent, so the value Qovery holds is applied. An instance whose
+  password was rotated outside Terraform — which earlier versions of this document told you to do — is
+  reset to the Qovery-held value, and applications using the out-of-band password stop connecting. Make
+  the two agree before you upgrade.
+- `manage_db_password` is one-way. Setting it back to false after an adopted instance has been handed
+  over leaves Terraform with a change AWS rejects as "no modifications were requested".
+- Terraform moves from 1.9.7 to 1.13.3, and `1.9.7` is no longer an accepted override. State written by
+  1.13.3 cannot be read by 1.9.7, so a deployment cannot be repointed at an earlier blueprint version
+  once it has applied.
+
 ## Lifecycle ignore_changes
 
 A few attributes remain ignored:
 
+- `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
 - `final_snapshot_identifier` — `timestamp()` rotates the name every plan; only meaningful when a final snapshot is actually taken.
 - `enabled_cloudwatch_logs_exports` — list type, not yet supported by the qbm.yml schema.
 - `max_allocated_storage` — will turn into a managed input when the storage autoscale feature is added.

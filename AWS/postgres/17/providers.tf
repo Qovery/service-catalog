@@ -1,11 +1,12 @@
 terraform {
-  # Cross-variable validation (e.g. allocated_storage referencing storage_type) requires TF 1.9+.
-  required_version = ">= 1.9"
+  # Write-only arguments (password_wo) require TF 1.11+.
+  required_version = ">= 1.11"
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+      source = "hashicorp/aws"
+      # password_wo on aws_db_instance is not in early 5.x.
+      version = ">= 5.100.0, < 6.0.0"
     }
 
     random = {
