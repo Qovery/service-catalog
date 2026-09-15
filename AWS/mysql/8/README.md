@@ -26,13 +26,27 @@ empty variable value.
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
 | `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: admin, rdsadmin, mysql. |
-| `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character alphanumeric password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
-| `manage_db_password` | boolean |  | `false` | Adopted instances only. Once true, changing `db_password` rotates the live instance's master password. An instance this blueprint created always owns its password. |
+| `db_password` | string | yes | _generated_ | Omit when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance, this must carry that instance's current master password, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
+| `manage_db_password` | bool |  | `false` | Adopted instances only, and one-way: once true, leave it true. Changing `db_password` then rotates the live instance's master password. An instance this blueprint created always owns its password. |
 
 Changing `db_password` rotates the live instance's master password: the value is sent as a
 write-only argument, triggered by a version derived from the password itself, so a change
-reaches RDS and an unchanged password sends nothing. An adopted instance does not take part
-until `manage_db_password` is set to true, which keeps its import plan clean.
+reaches RDS and an unchanged password sends nothing.
+
+An adopted instance does not take part until `manage_db_password` is set to true. That keeps
+its import plan clean, and it has a consequence worth stating plainly: **while the flag is
+false, editing `db_password` changes what the blueprint publishes without changing anything on
+the instance.** Consumers pick up a credential RDS will reject. On an adopted instance, either
+set the flag before touching the password, or do not touch the password at all.
+
+Setting the flag is itself a write. Until then the version that triggers the send is null in
+state, so switching it to true moves that value and applies `db_password` to the instance —
+harmless when the two already agree, and an overwrite of the live password when they do not.
+Confirm the stored password is the one the instance actually has before opting in.
+
+A rotation also obeys `apply_changes_now`. Left false, RDS defers the password change to the
+maintenance window while the new value is published immediately — consumers redeployed in
+between cannot connect. Set `apply_changes_now` when you rotate.
 
 Adoption (`import_identifier` set) requires both explicitly. `username` is `ForceNew` on
 `aws_db_instance`, so a defaulted value would plan a replacement and destroy the live
@@ -116,11 +130,13 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 
 Read this before repointing a deployment at this version.
 
-- The first apply writes the master password to the instance once. The blueprint now owns it, and old
-  state carries no record of what was last sent, so the value Qovery holds is applied. An instance whose
-  password was rotated outside Terraform — which earlier versions of this document told you to do — is
-  reset to the Qovery-held value, and applications using the out-of-band password stop connecting. Make
-  the two agree before you upgrade.
+- For an instance this blueprint created, and for an adopted instance already opted in with
+  `manage_db_password`, the first apply writes the master password once. Old state carries no record of
+  what was last sent, so the value Qovery holds is applied. An instance whose password was rotated
+  outside Terraform — which earlier versions of this document told you to do — is reset to the
+  Qovery-held value, and applications using the out-of-band password stop connecting. Make the two agree
+  before you upgrade. An adopted instance left at `manage_db_password = false` is not touched: nothing is
+  sent, and an out-of-band rotation survives.
 - `manage_db_password` is one-way. Setting it back to false after an adopted instance has been handed
   over leaves Terraform with a change AWS rejects as "no modifications were requested".
 - Terraform moves from 1.9.7 to 1.13.3, and `1.9.7` is no longer an accepted override. State written by

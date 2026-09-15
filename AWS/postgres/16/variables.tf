@@ -103,7 +103,7 @@ variable "db_password" {
 variable "manage_db_password" {
   type        = bool
   default     = false
-  description = "Adopted instances only, and one-way: once true, leave it true. Changing db_password then rotates the master password on the live instance. Ignored for an instance this blueprint created: it always owns the password."
+  description = "Adopted instances only, and one-way: once true, leave it true. Switching it on applies db_password to the instance, so confirm that value is the one the instance already has. Changing db_password then rotates it. Ignored for an instance this blueprint created: it always owns the password."
 }
 
 
