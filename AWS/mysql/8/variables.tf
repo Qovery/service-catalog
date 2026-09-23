@@ -248,13 +248,13 @@ variable "backup_retention_period" {
 
 variable "skip_final_snapshot" {
   type        = bool
-  default     = true
+  default     = false
   description = "Skip the final snapshot on deletion"
 }
 
 variable "delete_automated_backups" {
   type        = bool
-  default     = true
+  default     = false
   description = "Delete automated backups on instance deletion"
 }
 

@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-mysql"
   displayName: "Amazon RDS for MySQL"
   primaryCategory: "Databases & Caches"
-  version: "3.0.0"
+  version: "3.1.0"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -176,12 +176,12 @@ spec:
     - name: "skip_final_snapshot"
       type: "bool"
       required: false
-      default: "true"
+      default: "false"
       description: "Skip the final snapshot on deletion"
     - name: "delete_automated_backups"
       type: "bool"
       required: false
-      default: "true"
+      default: "false"
       description: "Delete automated backups when the instance is deleted"
     - name: "copy_tags_to_snapshot"
       type: "bool"

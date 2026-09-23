@@ -88,8 +88,8 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | -------------------------- | ------ | ------------- | -------------------------------------------- |
 | `preferred_backup_window`  | string | `00:00-01:00` | Daily backup window (UTC), `hh24:mi-hh24:mi` |
 | `backup_retention_period`  | number | `7`           | Days to retain backups (0–35). `0` disables. |
-| `skip_final_snapshot`      | bool   | `true`        | Skip final snapshot on deletion              |
-| `delete_automated_backups` | bool   | `true`        | Delete automated backups on deletion         |
+| `skip_final_snapshot`      | bool   | `false`       | Skip final snapshot on deletion              |
+| `delete_automated_backups` | bool   | `false`       | Delete automated backups on deletion         |
 | `copy_tags_to_snapshot`    | bool   | `true`        | Propagate instance tags to snapshots         |
 
 ### Monitoring
