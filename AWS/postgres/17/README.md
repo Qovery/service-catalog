@@ -105,7 +105,9 @@ Deleting the service keeps a final snapshot and the automated backups by default
 costing storage until deleted by hand: the snapshot indefinitely, the backups for
 `backup_retention_period` days. For a throwaway or test instance, set both `skip_final_snapshot` and
 `delete_automated_backups` to `true`. The final snapshot is named
-`<cluster name>-<db_name>-<creation timestamp>`, stamped once at creation, so successive
+`<cluster name>-<db name>-<YYYYMMDDhhmmss>`: `db_name` lowercased with `_` turned into `-`, the
+UTC time the name was stamped, and any character AWS rejects removed (prefixed `snap-` if the
+result does not start with a letter). It is stamped once at creation, so successive
 create/destroy cycles of the same name do not collide.
 
 ### Monitoring
@@ -152,6 +154,13 @@ create/destroy cycles of the same name do not collide.
 
 Read this before repointing a deployment at this version.
 
+- Deleting now keeps a final snapshot and the automated backups for services **created** on this
+  version. An existing service does not change behaviour: Qovery stores every variable default when
+  the service is created, so repointing it here keeps `skip_final_snapshot = true` and
+  `delete_automated_backups = true`. To keep a snapshot and backups on delete, set both to `false`
+  on the service. The upgrade itself adds `time_static.created` and, with those set to `false`,
+  updates `skip_final_snapshot`, `delete_automated_backups` and `final_snapshot_identifier` in
+  place — Terraform-only arguments, nothing is sent to AWS and the instance is not rebooted.
 - For an instance this blueprint created, and for an adopted instance already opted in with
   `manage_db_password`, the first apply writes the master password once. Old state carries no record of
   what was last sent, so the value Qovery holds is applied. An instance whose password was rotated
