@@ -101,6 +101,13 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | `delete_automated_backups` | bool   | `false`       | Delete automated backups on deletion         |
 | `copy_tags_to_snapshot`    | bool   | `true`        | Propagate instance tags to snapshots         |
 
+Deleting the service keeps a final snapshot and the automated backups by default, and both keep
+costing storage until deleted by hand: the snapshot indefinitely, the backups for
+`backup_retention_period` days. For a throwaway or test instance, set both `skip_final_snapshot` and
+`delete_automated_backups` to `true`. The final snapshot is named
+`<cluster name>-<db_name>-<creation timestamp>`, stamped once at creation, so successive
+create/destroy cycles of the same name do not collide.
+
 ### Monitoring
 
 | Name                                    | Type   | Default             | Description                                                                    |
@@ -163,7 +170,6 @@ Read this before repointing a deployment at this version.
 A few attributes remain ignored:
 
 - `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
-- `final_snapshot_identifier` — `timestamp()` rotates the name every plan; only meaningful when a final snapshot is actually taken.
 - `enabled_cloudwatch_logs_exports` — list type, not yet supported by the qbm.yml schema.
 - `parameter_group_name` — AWS may auto-replace it during minor upgrades; override via the AWS console if needed.
 - `max_allocated_storage` — will turn into a managed input when the storage autoscale feature is added.

@@ -177,12 +177,12 @@ spec:
       type: "bool"
       required: false
       default: "false"
-      description: "Skip the final snapshot on deletion"
+      description: "Skip the final snapshot on deletion. Default keeps one, billed until deleted; set true for throwaway instances"
     - name: "delete_automated_backups"
       type: "bool"
       required: false
       default: "false"
-      description: "Delete automated backups when the instance is deleted"
+      description: "Delete automated backups when the instance is deleted. Default keeps them for backup_retention_period days; set true for throwaway instances"
     - name: "copy_tags_to_snapshot"
       type: "bool"
       required: false

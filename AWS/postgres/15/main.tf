@@ -85,9 +85,12 @@ locals {
 
 resource "time_static" "created" {
   # Re-stamped whenever an input that can replace the instance changes, so a replacement that keeps
-  # the same identifier cannot reuse the previous generation's final-snapshot name.
+  # the same identifier cannot reuse the previous generation's final-snapshot name. A replacement
+  # forced by hand (`-replace`, `taint`) is not covered: its later delete fails on the existing
+  # snapshot name rather than losing data.
   triggers = {
     identifier        = local.db_identifier
+    db_name           = var.db_name
     username          = local.db_username
     storage_encrypted = tostring(var.storage_encrypted)
   }
