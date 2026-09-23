@@ -87,7 +87,12 @@ Two rules that are not optional:
   payload of minimal defaults proves the blueprint deploys, not that the change works.
 
 Set teardown-friendly values up front where the blueprint offers them —
-`deletion_protection = false`, `skip_final_snapshot = true` — or cleanup will fight you.
+`deletion_protection = false`, `skip_final_snapshot = true`, `delete_automated_backups = true` —
+or cleanup will fight you. The RDS blueprints keep a final snapshot and the automated backups on
+delete by default, so a throwaway without the last two leaves both behind, billing storage.
+
+The exception is a test *of* the delete path: then leave them at `false`, and after teardown
+check the snapshot and retained backups exist, then delete them by hand.
 
 ## Flow A — new deploy
 
@@ -143,6 +148,9 @@ BLUEPRINT_ID=$(mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.
 # 3. move that service to the tag under test -- variables is a MERGE-PATCH MAP.
 #    {} keeps every value from step 1 and changes only the tag, which is what you
 #    usually want: the diff then shows the blueprint change, not a config change.
+#    It also means a default the new tag changed does NOT reach this service: every
+#    default was stored on the blueprint at creation. Patch the variable explicitly
+#    to test the new default on an existing service.
 mise run update-service-rc "$BLUEPRINT_ID" AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '{
   "name": "rc-test-postgres-17",
   "icon": "app://qovery-console/postgresql",
