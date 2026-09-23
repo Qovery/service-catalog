@@ -94,6 +94,26 @@ delete by default, so a throwaway without the last two leaves both behind, billi
 The exception is a test *of* the delete path: then leave them at `false`, and after teardown
 check the snapshot and retained backups exist, then delete them by hand.
 
+Do not guess the snapshot name. It is stamped once per create —
+`<cluster name>-<db_name>-<YYYYMMDDhhmmss>`, `db_name` lowercased with `_` turned into `-`, other
+disallowed characters stripped, `snap-` prefixed when it does not start with a letter — and AWS
+stores it lowercased. A plan prints it as `final_snapshot_identifier = "<name>"` only once
+`time_static.created` already exists; on the deploy that creates it (a first create, or an upgrade
+from a version without it) it reads `(known after apply)`. Looking it up by instance needs no name
+at all (`$DB_IDENTIFIER` is the `db_identifier` output):
+
+```sh
+aws rds describe-db-snapshots --db-instance-identifier "$DB_IDENTIFIER" --snapshot-type manual \
+  --query 'DBSnapshots[].[DBSnapshotIdentifier,Status]'
+aws rds describe-db-instance-automated-backups --db-instance-identifier "$DB_IDENTIFIER" \
+  --query 'DBInstanceAutomatedBackups[].[DBInstanceAutomatedBackupsArn,Status]'
+```
+
+The retained backups read `Status: retained`. When the snapshot is missing, check the delete
+request itself before blaming the blueprint: CloudTrail's `DeleteDBInstance` event carries
+`skipFinalSnapshot` and `finalDBSnapshotIdentifier`, and the RDS `db-snapshot` event stream shows
+whether it was created and later deleted by something else.
+
 ## Flow A — new deploy
 
 ```sh
