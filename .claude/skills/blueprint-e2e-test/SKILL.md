@@ -87,7 +87,32 @@ Two rules that are not optional:
   payload of minimal defaults proves the blueprint deploys, not that the change works.
 
 Set teardown-friendly values up front where the blueprint offers them —
-`deletion_protection = false`, `skip_final_snapshot = true` — or cleanup will fight you.
+`deletion_protection = false`, `skip_final_snapshot = true`, `delete_automated_backups = true` —
+or cleanup will fight you. The RDS blueprints keep a final snapshot and the automated backups on
+delete by default, so a throwaway without the last two leaves both behind, billing storage.
+
+The exception is a test *of* the delete path: then leave them at `false`, and after teardown
+check the snapshot and retained backups exist, then delete them by hand.
+
+Do not guess the snapshot name. It is stamped once per create —
+`<cluster name>-<db_name>-<YYYYMMDDhhmmss>`, `db_name` lowercased with `_` turned into `-`, other
+disallowed characters stripped, `snap-` prefixed when it does not start with a letter — and AWS
+stores it lowercased. A plan prints it as `final_snapshot_identifier = "<name>"` only once
+`time_static.created` already exists; on the deploy that creates it (a first create, or an upgrade
+from a version without it) it reads `(known after apply)`. Looking it up by instance needs no name
+at all (`$DB_IDENTIFIER` is the `db_identifier` output):
+
+```sh
+aws rds describe-db-snapshots --db-instance-identifier "$DB_IDENTIFIER" --snapshot-type manual \
+  --query 'DBSnapshots[].[DBSnapshotIdentifier,Status]'
+aws rds describe-db-instance-automated-backups --db-instance-identifier "$DB_IDENTIFIER" \
+  --query 'DBInstanceAutomatedBackups[].[DBInstanceAutomatedBackupsArn,Status]'
+```
+
+The retained backups read `Status: retained`. When the snapshot is missing, check the delete
+request itself before blaming the blueprint: CloudTrail's `DeleteDBInstance` event carries
+`skipFinalSnapshot` and `finalDBSnapshotIdentifier`, and the RDS `db-snapshot` event stream shows
+whether it was created and later deleted by something else.
 
 ## Flow A — new deploy
 
@@ -143,6 +168,9 @@ BLUEPRINT_ID=$(mise run deploy-service-rc "$ENVIRONMENT_ID" AWS/postgres/17/3.0.
 # 3. move that service to the tag under test -- variables is a MERGE-PATCH MAP.
 #    {} keeps every value from step 1 and changes only the tag, which is what you
 #    usually want: the diff then shows the blueprint change, not a config change.
+#    It also means a default the new tag changed does NOT reach this service: every
+#    default was stored on the blueprint at creation. Patch the variable explicitly
+#    to test the new default on an existing service.
 mise run update-service-rc "$BLUEPRINT_ID" AWS/postgres/17/3.1.0-pr45.a1b2c3d-rc '{
   "name": "rc-test-postgres-17",
   "icon": "app://qovery-console/postgresql",
