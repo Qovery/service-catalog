@@ -1,8 +1,11 @@
-# Suffix the final-snapshot name with a timestamp so successive create/destroy cycles
-# don't collide on an existing snapshot id. Combined with ignore_changes on
-# final_snapshot_identifier (below), this keeps plans clean — timestamp() rotates every plan.
 locals {
-  final_snapshot_timestamp = replace(timestamp(), "/[- TZ:]/", "")
+  # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
+  db_identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
+
+  # Stamped from time_static, not timestamp(): unique per create so successive create/destroy
+  # cycles don't collide on an existing snapshot id, yet stable across plans, so the attribute
+  # needs no ignore_changes and an adopted instance gets a name too.
+  final_snapshot_timestamp = replace(time_static.created.rfc3339, "/[-:TZ]/", "")
   final_snapshot_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snapshot_timestamp}"
   # AWS requires the snapshot id to begin with a letter and contain only alphanumerics/hyphens.
   final_snapshot_cleaned = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
@@ -80,9 +83,21 @@ locals {
   db_password_version = parseint(substr(sha256(local.db_password), 0, 13), 16)
 }
 
+resource "time_static" "created" {
+  # Re-stamped whenever an input that can replace the instance changes, so a replacement that keeps
+  # the same identifier cannot reuse the previous generation's final-snapshot name. A replacement
+  # forced by hand (`-replace`, `taint`) is not covered: its later delete fails on the existing
+  # snapshot name rather than losing data.
+  triggers = {
+    identifier        = local.db_identifier
+    db_name           = var.db_name
+    username          = local.db_username
+    storage_encrypted = tostring(var.storage_encrypted)
+  }
+}
+
 resource "aws_db_instance" "this" {
-  # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
-  identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
+  identifier = local.db_identifier
 
   engine         = "postgres"
   engine_version = "15"
@@ -119,7 +134,7 @@ resource "aws_db_instance" "this" {
   backup_retention_period   = var.backup_retention_period
   backup_window             = var.preferred_backup_window
   skip_final_snapshot       = var.skip_final_snapshot
-  final_snapshot_identifier = local.final_snapshot_name
+  final_snapshot_identifier = var.skip_final_snapshot ? null : local.final_snapshot_name
   delete_automated_backups  = var.delete_automated_backups
   copy_tags_to_snapshot     = var.copy_tags_to_snapshot
 
@@ -157,8 +172,6 @@ resource "aws_db_instance" "this" {
       # Neutralises legacy state: instances created before password_wo carry a value here, and
       # password is no longer in the configuration, so without this the stale value reads as a removal.
       password,
-      # timestamp() rotates every plan — only meaningful when a final snapshot is actually taken
-      final_snapshot_identifier,
       # No list type in qbm.yml — defer to a manifest schema extension
       enabled_cloudwatch_logs_exports,
       # AWS may auto-replace the param group during minor upgrades; user can override via console

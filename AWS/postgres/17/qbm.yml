@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "4.0.0"
+  version: "4.1.0"
   description: "AWS RDS PostgreSQL 17 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -176,13 +176,13 @@ spec:
     - name: "skip_final_snapshot"
       type: "bool"
       required: false
-      default: "true"
-      description: "Skip the final snapshot on deletion"
+      default: "false"
+      description: "Skip the final snapshot on deletion. Default keeps one, billed until deleted; set true for throwaway instances"
     - name: "delete_automated_backups"
       type: "bool"
       required: false
-      default: "true"
-      description: "Delete automated backups when the instance is deleted"
+      default: "false"
+      description: "Delete automated backups when the instance is deleted. Default keeps them for backup_retention_period days; set true for throwaway instances"
     - name: "copy_tags_to_snapshot"
       type: "bool"
       required: false
