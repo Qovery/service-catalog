@@ -81,7 +81,7 @@ variable "force_destroy" {
 }
 
 variable "bucket_policy" {
-  description = "Attach the default bucket policy"
+  description = "Enforce TLS: attach a bucket policy that denies plain HTTP requests"
   type        = bool
   default     = true
 }

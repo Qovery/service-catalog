@@ -10,7 +10,7 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 | `versioning`    | bool   | no       |           | `true`  | Enable object versioning                                                                                                                                                                                                   |
 | `encryption`    | bool   | no       |           | `true`  | Enable AES-256 server-side encryption                                                                                                                                                                                      |
 | `force_destroy` | bool   | no       |           | `false` | Allow bucket deletion even if it contains objects                                                                                                                                                                          |
-| `bucket_policy` | bool   | no       |           | `true`  | Attach the default bucket policy                                                                                                                                                                                           |
+| `bucket_policy` | bool   | no       |           | `true`  | Enforce TLS: attach a bucket policy that denies plain HTTP requests                                                                                                                                                        |
 
 ## Outputs
 
@@ -19,6 +19,10 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 | `bucket_arn`    | Bucket ARN               |
 | `bucket_name`   | Bucket name (lowercased) |
 | `bucket_region` | Bucket region            |
+
+## Upgrading to 1.2.0
+
+`bucket_policy` defaults to `true`, so upgrading an existing bucket attaches the TLS policy. S3 holds a single policy per bucket: this one **replaces** any policy attached outside the blueprint. Preview the update before applying it (the plan shows `aws_s3_bucket_policy.this[0]` being created), and set `bucket_policy = false` if the bucket relies on a policy managed elsewhere. Setting it to `false` after the policy was replaced deletes the policy; it does not restore the previous one.
 
 ## Required AWS IAM permissions
 
@@ -45,6 +49,7 @@ The credentials used to deploy this blueprint must allow the actions below. Reso
         "s3:PutBucketTagging",
         "s3:GetBucketPolicy",
         "s3:PutBucketPolicy",
+        "s3:DeleteBucketPolicy",
         "s3:GetBucketAcl",
         "s3:GetBucketCORS",
         "s3:GetBucketWebsite",

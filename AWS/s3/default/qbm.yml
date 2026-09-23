@@ -70,7 +70,7 @@ spec:
       type: "bool"
       required: false
       default: "true"
-      description: "Attach the default bucket policy"
+      description: "Enforce TLS: attach a bucket policy that denies plain HTTP requests"
 
   outputs:
     - name: "bucket_arn"
