@@ -17,7 +17,7 @@ The admin is SigNoz's **root user**, provisioned from `admin_email` and the sens
 
 `org_name` is only used when SigNoz creates the organization. The organization id is pinned, so a later change of `org_name` neither renames the organization nor creates a second one.
 
-The password must be at least 12 characters and contain an uppercase letter, a lowercase letter, a digit and one of ``~!@#$%^&*()_+`-={}|[]\:"<>?,./``, with no other characters (no spaces, quotes or semicolons). The form rejects anything else: SigNoz would refuse it and never become ready.
+The password must be at least 12 characters and contain an uppercase letter, a lowercase letter, a digit and one of ``~!@#$%^&*()_+`-={}|[]\:"<>?,./``, with no other characters (no spaces, single quotes `'` or semicolons; double quotes are allowed). The form rejects anything else: SigNoz would refuse it and never become ready.
 
 ## Variables
 
@@ -26,7 +26,7 @@ The password must be at least 12 characters and contain an uppercase letter, a l
 | Name             | Type   | Sensitive | Description |
 | ---------------- | ------ | --------- | ----------- |
 | `admin_email`    | string |           | Email of the SigNoz admin (root user). Changing it and redeploying updates the admin's email. |
-| `admin_password` | string | yes       | At least 12 characters with an uppercase letter, a lowercase letter, a digit and a symbol from the list above; no spaces, quotes or semicolons. Changing it and redeploying resets it. |
+| `admin_password` | string | yes       | At least 12 characters with an uppercase letter, a lowercase letter, a digit and a symbol from the list above; no spaces, single quotes or semicolons. Changing it and redeploying resets it. |
 
 ### Optional
 
