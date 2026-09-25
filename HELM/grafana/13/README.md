@@ -74,7 +74,7 @@ A port added by hand on the Helm service in the console is removed on the next b
 
 ## Notes
 
-- **Turning things off removes them.** A datasource switched off is deleted from Grafana (`deleteDatasources`), and a dashboard dropped from the form, or a renamed folder, has its downloaded file removed by the `blueprint-maintenance` init container, so Grafana stops provisioning it. That container uses the plain `grafana/grafana:13.2.2` image, pinned to the chart's appVersion.
+- **Turning things off removes them.** A datasource switched off is deleted from Grafana (`deleteDatasources`), and a dashboard dropped from the form, or a renamed folder, has its downloaded file removed by the `blueprint-maintenance` init container, so Grafana stops provisioning it. A renamed folder leaves the old one behind, empty: Grafana never deletes folders. That container uses the plain `grafana/grafana:13.2.2` image, pinned to the chart's appVersion.
 
 - **Volume settings are creation-time.** Kubernetes forbids changing a bound volume's class, so an update that changes `storage_class` fails with `spec is immutable after creation`, and Helm's automatic rollback fails for the same reason. Grafana keeps running on the previous release; set `storage_class` back to its original value and redeploy. `storage_size` can only grow.
 
