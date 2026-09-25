@@ -37,6 +37,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | Redis     | `HELM/redis/8/`          | Redis 8 cache via community groundhog2k Helm chart              |
 | RabbitMQ  | `HELM/rabbitmq/4/`       | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
 | Datadog   | `HELM/datadog/7/`        | Datadog Agent (metrics, logs, optional APM) via official chart  |
+| Grafana   | `HELM/grafana/13/`       | Grafana 13 wired to the cluster's Thanos, Prometheus, Loki and Alertmanager, Kubernetes dashboards preloaded |
 | New Relic | `HELM/newrelic/default/` | New Relic Kubernetes monitoring via official nri-bundle chart   |
 
 ### External (Terraform)

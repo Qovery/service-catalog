@@ -1,0 +1,224 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "helm-grafana"
+  displayName: "Grafana"
+  primaryCategory: "Observability"
+  version: "1.0.0"
+  description: "Grafana wired to the cluster's Qovery-managed Prometheus (Thanos), Loki and Alertmanager, with Kubernetes dashboards preloaded"
+  icon: "app://qovery-console/grafana"
+  serviceFamily: "grafana"
+  categories:
+    - "monitoring"
+    - "observability"
+    - "grafana"
+    - "dashboards"
+
+spec:
+  engine:
+    type: helm
+    chart:
+      # grafana/helm-charts deprecated its grafana chart; development moved to grafana-community.
+      repository: "https://grafana-community.github.io/helm-charts"
+      name: "grafana"
+      version: "13.2.5"
+    arguments: []
+    # rbac.namespaced keeps the chart's Role/RoleBinding in the service namespace.
+    allowClusterWideResources: false
+
+  variables:
+    # --- Access -----------------------------------------------------------------------------
+    - name: "admin_user"
+      type: "string"
+      required: false
+      default: "admin"
+      description: "Grafana admin login, set once at creation: changing it later has no effect (rename the user in Grafana). Letters, digits, dots, hyphens, underscores and @."
+      pattern: "^[a-zA-Z0-9._@-]+$"
+      minLength: 1
+      maxLength: 64
+    - name: "admin_password"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Grafana admin password, at least 12 characters. Changing it and redeploying resets the admin password."
+      minLength: 12
+      maxLength: 128
+    - name: "root_url"
+      type: "string"
+      required: false
+      description: "Unset = links and redirects use the address Grafana is reached on. Set it (e.g. https://grafana.example.com) when Grafana sits behind a custom domain or a path prefix."
+      pattern: "^https?://[^\\s]+$"
+    - name: "anonymous_access"
+      type: "string"
+      required: false
+      default: "false"
+      description: "Let anyone who reaches Grafana browse dashboards without logging in, with the Viewer role"
+      allowedValues:
+        - "true"
+        - "false"
+
+    # --- Datasources --------------------------------------------------------------------------
+    - name: "metrics_url"
+      type: "string"
+      required: false
+      default: "http://thanos-query.prometheus.svc.cluster.local:9090"
+      description: "Leave the default on AWS and Scaleway clusters: it is the Thanos query endpoint Qovery installs with cluster metrics. On GKE and AKS use http://thanos-query.qovery.svc.cluster.local:9090. Any Prometheus-compatible URL works."
+      pattern: "^https?://[^\\s]+$"
+    - name: "prometheus_url"
+      type: "string"
+      required: false
+      default: "http://prometheus-operated.prometheus.svc.cluster.local:9090"
+      description: "Leave the default on AWS and Scaleway clusters: it is the in-cluster Prometheus (recent data only, no Thanos history). On GKE and AKS use http://prometheus-operated.qovery.svc.cluster.local:9090."
+      pattern: "^https?://[^\\s]+$"
+    - name: "loki_url"
+      type: "string"
+      required: false
+      default: "http://loki.logging.svc.cluster.local:3100"
+      description: "Leave the default: it is the Loki Qovery installs with cluster logs. Set it only to read logs from another Loki."
+      pattern: "^https?://[^\\s]+$"
+    - name: "alertmanager_url"
+      type: "string"
+      required: false
+      default: "http://alertmanager-operated.prometheus.svc.cluster.local:9093"
+      description: "Leave the default on AWS and Scaleway clusters. On GKE and AKS use http://alertmanager-operated.qovery.svc.cluster.local:9093."
+      pattern: "^https?://[^\\s]+$"
+    - name: "default_datasource"
+      type: "string"
+      required: false
+      default: "thanos"
+      description: "Datasource new panels and Explore open on"
+      allowedValues:
+        - "thanos"
+        - "prometheus"
+    - name: "enable_prometheus_datasource"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Add the direct Prometheus datasource next to Thanos"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "enable_loki_datasource"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Add the Loki datasource (cluster logs)"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "enable_alertmanager_datasource"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Add the Alertmanager datasource (active alerts, silences)"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "scrape_interval"
+      type: "string"
+      required: false
+      default: "30s"
+      description: "Scrape interval of the cluster's Prometheus; Grafana uses it as the minimum query step. Whole units, combinable: 30s, 1m, 1m30s."
+      pattern: "^([0-9]+(ms|s|m|h))+$"
+    - name: "loki_max_lines"
+      type: "number"
+      required: false
+      default: "5000"
+      description: "Maximum log lines a Loki query returns"
+      min: 100
+      max: 50000
+
+    # --- Dashboards -------------------------------------------------------------------------
+    - name: "kubernetes_dashboards"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Preload the Kubernetes (cluster, namespaces, nodes, pods), Node Exporter and Loki logs dashboards, downloaded from grafana.com when the pod starts"
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "dashboards_folder"
+      type: "string"
+      required: false
+      default: "Kubernetes"
+      description: "Grafana folder the preloaded and extra dashboards go in. Letters, digits, spaces, hyphens and underscores, max 40 chars."
+      pattern: "^[a-zA-Z0-9 _-]+$"
+      minLength: 1
+      maxLength: 40
+    - name: "extra_dashboards"
+      type: "string"
+      required: false
+      description: "Unset = no extra dashboard. Otherwise grafana.com dashboards as id:revision, comma-separated (e.g. 7249:1,14584:2). They use the default datasource."
+      pattern: "^[0-9]+:[0-9]+(,[0-9]+:[0-9]+)*$"
+    - name: "plugins"
+      type: "string"
+      required: false
+      description: "Unset = no extra plugin. Otherwise plugin ids, comma-separated (e.g. grafana-piechart-panel,grafana-clock-panel), installed from grafana.com at pod start."
+      pattern: "^[a-zA-Z0-9._-]+(,[a-zA-Z0-9._-]+)*$"
+
+    # --- Preferences ------------------------------------------------------------------------
+    - name: "default_theme"
+      type: "string"
+      required: false
+      default: "system"
+      description: "UI theme for users who have not picked one"
+      allowedValues:
+        - "system"
+        - "dark"
+        - "light"
+    - name: "default_timezone"
+      type: "string"
+      required: false
+      default: "browser"
+      description: "Timezone dashboards display, for users who have not picked one: browser, utc, or an IANA name such as Europe/Paris or UTC."
+      pattern: "^(browser|utc|[A-Za-z_0-9+-]+(/[A-Za-z0-9_+-]+)*)$"
+    - name: "log_level"
+      type: "string"
+      required: false
+      default: "info"
+      description: "Grafana server log level"
+      allowedValues:
+        - "debug"
+        - "info"
+        - "warn"
+        - "error"
+
+    # --- Sizing -----------------------------------------------------------------------------
+    - name: "persistence"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Keep Grafana's database (users, saved dashboards, alert rules) on a volume. false = lost on every restart; switching an existing service to false deletes the volume."
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "storage_size"
+      type: "string"
+      required: false
+      default: "10Gi"
+      description: "Size of the data volume. Valid Kubernetes quantity (e.g. 10Gi). It can only grow after creation, on a storage class that allows expansion."
+      pattern: "^[0-9]+(\\.[0-9]+)?(Ei|Pi|Ti|Gi|Mi|Ki)$"
+    - name: "storage_class"
+      type: "string"
+      required: false
+      description: "Unset = the cluster's default storage class. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy."
+      pattern: "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+      maxLength: 253
+    - name: "cpu_request"
+      type: "string"
+      required: false
+      default: "100m"
+      description: "CPU request for the Grafana container. Valid Kubernetes quantity (e.g. 100m, 1)."
+      pattern: "^[0-9]+(\\.[0-9]+)?m?$"
+    - name: "memory"
+      type: "string"
+      required: false
+      default: "512Mi"
+      description: "Memory request and limit for the Grafana container. Valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
+      pattern: "^[0-9]+(\\.[0-9]+)?(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
+
+  outputs:
+    - name: "grafana_service"
+      description: "In-cluster Grafana service name (port 80)"
+      sensitive: false
