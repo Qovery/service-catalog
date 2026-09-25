@@ -41,7 +41,7 @@ signoz:
     # The root user is reconciled on every start: its email and password always match these values,
     # and the collector (which only ingests once an organization exists) works from the first boot.
     signoz_user_root_enabled: true
-    signoz_user_root_email: "{{ admin_email }}"
+    signoz_user_root_email: {{ admin_email | json_encode() }}
     # json_encode emits a double-quoted string with JSON escapes, which is also a valid YAML
     # double-quoted scalar: a password containing `"` or `\` cannot break out of the value.
     signoz_user_root_password: {{ admin_password | json_encode() }}
@@ -53,7 +53,7 @@ signoz:
     signoz_statsreporter_enabled: {% if usage_reporting_v == "true" %}true{% else %}false{% endif %}
     signoz_analytics_enabled: {% if usage_reporting_v == "true" %}true{% else %}false{% endif %}
 {%- if external_url_v %}
-    signoz_alertmanager_signoz_external__url: "{{ external_url_v }}"
+    signoz_alertmanager_signoz_external__url: {{ external_url_v | json_encode() }}
 {%- endif %}
   persistence:
     size: "1Gi"
