@@ -9,7 +9,7 @@ Deploys [Grafana](https://grafana.com/docs/grafana/latest/) 13 with the communit
 | Loki         | `http://loki.logging.svc.cluster.local:3100`                    | Pod logs |
 | Alertmanager | `http://alertmanager-operated.prometheus.svc.cluster.local:9093`| Silences and active alerts |
 
-With `kubernetes_dashboards=true` (the default), a folder (`dashboards_folder`, default **Kubernetes**) is preloaded with the Kubernetes Views dashboards (global, namespaces, nodes, pods), Node Exporter Full and a Loki logs dashboard. All of them read the metrics kube-prometheus-stack exposes, so they work on any Qovery cluster with metrics enabled.
+With `kubernetes_dashboards=true` (the default), a folder (`dashboards_folder`, default **Kubernetes**) is preloaded with the Kubernetes Views dashboards (global, namespaces, nodes, pods) and Node Exporter Full, plus a Loki logs dashboard when `enable_loki_datasource=true`. All of them read the metrics kube-prometheus-stack exposes, so they work on any Qovery cluster with metrics enabled.
 
 ## Credentials
 
@@ -84,7 +84,7 @@ A port added by hand on the Helm service in the console is removed on the next b
 - `deploymentStrategy: Recreate`: the data volume is ReadWriteOnce, so a rolling update would leave the new pod waiting on a multi-attach error.
 - `fullnameOverride: grafana` gives a stable Service name. Deploy one Grafana blueprint per environment.
 - One replica, no replica variable: Grafana's embedded SQLite database sits on a ReadWriteOnce volume, which one pod at a time can mount.
-- `extra_dashboards` entries are `id:revision`; the revision must exist on grafana.com (the dashboard page lists them). A dashboard that cannot be downloaded does not block Grafana: it is skipped and logged as invalid, the others load.
+- `extra_dashboards` entries are `id:revision`; the revision must exist on grafana.com (the dashboard page lists them). A dashboard that cannot be downloaded, for a bad revision or because grafana.com is unreachable, does not block Grafana: it is skipped and logged as invalid, the others load.
 - Sign-up is disabled and usage reporting to grafana.com is off.
 - The rendered values, admin password included, are stored in the Helm service's values override, like every Helm blueprint's inputs.
 - Chart pinned to `13.2.5` (Grafana `13.2.2`). The `grafana/grafana` chart is deprecated upstream; this is its community successor, not Bitnami.

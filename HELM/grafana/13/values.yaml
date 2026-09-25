@@ -84,7 +84,7 @@ plugins:
 grafana.ini:
   server:
 {%- if root_url_v %}
-    root_url: "{{ root_url_v }}"
+    root_url: {{ root_url_v | json_encode() }}
     serve_from_sub_path: true
 {%- endif %}
   log:
@@ -110,7 +110,7 @@ datasources:
         uid: "thanos"
         type: "prometheus"
         access: "proxy"
-        url: "{{ metrics_url_v }}"
+        url: {{ metrics_url_v | json_encode() }}
         isDefault: {% if default_datasource_v == "thanos" or enable_prometheus_v != "true" %}true{% else %}false{% endif %}
         jsonData:
           timeInterval: "{{ scrape_interval_v }}"
@@ -119,7 +119,7 @@ datasources:
         uid: "prometheus"
         type: "prometheus"
         access: "proxy"
-        url: "{{ prometheus_url_v }}"
+        url: {{ prometheus_url_v | json_encode() }}
         isDefault: {% if default_datasource_v == "prometheus" %}true{% else %}false{% endif %}
         jsonData:
           timeInterval: "{{ scrape_interval_v }}"
@@ -129,7 +129,7 @@ datasources:
         uid: "loki"
         type: "loki"
         access: "proxy"
-        url: "{{ loki_url_v }}"
+        url: {{ loki_url_v | json_encode() }}
         jsonData:
           maxLines: {{ loki_max_lines_v }}
 {%- endif %}
@@ -138,7 +138,7 @@ datasources:
         uid: "alertmanager"
         type: "alertmanager"
         access: "proxy"
-        url: "{{ alertmanager_url_v }}"
+        url: {{ alertmanager_url_v | json_encode() }}
         jsonData:
           implementation: "prometheus"
 {%- endif %}
@@ -235,9 +235,14 @@ extraInitContainers:
 {%- if dashboards_on %}
 
 # The chart's default is `-skf`: one dashboard grafana.com cannot serve (a mistyped id or
-# revision, an outage) fails the init container and Grafana never starts. Without -f the bad
-# download is written as an error body, Grafana logs that one dashboard as invalid and starts.
+# revision) fails the init container and Grafana never starts. Without -f the bad download is
+# written as an error body, and Grafana logs that one dashboard as invalid and starts.
 defaultCurlOptions: "-sk --retry 3 --retry-delay 2"
+# The download script runs under `set -eufo pipefail` by default, so a connection-level failure
+# (DNS, timeout, reset: what a grafana.com outage looks like) still aborts it even without -f.
+# Without -e and pipefail every dashboard download is independent: a failed one leaves an empty
+# or error file that Grafana skips, and the init container always completes.
+defaultShellOptions: "uf"
 
 # The chart downloads these from grafana.com in an init container. `datasource` fills each
 # dashboard's datasource input; the preloaded ones are built for kube-prometheus-stack metrics,
