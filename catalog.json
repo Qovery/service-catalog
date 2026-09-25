@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-23T14:38:01Z",
+  "generatedAt": "2026-09-25T16:49:57Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -513,6 +513,30 @@
         {
           "serviceVersion": "8",
           "latestTag": "HELM/redis/8/1.0.2"
+        }
+      ]
+    },
+    {
+      "name": "helm-signoz",
+      "displayName": "SigNoz",
+      "primaryCategory": "Observability",
+      "kind": "ServiceBlueprint",
+      "description": "SigNoz APM (traces, metrics, logs over OpenTelemetry) with the cluster's Qovery-managed Prometheus metrics federated in",
+      "icon": "app://qovery-console/signoz",
+      "categories": [
+        "monitoring",
+        "observability",
+        "apm",
+        "tracing",
+        "opentelemetry",
+        "signoz"
+      ],
+      "provider": "HELM",
+      "serviceFamily": "signoz",
+      "majorVersions": [
+        {
+          "serviceVersion": "0",
+          "latestTag": "HELM/signoz/0/1.0.0"
         }
       ]
     },

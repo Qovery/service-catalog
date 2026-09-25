@@ -1,0 +1,145 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "helm-signoz"
+  displayName: "SigNoz"
+  primaryCategory: "Observability"
+  version: "1.0.0"
+  description: "SigNoz APM (traces, metrics, logs over OpenTelemetry) with the cluster's Qovery-managed Prometheus metrics federated in"
+  icon: "app://qovery-console/signoz"
+  serviceFamily: "signoz"
+  categories:
+    - "monitoring"
+    - "observability"
+    - "apm"
+    - "tracing"
+    - "opentelemetry"
+    - "signoz"
+
+spec:
+  engine:
+    type: helm
+    chart:
+      repository: "https://charts.signoz.io"
+      name: "signoz"
+      version: "0.143.0"
+    arguments: []
+    # The chart ships the ClickHouse operator CRDs (crds/, installed once per cluster and never
+    # owned by a release) and a ClusterRole for the collector's Kubernetes metadata lookups.
+    allowClusterWideResources: true
+    # First install creates ClickHouse, ZooKeeper and runs the schema migrations.
+    timeout: 1800
+
+  variables:
+    # --- Access -----------------------------------------------------------------------------
+    - name: "admin_email"
+      type: "string"
+      required: true
+      description: "Email of the SigNoz admin (root user). Changing it and redeploying updates the admin's email."
+      pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+      maxLength: 254
+    - name: "admin_password"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "SigNoz admin password: at least 12 characters with an uppercase letter, a lowercase letter, a digit and a symbol, or SigNoz refuses to start. Changing it and redeploying resets it."
+      minLength: 12
+      maxLength: 128
+    - name: "org_name"
+      type: "string"
+      required: false
+      default: "SigNoz"
+      description: "Name of the organization SigNoz creates for the admin on first start."
+      minLength: 1
+      maxLength: 64
+    - name: "external_url"
+      type: "string"
+      required: false
+      description: "Unset = links in alert notifications point to http://localhost:8080. Set the URL users reach SigNoz on (e.g. https://signoz.example.com) so alert links work."
+      pattern: "^https?://[^\\s]+$"
+    - name: "usage_reporting"
+      type: "string"
+      required: false
+      default: "false"
+      description: "Send anonymous usage statistics to the SigNoz team"
+      allowedValues:
+        - "true"
+        - "false"
+
+    # --- Cluster metrics ----------------------------------------------------------------------
+    - name: "prometheus_federation"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Copy metrics from the cluster's Prometheus into SigNoz, so PromQL panels and alerts in SigNoz can use them. Only data from the install onwards."
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "prometheus_address"
+      type: "string"
+      required: false
+      default: "prometheus-operated.prometheus.svc.cluster.local:9090"
+      description: "Leave the default on AWS and Scaleway clusters: the Prometheus Qovery installs with cluster metrics. On GKE and AKS use prometheus-operated.qovery.svc.cluster.local:9090. host:port, no scheme."
+      pattern: "^[a-zA-Z0-9.-]+:[0-9]{1,5}$"
+    - name: "federation_match"
+      type: "string"
+      required: false
+      default: "{job=~\"kubelet|kube-state-metrics|node-exporter\"}"
+      description: "Prometheus series selector of what to copy. The default covers container, pod and node metrics; widen it with care, every series is stored again in ClickHouse."
+      pattern: "^\\{.+\\}$"
+      maxLength: 512
+    - name: "federation_interval"
+      type: "string"
+      required: false
+      default: "60s"
+      description: "How often metrics are copied from Prometheus. Go duration, at least 15s (e.g. 30s, 1m)."
+      pattern: "^[0-9]+(s|m)$"
+
+    # --- Storage ----------------------------------------------------------------------------
+    - name: "clickhouse_storage_size"
+      type: "string"
+      required: false
+      default: "50Gi"
+      description: "Volume holding every trace, log and metric. Valid Kubernetes quantity. It can only grow after creation, on a storage class that allows expansion."
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki)$"
+    - name: "storage_class"
+      type: "string"
+      required: false
+      description: "Unset = the cluster's default storage class, for every SigNoz volume. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy."
+      pattern: "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+      maxLength: 253
+
+    # --- Sizing -----------------------------------------------------------------------------
+    - name: "clickhouse_cpu"
+      type: "string"
+      required: false
+      default: "500m"
+      description: "CPU request for ClickHouse. Valid Kubernetes quantity (e.g. 500m, 2)."
+      pattern: "^[0-9]+(\\.[0-9]+)?m?$"
+    - name: "clickhouse_memory"
+      type: "string"
+      required: false
+      default: "4Gi"
+      description: "Memory limit for ClickHouse, which queries run in. Requests are a quarter of it. Valid Kubernetes quantity."
+      pattern: "^[0-9]+(Gi|Mi)$"
+    - name: "collector_memory"
+      type: "string"
+      required: false
+      default: "4Gi"
+      description: "Memory limit for the OpenTelemetry collector. Federation of the default selector needs about 2Gi on a mid-size cluster. Valid Kubernetes quantity."
+      pattern: "^[0-9]+(Gi|Mi)$"
+    - name: "signoz_memory"
+      type: "string"
+      required: false
+      default: "1Gi"
+      description: "Memory limit for the SigNoz UI and query server. Valid Kubernetes quantity."
+      pattern: "^[0-9]+(Gi|Mi)$"
+
+  outputs:
+    - name: "signoz_ui_service"
+      description: "In-cluster SigNoz UI and API service (signoz, port 8080)"
+      sensitive: false
+    - name: "otlp_endpoint"
+      description: "In-cluster OTLP endpoint for applications: signoz-otel-collector, ports 4317 (gRPC) and 4318 (HTTP)"
+      sensitive: false

@@ -38,6 +38,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | RabbitMQ  | `HELM/rabbitmq/4/`       | RabbitMQ 4 message broker via community groundhog2k Helm chart  |
 | Datadog   | `HELM/datadog/7/`        | Datadog Agent (metrics, logs, optional APM) via official chart  |
 | New Relic | `HELM/newrelic/default/` | New Relic Kubernetes monitoring via official nri-bundle chart   |
+| SigNoz    | `HELM/signoz/0/`         | SigNoz APM (OTLP traces, metrics, logs) with the cluster's Prometheus metrics federated in |
 
 ### External (Terraform)
 
