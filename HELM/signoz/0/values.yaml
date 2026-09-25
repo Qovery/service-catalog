@@ -1,0 +1,145 @@
+# SigNoz chart values. User inputs are interpolated by Qovery (Tera).
+#
+# The platform sends only the variables the client supplied: an optional left alone arrives
+# undefined (or as ""), and interpolating it bare aborts the whole render. Every optional is
+# therefore resolved once here, falling back to the qbm.yml default. `if` rather than the
+# `default` filter, because `default` covers undefined only and clients also send "".
+{% if org_name %}{% set org_name_v = org_name %}{% else %}{% set org_name_v = "SigNoz" %}{% endif %}
+{%- if external_url %}{% set external_url_v = external_url %}{% else %}{% set external_url_v = "" %}{% endif %}
+{%- if usage_reporting %}{% set usage_reporting_v = usage_reporting %}{% else %}{% set usage_reporting_v = "false" %}{% endif %}
+{%- if prometheus_federation %}{% set federation_v = prometheus_federation %}{% else %}{% set federation_v = "true" %}{% endif %}
+{%- if prometheus_address %}{% set prometheus_address_v = prometheus_address %}{% else %}{% set prometheus_address_v = "prometheus-operated.prometheus.svc.cluster.local:9090" %}{% endif %}
+{%- if federation_match %}{% set federation_match_v = federation_match %}{% else %}{% set federation_match_v = '{job=~"kubelet|kube-state-metrics|node-exporter"}' %}{% endif %}
+{%- if federation_interval %}{% set federation_interval_v = federation_interval %}{% else %}{% set federation_interval_v = "60s" %}{% endif %}
+{%- if clickhouse_storage_size %}{% set clickhouse_storage_size_v = clickhouse_storage_size %}{% else %}{% set clickhouse_storage_size_v = "50Gi" %}{% endif %}
+{%- if storage_class %}{% set storage_class_v = storage_class %}{% else %}{% set storage_class_v = "" %}{% endif %}
+{%- if clickhouse_cpu %}{% set clickhouse_cpu_v = clickhouse_cpu %}{% else %}{% set clickhouse_cpu_v = "500m" %}{% endif %}
+{%- if clickhouse_memory %}{% set clickhouse_memory_v = clickhouse_memory %}{% else %}{% set clickhouse_memory_v = "4Gi" %}{% endif %}
+{%- if collector_memory %}{% set collector_memory_v = collector_memory %}{% else %}{% set collector_memory_v = "4Gi" %}{% endif %}
+{%- if signoz_memory %}{% set signoz_memory_v = signoz_memory %}{% else %}{% set signoz_memory_v = "1Gi" %}{% endif %}
+{#- Requests derived from the limits: a quarter for ClickHouse (idle most of the time, spikes on
+    queries), and for the collector what federation actually holds (about 2.5Gi) or a small
+    footprint without it, capped by the limit. #}
+{%- set ch_limit_mi = clickhouse_memory_v | replace(from="Gi", to="") | replace(from="Mi", to="") | int %}
+{%- if clickhouse_memory_v is ending_with("Gi") %}{% set ch_limit_mi = ch_limit_mi * 1024 %}{% endif %}
+{%- set col_limit_mi = collector_memory_v | replace(from="Gi", to="") | replace(from="Mi", to="") | int %}
+{%- if collector_memory_v is ending_with("Gi") %}{% set col_limit_mi = col_limit_mi * 1024 %}{% endif %}
+{%- if federation_v == "true" %}{% set col_request_mi = 2560 %}{% else %}{% set col_request_mi = 512 %}{% endif %}
+{%- if col_request_mi > col_limit_mi %}{% set col_request_mi = col_limit_mi %}{% endif %}
+
+global:
+  storageClass: {% if storage_class_v %}"{{ storage_class_v }}"{% else %}null{% endif %}
+  cloud: "other"
+
+# Stable Service names ("signoz", "signoz-otel-collector") whatever the Qovery service is called,
+# so the OTLP endpoint applications point at does not depend on the helm-z<id>-<name> release.
+fullnameOverride: "signoz"
+
+signoz:
+  env:
+    # Keys are upper-cased by the chart into SIGNOZ_* environment variables.
+    # The root user is reconciled on every start: its email and password always match these values,
+    # and the collector (which only ingests once an organization exists) works from the first boot.
+    signoz_user_root_enabled: true
+    signoz_user_root_email: {{ admin_email | json_encode() }}
+    # json_encode emits a double-quoted string with JSON escapes, which is also a valid YAML
+    # double-quoted scalar: a password containing `"` or `\` cannot break out of the value.
+    signoz_user_root_password: {{ admin_password | json_encode() }}
+    signoz_user_root_org_name: {{ org_name_v | json_encode() }}
+    # A fixed org id makes SigNoz find the org by id. Without it the lookup is by name, so changing
+    # org_name created a second organization, with its own copy of the admin, and split the users.
+    # Each install has its own database, so one constant for every install is fine.
+    signoz_user_root_org_id: "79f72932-a41c-43c7-9991-fd1decd00c10"
+    signoz_statsreporter_enabled: {% if usage_reporting_v == "true" %}true{% else %}false{% endif %}
+    signoz_analytics_enabled: {% if usage_reporting_v == "true" %}true{% else %}false{% endif %}
+{%- if external_url_v %}
+    signoz_alertmanager_signoz_external__url: {{ external_url_v | json_encode() }}
+{%- endif %}
+  persistence:
+    size: "1Gi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      memory: "{{ signoz_memory_v }}"
+
+clickhouse:
+  # Fixed names for ClickHouse and ZooKeeper. By default they derive from the release name, and the
+  # operator builds "chi-<name>-deploy-confd-cluster-0-0" as a volume name: with Qovery's
+  # "helm-z<id>-<service>" release names, any service name over 7 characters pushes that past
+  # Kubernetes' 63-character limit and ClickHouse is never created.
+  fullnameOverride: "signoz-clickhouse"
+  persistence:
+    size: "{{ clickhouse_storage_size_v }}"
+  resources:
+    requests:
+      cpu: "{{ clickhouse_cpu_v }}"
+      memory: "{{ ch_limit_mi / 4 | round(method="floor") | int }}Mi"
+    limits:
+      memory: "{{ clickhouse_memory_v }}"
+  zookeeper:
+    fullnameOverride: "signoz-zookeeper"
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "256Mi"
+      limits:
+        memory: "1Gi"
+  clickhouseOperator:
+    # The operator's config watches every namespace, while its Role only grants its own. Pin it to
+    # the release namespace so two SigNoz installs on one cluster never reconcile each other's
+    # ClickHouse.
+    resources:
+      requests:
+        cpu: "20m"
+        memory: "64Mi"
+      limits:
+        memory: "256Mi"
+    metricsExporter:
+      resources:
+        requests:
+          cpu: "10m"
+          memory: "32Mi"
+        limits:
+          memory: "128Mi"
+    env:
+      - name: WATCH_NAMESPACES
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+
+otelCollector:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "{{ col_request_mi }}Mi"
+    limits:
+      memory: "{{ collector_memory_v }}"
+{%- if federation_v == "true" %}
+  config:
+    receivers:
+      # Pulls the selected series from the cluster's Prometheus over /federate.
+      prometheus/federate:
+        config:
+          scrape_configs:
+            - job_name: "qovery-prometheus-federate"
+              scrape_interval: "{{ federation_interval_v }}"
+              # A federate response is tens of MB on a busy cluster; the 10s default is too short.
+              scrape_timeout: "{{ federation_interval_v }}"
+              honor_labels: true
+              metrics_path: "/federate"
+              params:
+                "match[]":
+                  - {{ federation_match_v | json_encode() }}
+              static_configs:
+                - targets:
+                    - "{{ prometheus_address_v }}"
+    service:
+      pipelines:
+        # Same as the chart's metrics pipeline, with the federation receiver added.
+        metrics:
+          receivers: [otlp, prometheus/federate]
+          processors: [batch]
+          exporters: [metadataexporter, signozclickhousemetrics, signozmeter]
+{%- endif %}
