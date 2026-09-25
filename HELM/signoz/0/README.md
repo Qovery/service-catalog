@@ -70,6 +70,6 @@ A port added by hand on the Helm service in the console is removed on the next b
 - **Retention** is SigNoz's default (traces and logs 15 days, metrics 30 days), changed in Settings → General.
 - **Volume settings are creation-time.** Kubernetes forbids changing a bound volume's class, so an update that changes `storage_class` fails with `spec is immutable after creation`. `clickhouse_storage_size` can only grow.
 - **Cluster-wide resources** (`allowClusterWideResources: true`): the ClickHouse operator CRDs, installed from the chart's `crds/` once per cluster and shared by every SigNoz install, and a ClusterRole the collector uses to read Kubernetes metadata. The operator itself is pinned to its own namespace (`WATCH_NAMESPACES`), so several SigNoz installs can share a cluster.
-- `fullnameOverride: signoz` gives stable Service names. Deploy one SigNoz blueprint per environment.
+- **Fixed resource names**: `signoz`, `signoz-otel-collector`, `signoz-clickhouse`, `signoz-zookeeper`. The chart derives ClickHouse's names from the release, and the operator appends `-deploy-confd-cluster-0-0`: with Qovery's `helm-z<id>-<service>` release names, a service name over 7 characters exceeded Kubernetes' 63-character limit and ClickHouse was never created. Deploy one SigNoz blueprint per environment.
 - The rendered values, admin password included, are stored in the Helm service's values override, like every Helm blueprint's inputs.
 - Chart pinned to `0.143.0`. SigNoz is still `0.x`, hence the `HELM/signoz/0` directory; it is the official chart, not Bitnami.
