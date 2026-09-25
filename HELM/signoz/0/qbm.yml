@@ -50,7 +50,7 @@ spec:
       type: "string"
       required: false
       default: "SigNoz"
-      description: "Name of the organization SigNoz creates for the admin on first start."
+      description: "Name of the organization SigNoz creates on first start. Set once: changing it later has no effect (rename the organization in SigNoz settings)."
       minLength: 1
       maxLength: 64
     - name: "external_url"
