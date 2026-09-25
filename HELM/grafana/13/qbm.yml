@@ -33,7 +33,7 @@ spec:
       type: "string"
       required: false
       default: "admin"
-      description: "Grafana admin login. Letters, digits, dots, hyphens, underscores and @ only."
+      description: "Grafana admin login, set once at creation: changing it later has no effect (rename the user in Grafana). Letters, digits, dots, hyphens, underscores and @."
       pattern: "^[a-zA-Z0-9._@-]+$"
       minLength: 1
       maxLength: 64
@@ -41,7 +41,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Grafana admin password, at least 12 characters."
+      description: "Grafana admin password, at least 12 characters. Changing it and redeploying resets the admin password."
       minLength: 12
       maxLength: 128
     - name: "root_url"
@@ -142,10 +142,10 @@ spec:
       type: "string"
       required: false
       default: "Kubernetes"
-      description: "Grafana folder the preloaded and extra dashboards go in. Letters, digits, spaces, hyphens and underscores."
+      description: "Grafana folder the preloaded and extra dashboards go in. Letters, digits, spaces, hyphens and underscores, max 40 chars."
       pattern: "^[a-zA-Z0-9 _-]+$"
       minLength: 1
-      maxLength: 64
+      maxLength: 40
     - name: "extra_dashboards"
       type: "string"
       required: false

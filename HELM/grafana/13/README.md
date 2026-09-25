@@ -13,7 +13,10 @@ With `kubernetes_dashboards=true` (the default), a folder (`dashboards_folder`, 
 
 ## Credentials
 
-The admin login is `admin_user` (default `admin`) and the sensitive `admin_password`, both entered in the Qovery console when creating the service. To change the password later, update `admin_password` on the blueprint and redeploy.
+The admin login is `admin_user` (default `admin`) and the sensitive `admin_password`, both entered in the Qovery console when creating the service.
+
+- **Changing `admin_password`** and redeploying resets the admin password: an init container runs `grafana cli admin reset-admin-password` on every start, because Grafana otherwise reads the password only on its very first start.
+- **`admin_user` is set once.** Grafana creates the admin account on first start and never renames it; changing the variable later has no effect. Rename the user in Grafana (Administration → Users) instead.
 
 ## Variables
 
@@ -21,13 +24,13 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 
 | Name             | Type   | Sensitive | Description                                   |
 | ---------------- | ------ | --------- | --------------------------------------------- |
-| `admin_password` | string | yes       | Grafana admin password, at least 12 characters. |
+| `admin_password` | string | yes       | Grafana admin password, at least 12 characters. Changing it and redeploying resets the admin password. |
 
 ### Optional
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `admin_user` | string | `admin` | Grafana admin login. Letters, digits, dots, hyphens, underscores and @ only. |
+| `admin_user` | string | `admin` | Grafana admin login, set once at creation: changing it later has no effect. Letters, digits, dots, hyphens, underscores and @. |
 | `root_url` | string | — | Unset = links use the address Grafana is reached on. Set it (e.g. `https://grafana.example.com`) behind a custom domain or path prefix. |
 | `anonymous_access` | string | `false` | Let anyone who reaches Grafana browse dashboards without logging in, as Viewer (`true`/`false`). |
 | `metrics_url` | string | `http://thanos-query.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://thanos-query.qovery.svc.cluster.local:9090`. Any Prometheus-compatible URL works. |
@@ -41,7 +44,7 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 | `scrape_interval` | string | `30s` | Scrape interval of the cluster's Prometheus, used as the minimum query step. Go duration. |
 | `loki_max_lines` | number | `5000` | Maximum log lines a Loki query returns (100–50000). |
 | `kubernetes_dashboards` | string | `true` | Preload the Kubernetes, Node Exporter and Loki logs dashboards. |
-| `dashboards_folder` | string | `Kubernetes` | Folder for the preloaded and extra dashboards. Letters, digits, spaces, hyphens, underscores. |
+| `dashboards_folder` | string | `Kubernetes` | Folder for the preloaded and extra dashboards. Letters, digits, spaces, hyphens, underscores, max 40 chars. Renaming it moves the dashboards. |
 | `extra_dashboards` | string | — | Unset = none. Otherwise grafana.com dashboards as `id:revision`, comma-separated (e.g. `7249:1,14584:2`). They use the default datasource. |
 | `plugins` | string | — | Unset = none. Otherwise plugin ids, comma-separated, installed from grafana.com at pod start. |
 | `default_theme` | string | `system` | UI theme for users who have not picked one (`system`/`dark`/`light`). |
@@ -70,6 +73,8 @@ kubectl port-forward -n <environment namespace> svc/grafana 3000:80
 A port added by hand on the Helm service in the console is removed on the next blueprint deploy, because the engine applies the service without one.
 
 ## Notes
+
+- **Turning things off removes them.** A datasource switched off is deleted from Grafana (`deleteDatasources`), and a dashboard dropped from the form, or a renamed folder, has its downloaded file removed by the `blueprint-maintenance` init container, so Grafana stops provisioning it. That container uses the plain `grafana/grafana:13.2.2` image, pinned to the chart's appVersion.
 
 - **Volume settings are creation-time.** Kubernetes forbids changing a bound volume's class, so an update that changes `storage_class` fails with `spec is immutable after creation`, and Helm's automatic rollback fails for the same reason. Grafana keeps running on the previous release; set `storage_class` back to its original value and redeploy. `storage_size` can only grow.
 

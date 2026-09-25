@@ -30,6 +30,9 @@
 {%- if cpu_request %}{% set cpu_request_v = cpu_request %}{% else %}{% set cpu_request_v = "100m" %}{% endif %}
 {%- if memory %}{% set memory_v = memory %}{% else %}{% set memory_v = "512Mi" %}{% endif %}
 {%- set dashboards_on = kubernetes_dashboards_v == "true" or extra_dashboards_v != "" %}
+{#- The provider is keyed on the folder: Grafana does not move a provisioned dashboard when only
+    its provider's folder changes, but it does drop the dashboards of a provider that is gone. #}
+{%- set provider = "b-" ~ dashboards_folder_v | slugify %}
 
 # A stable Service name ("grafana") whatever the Qovery service is called, so port-forwards and
 # in-cluster links do not depend on the helm-z<id>-<name> release name.
@@ -139,6 +142,96 @@ datasources:
         jsonData:
           implementation: "prometheus"
 {%- endif %}
+{%- if enable_prometheus_v != "true" or enable_loki_v != "true" or enable_alertmanager_v != "true" %}
+    # Provisioning only adds and updates: a datasource dropped from the list above stays in
+    # Grafana's database unless it is deleted explicitly.
+    deleteDatasources:
+{%- if enable_prometheus_v != "true" %}
+      - name: "Prometheus"
+        orgId: 1
+{%- endif %}
+{%- if enable_loki_v != "true" %}
+      - name: "Loki"
+        orgId: 1
+{%- endif %}
+{%- if enable_alertmanager_v != "true" %}
+      - name: "Alertmanager"
+        orgId: 1
+{%- endif %}
+{%- endif %}
+
+# Runs after the chart's init containers, on the data volume, before Grafana starts:
+# - adminPassword only seeds the admin account on the very first start. Afterwards Grafana keeps
+#   the password in its database, so a password changed in the Qovery form would be ignored.
+#   `grafana cli admin reset-admin-password` writes it into the database on every start.
+# - Downloaded dashboards are files on the data volume. A dashboard removed from the form, or a
+#   renamed folder, would leave its file behind and Grafana would keep provisioning it.
+# The plain image, not the chart's -distroless one: this needs a shell. Keep the tag on the chart's
+# appVersion.
+extraInitContainers:
+  - name: blueprint-maintenance
+    image: "docker.io/grafana/grafana:13.2.2"
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        set -e
+        if [ -f /var/lib/grafana/grafana.db ]; then
+          printf '%s' "$GF_SECURITY_ADMIN_PASSWORD" \
+            | grafana cli --homepath /usr/share/grafana admin reset-admin-password --password-from-stdin >/dev/null
+          echo "admin password applied"
+        fi
+        if [ -d /var/lib/grafana/dashboards ]; then
+          cd /var/lib/grafana/dashboards
+          for dir in */; do
+            [ -d "$dir" ] || continue
+            dir="${dir%/}"
+{%- if dashboards_on %}
+            if [ "$dir" != "{{ provider }}" ]; then rm -rf "$dir"; echo "removed stale dashboards: $dir"; continue; fi
+            for file in "$dir"/*.json; do
+              [ -e "$file" ] || continue
+              case "$(basename "$file" .json)" in
+{%- if kubernetes_dashboards_v == "true" %}
+                k8s-views-global|k8s-views-namespaces|k8s-views-nodes|k8s-views-pods|node-exporter-full) ;;
+{%- if enable_loki_v == "true" %}
+                loki-logs) ;;
+{%- endif %}
+{%- endif %}
+{%- if extra_dashboards_v %}
+{%- for entry in extra_dashboards_v | split(pat=",") %}
+{%- set parts = entry | trim | split(pat=":") %}
+                extra-{{ parts[0] }}) ;;
+{%- endfor %}
+{%- endif %}
+                *) rm -f "$file"; echo "removed stale dashboard: $file" ;;
+              esac
+            done
+{%- else %}
+            rm -rf "$dir"; echo "removed stale dashboards: $dir"
+{%- endif %}
+          done
+        fi
+    env:
+      - name: GF_SECURITY_ADMIN_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: "grafana"
+            key: "admin-password"
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 472
+      runAsGroup: 472
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "128Mi"
+      limits:
+        memory: "256Mi"
+    volumeMounts:
+      - name: storage
+        mountPath: /var/lib/grafana
 {%- if dashboards_on %}
 
 # The chart's default is `-skf`: one dashboard grafana.com cannot serve (a mistyped id or
@@ -153,16 +246,16 @@ dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
     providers:
-      - name: "blueprint"
+      - name: "{{ provider }}"
         folder: "{{ dashboards_folder_v }}"
         type: "file"
         disableDeletion: false
         editable: true
         options:
-          path: "/var/lib/grafana/dashboards/blueprint"
+          path: "/var/lib/grafana/dashboards/{{ provider }}"
 
 dashboards:
-  blueprint:
+  {{ provider }}:
 {%- if kubernetes_dashboards_v == "true" %}
     k8s-views-global:
       gnetId: 15757
