@@ -9,7 +9,7 @@ Deploys [Grafana](https://grafana.com/docs/grafana/latest/) 13 with the communit
 | Loki         | `http://loki.logging.svc.cluster.local:3100`                    | Pod logs |
 | Alertmanager | `http://alertmanager-operated.prometheus.svc.cluster.local:9093`| Silences and active alerts |
 
-With `kubernetes_dashboards=true` (the default), a **Kubernetes** folder is preloaded with the Kubernetes Views dashboards (global, namespaces, nodes, pods), Node Exporter Full and a Loki logs dashboard. All of them read the metrics kube-prometheus-stack exposes, so they work on any Qovery cluster with metrics enabled.
+With `kubernetes_dashboards=true` (the default), a folder (`dashboards_folder`, default **Kubernetes**) is preloaded with the Kubernetes Views dashboards (global, namespaces, nodes, pods), Node Exporter Full and a Loki logs dashboard. All of them read the metrics kube-prometheus-stack exposes, so they work on any Qovery cluster with metrics enabled.
 
 ## Credentials
 
@@ -25,16 +25,33 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 
 ### Optional
 
-| Name                    | Type   | Default | Description |
-| ----------------------- | ------ | ------- | ----------- |
-| `admin_user`            | string | `admin` | Grafana admin login. Letters, digits, dots, hyphens, underscores and @ only. |
-| `metrics_url`           | string | `http://thanos-query.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway clusters. On GKE and AKS use `http://thanos-query.qovery.svc.cluster.local:9090`. Any Prometheus-compatible URL works. |
-| `prometheus_url`        | string | `http://prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway clusters. On GKE and AKS use `http://prometheus-operated.qovery.svc.cluster.local:9090`. |
-| `loki_url`              | string | `http://loki.logging.svc.cluster.local:3100` | Leave the default. Set it only to read logs from another Loki. |
-| `alertmanager_url`      | string | `http://alertmanager-operated.prometheus.svc.cluster.local:9093` | Leave the default on AWS and Scaleway clusters. On GKE and AKS use `http://alertmanager-operated.qovery.svc.cluster.local:9093`. |
-| `kubernetes_dashboards` | string | `true`  | Preload the Kubernetes, Node Exporter and Loki logs dashboards (`true`/`false`). |
-| `storage_size`          | string | `10Gi`  | Persistent volume for Grafana's database (users, saved dashboards, alert rules). |
-| `memory`                | string | `512Mi` | Memory request and limit for the Grafana container. |
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `admin_user` | string | `admin` | Grafana admin login. Letters, digits, dots, hyphens, underscores and @ only. |
+| `root_url` | string | — | Unset = links use the address Grafana is reached on. Set it (e.g. `https://grafana.example.com`) behind a custom domain or path prefix. |
+| `anonymous_access` | string | `false` | Let anyone who reaches Grafana browse dashboards without logging in, as Viewer (`true`/`false`). |
+| `metrics_url` | string | `http://thanos-query.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://thanos-query.qovery.svc.cluster.local:9090`. Any Prometheus-compatible URL works. |
+| `prometheus_url` | string | `http://prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://prometheus-operated.qovery.svc.cluster.local:9090`. |
+| `loki_url` | string | `http://loki.logging.svc.cluster.local:3100` | Leave the default. Set it only to read logs from another Loki. |
+| `alertmanager_url` | string | `http://alertmanager-operated.prometheus.svc.cluster.local:9093` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://alertmanager-operated.qovery.svc.cluster.local:9093`. |
+| `default_datasource` | string | `thanos` | Datasource new panels and Explore open on (`thanos`/`prometheus`). |
+| `enable_prometheus_datasource` | string | `true` | Add the direct Prometheus datasource next to Thanos. |
+| `enable_loki_datasource` | string | `true` | Add the Loki datasource. `false` also drops the Loki logs dashboard. |
+| `enable_alertmanager_datasource` | string | `true` | Add the Alertmanager datasource. |
+| `scrape_interval` | string | `30s` | Scrape interval of the cluster's Prometheus, used as the minimum query step. Go duration. |
+| `loki_max_lines` | number | `5000` | Maximum log lines a Loki query returns (100–50000). |
+| `kubernetes_dashboards` | string | `true` | Preload the Kubernetes, Node Exporter and Loki logs dashboards. |
+| `dashboards_folder` | string | `Kubernetes` | Folder for the preloaded and extra dashboards. Letters, digits, spaces, hyphens, underscores. |
+| `extra_dashboards` | string | — | Unset = none. Otherwise grafana.com dashboards as `id:revision`, comma-separated (e.g. `7249:1,14584:2`). They use the default datasource. |
+| `plugins` | string | — | Unset = none. Otherwise plugin ids, comma-separated, installed from grafana.com at pod start. |
+| `default_theme` | string | `system` | UI theme for users who have not picked one (`system`/`dark`/`light`). |
+| `default_timezone` | string | `browser` | Dashboard timezone for users who have not picked one: `browser`, `utc` or an IANA name (`Europe/Paris`). |
+| `log_level` | string | `info` | Grafana server log level (`debug`/`info`/`warn`/`error`). |
+| `persistence` | string | `true` | Keep Grafana's database on a volume. `false` = users, saved dashboards and alert rules are lost on every restart. |
+| `storage_size` | string | `10Gi` | Size of the data volume. |
+| `storage_class` | string | — | Unset = the cluster's default storage class. |
+| `cpu_request` | string | `100m` | CPU request for the Grafana container. |
+| `memory` | string | `512Mi` | Memory request and limit for the Grafana container. |
 
 ## Outputs
 
@@ -56,8 +73,11 @@ A port added by hand on the Helm service in the console is removed on the next b
 
 - **Data sources depend on the cluster.** Thanos, Prometheus, Loki and Alertmanager exist only when metrics and logs are enabled on the Qovery cluster. Without them Grafana starts normally and the datasources report a connection error.
 - **GKE and AKS** host the metrics stack in the `qovery` namespace rather than `prometheus`; set `metrics_url`, `prometheus_url` and `alertmanager_url` accordingly. Loki lives in `logging` on every provider.
-- **Dashboards are downloaded from grafana.com** by an init container on each start, so the pod needs outbound HTTPS. Set `kubernetes_dashboards=false` on clusters without egress.
+- **Dashboards and plugins are downloaded from grafana.com** at each pod start, so the pod needs outbound HTTPS. On clusters without egress set `kubernetes_dashboards=false` and leave `extra_dashboards` and `plugins` unset.
 - `deploymentStrategy: Recreate`: the data volume is ReadWriteOnce, so a rolling update would leave the new pod waiting on a multi-attach error.
 - `fullnameOverride: grafana` gives a stable Service name. Deploy one Grafana blueprint per environment.
+- One replica, no replica variable: Grafana's embedded SQLite database sits on a ReadWriteOnce volume, which one pod at a time can mount.
+- `extra_dashboards` needs an explicit revision: without one the chart downloads revision 1, usually the oldest.
+- Sign-up is disabled and usage reporting to grafana.com is off.
 - The rendered values, admin password included, are stored in the Helm service's values override, like every Helm blueprint's inputs.
 - Chart pinned to `13.2.5` (Grafana `13.2.2`). The `grafana/grafana` chart is deprecated upstream; this is its community successor, not Bitnami.

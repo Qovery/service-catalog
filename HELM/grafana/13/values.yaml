@@ -5,13 +5,31 @@
 # therefore resolved once here, falling back to the qbm.yml default. `if` rather than the
 # `default` filter, because `default` covers undefined only and clients also send "".
 {% if admin_user %}{% set admin_user_v = admin_user %}{% else %}{% set admin_user_v = "admin" %}{% endif %}
+{%- if root_url %}{% set root_url_v = root_url %}{% else %}{% set root_url_v = "" %}{% endif %}
+{%- if anonymous_access %}{% set anonymous_access_v = anonymous_access %}{% else %}{% set anonymous_access_v = "false" %}{% endif %}
 {%- if metrics_url %}{% set metrics_url_v = metrics_url %}{% else %}{% set metrics_url_v = "http://thanos-query.prometheus.svc.cluster.local:9090" %}{% endif %}
 {%- if prometheus_url %}{% set prometheus_url_v = prometheus_url %}{% else %}{% set prometheus_url_v = "http://prometheus-operated.prometheus.svc.cluster.local:9090" %}{% endif %}
 {%- if loki_url %}{% set loki_url_v = loki_url %}{% else %}{% set loki_url_v = "http://loki.logging.svc.cluster.local:3100" %}{% endif %}
 {%- if alertmanager_url %}{% set alertmanager_url_v = alertmanager_url %}{% else %}{% set alertmanager_url_v = "http://alertmanager-operated.prometheus.svc.cluster.local:9093" %}{% endif %}
+{%- if default_datasource %}{% set default_datasource_v = default_datasource %}{% else %}{% set default_datasource_v = "thanos" %}{% endif %}
+{%- if enable_prometheus_datasource %}{% set enable_prometheus_v = enable_prometheus_datasource %}{% else %}{% set enable_prometheus_v = "true" %}{% endif %}
+{%- if enable_loki_datasource %}{% set enable_loki_v = enable_loki_datasource %}{% else %}{% set enable_loki_v = "true" %}{% endif %}
+{%- if enable_alertmanager_datasource %}{% set enable_alertmanager_v = enable_alertmanager_datasource %}{% else %}{% set enable_alertmanager_v = "true" %}{% endif %}
+{%- if scrape_interval %}{% set scrape_interval_v = scrape_interval %}{% else %}{% set scrape_interval_v = "30s" %}{% endif %}
+{%- if loki_max_lines %}{% set loki_max_lines_v = loki_max_lines %}{% else %}{% set loki_max_lines_v = "5000" %}{% endif %}
 {%- if kubernetes_dashboards %}{% set kubernetes_dashboards_v = kubernetes_dashboards %}{% else %}{% set kubernetes_dashboards_v = "true" %}{% endif %}
+{%- if dashboards_folder %}{% set dashboards_folder_v = dashboards_folder %}{% else %}{% set dashboards_folder_v = "Kubernetes" %}{% endif %}
+{%- if extra_dashboards %}{% set extra_dashboards_v = extra_dashboards %}{% else %}{% set extra_dashboards_v = "" %}{% endif %}
+{%- if plugins %}{% set plugins_v = plugins %}{% else %}{% set plugins_v = "" %}{% endif %}
+{%- if default_theme %}{% set default_theme_v = default_theme %}{% else %}{% set default_theme_v = "system" %}{% endif %}
+{%- if default_timezone %}{% set default_timezone_v = default_timezone %}{% else %}{% set default_timezone_v = "browser" %}{% endif %}
+{%- if log_level %}{% set log_level_v = log_level %}{% else %}{% set log_level_v = "info" %}{% endif %}
+{%- if persistence %}{% set persistence_v = persistence %}{% else %}{% set persistence_v = "true" %}{% endif %}
 {%- if storage_size %}{% set storage_size_v = storage_size %}{% else %}{% set storage_size_v = "10Gi" %}{% endif %}
+{%- if storage_class %}{% set storage_class_v = storage_class %}{% else %}{% set storage_class_v = "" %}{% endif %}
+{%- if cpu_request %}{% set cpu_request_v = cpu_request %}{% else %}{% set cpu_request_v = "100m" %}{% endif %}
 {%- if memory %}{% set memory_v = memory %}{% else %}{% set memory_v = "512Mi" %}{% endif %}
+{%- set dashboards_on = kubernetes_dashboards_v == "true" or extra_dashboards_v != "" %}
 
 # A stable Service name ("grafana") whatever the Qovery service is called, so port-forwards and
 # in-cluster links do not depend on the helm-z<id>-<name> release name.
@@ -21,6 +39,9 @@ adminUser: "{{ admin_user_v }}"
 # json_encode emits a double-quoted string with JSON escapes, which is also a valid YAML
 # double-quoted scalar: a password containing `"` or `\` cannot break out of the value.
 adminPassword: {{ admin_password | json_encode() }}
+
+# One replica only: Grafana's embedded SQLite database lives on a ReadWriteOnce volume.
+replicas: 1
 
 # Keep RBAC in the service namespace; the blueprint does not request cluster-wide resources.
 rbac:
@@ -32,13 +53,16 @@ deploymentStrategy:
   type: Recreate
 
 persistence:
-  enabled: true
+  enabled: {% if persistence_v == "true" %}true{% else %}false{% endif %}
   type: pvc
   size: "{{ storage_size_v }}"
+{%- if storage_class_v %}
+  storageClassName: "{{ storage_class_v }}"
+{%- endif %}
 
 resources:
   requests:
-    cpu: "100m"
+    cpu: "{{ cpu_request_v }}"
     memory: "{{ memory_v }}"
   limits:
     memory: "{{ memory_v }}"
@@ -46,34 +70,67 @@ resources:
 # The chart's test pod only runs under `helm test`, which Qovery never calls.
 testFramework:
   enabled: false
+{%- if plugins_v %}
+
+plugins:
+{%- for plugin in plugins_v | split(pat=",") %}
+  - "{{ plugin | trim }}"
+{%- endfor %}
+{%- endif %}
+
+grafana.ini:
+  server:
+{%- if root_url_v %}
+    root_url: "{{ root_url_v }}"
+    serve_from_sub_path: true
+{%- endif %}
+  log:
+    level: "{{ log_level_v }}"
+  users:
+    allow_sign_up: false
+    default_theme: "{{ default_theme_v }}"
+  date_formats:
+    default_timezone: "{{ default_timezone_v }}"
+  auth.anonymous:
+    enabled: {% if anonymous_access_v == "true" %}true{% else %}false{% endif %}
+    org_role: "Viewer"
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
 
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-      # Thanos is the default: it answers the same PromQL as Prometheus, with the long-term history.
+      # Thanos answers the same PromQL as Prometheus, with the long-term history.
       - name: "Thanos"
         uid: "thanos"
         type: "prometheus"
         access: "proxy"
         url: "{{ metrics_url_v }}"
-        isDefault: true
+        isDefault: {% if default_datasource_v == "thanos" or enable_prometheus_v != "true" %}true{% else %}false{% endif %}
         jsonData:
-          timeInterval: "30s"
+          timeInterval: "{{ scrape_interval_v }}"
+{%- if enable_prometheus_v == "true" %}
       - name: "Prometheus"
         uid: "prometheus"
         type: "prometheus"
         access: "proxy"
         url: "{{ prometheus_url_v }}"
+        isDefault: {% if default_datasource_v == "prometheus" %}true{% else %}false{% endif %}
         jsonData:
-          timeInterval: "30s"
+          timeInterval: "{{ scrape_interval_v }}"
+{%- endif %}
+{%- if enable_loki_v == "true" %}
       - name: "Loki"
         uid: "loki"
         type: "loki"
         access: "proxy"
         url: "{{ loki_url_v }}"
         jsonData:
-          maxLines: 5000
+          maxLines: {{ loki_max_lines_v }}
+{%- endif %}
+{%- if enable_alertmanager_v == "true" %}
       - name: "Alertmanager"
         uid: "alertmanager"
         type: "alertmanager"
@@ -81,25 +138,27 @@ datasources:
         url: "{{ alertmanager_url_v }}"
         jsonData:
           implementation: "prometheus"
-{% if kubernetes_dashboards_v == "true" %}
+{%- endif %}
+{%- if dashboards_on %}
 
-# Community dashboards built for kube-prometheus-stack metrics, which is what Qovery installs.
-# The chart downloads them from grafana.com in an init container; `datasource` fills their
-# datasource input with the Thanos datasource above.
+# The chart downloads these from grafana.com in an init container. `datasource` fills each
+# dashboard's datasource input; the preloaded ones are built for kube-prometheus-stack metrics,
+# which is what Qovery installs.
 dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
     providers:
-      - name: "kubernetes"
-        folder: "Kubernetes"
+      - name: "blueprint"
+        folder: "{{ dashboards_folder_v }}"
         type: "file"
         disableDeletion: false
         editable: true
         options:
-          path: "/var/lib/grafana/dashboards/kubernetes"
+          path: "/var/lib/grafana/dashboards/blueprint"
 
 dashboards:
-  kubernetes:
+  blueprint:
+{%- if kubernetes_dashboards_v == "true" %}
     k8s-views-global:
       gnetId: 15757
       revision: 43
@@ -120,8 +179,20 @@ dashboards:
       gnetId: 1860
       revision: 37
       datasource: "Thanos"
+{%- if enable_loki_v == "true" %}
     loki-logs:
       gnetId: 13639
       revision: 2
       datasource: "Loki"
-{% endif %}
+{%- endif %}
+{%- endif %}
+{%- if extra_dashboards_v %}
+{%- for entry in extra_dashboards_v | split(pat=",") %}
+{%- set parts = entry | trim | split(pat=":") %}
+    extra-{{ parts[0] }}:
+      gnetId: {{ parts[0] }}
+      revision: {{ parts[1] }}
+      datasource: "{% if default_datasource_v == "prometheus" and enable_prometheus_v == "true" %}Prometheus{% else %}Thanos{% endif %}"
+{%- endfor %}
+{%- endif %}
+{%- endif %}
