@@ -15,6 +15,8 @@ With `prometheus_federation=true` (the default), the collector also copies conta
 
 The admin is SigNoz's **root user**, provisioned from `admin_email` and the sensitive `admin_password` entered in the Qovery console. SigNoz reconciles it on every start: changing either value and redeploying updates the admin's email or resets the password. The root user cannot be deleted, renamed or have its password changed from the SigNoz UI; use the Qovery form.
 
+`org_name` is only used when SigNoz creates the organization. The organization id is pinned, so a later change of `org_name` neither renames the organization nor creates a second one.
+
 The password must be at least 12 characters and contain an uppercase letter, a lowercase letter, a digit and a symbol. SigNoz refuses to start otherwise, and the deploy fails on readiness.
 
 ## Variables
@@ -30,7 +32,7 @@ The password must be at least 12 characters and contain an uppercase letter, a l
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `org_name` | string | `SigNoz` | Name of the organization SigNoz creates for the admin on first start. |
+| `org_name` | string | `SigNoz` | Name of the organization SigNoz creates on first start. Set once: changing it later has no effect; rename it in SigNoz settings. |
 | `external_url` | string | — | Unset = links in alert notifications point to `http://localhost:8080`. Set the URL users reach SigNoz on so alert links work. |
 | `usage_reporting` | string | `false` | Send anonymous usage statistics to the SigNoz team (`true`/`false`). |
 | `prometheus_federation` | string | `true` | Copy metrics from the cluster's Prometheus into SigNoz (`true`/`false`). |
@@ -60,6 +62,29 @@ kubectl port-forward -n <environment namespace> svc/signoz 8080:8080
 ```
 
 A port added by hand on the Helm service in the console is removed on the next blueprint deploy, because the engine applies the service without one.
+
+## Deleting the service
+
+**Deleting the service hangs until you clear one finalizer.** `helm uninstall` removes the ClickHouse operator in the same pass as the `ClickHouseInstallation` it manages. That resource carries the operator's finalizer, and with the operator gone nothing removes it: the resource stays `Terminating` and the Qovery deletion waits on it until the 30-minute Helm timeout.
+
+Right after starting the deletion, from the service's namespace:
+
+```sh
+kubectl -n <environment namespace> patch clickhouseinstallation signoz-clickhouse \
+  --type=merge -p '{"metadata":{"finalizers":[]}}'
+```
+
+The deletion then completes within a minute. Deleting the whole environment needs the same step: the namespace cannot go away while the resource is stuck.
+
+**The data volumes outlive the service.** ClickHouse (`clickhouse_storage_size`), ZooKeeper (8Gi) and SigNoz (1Gi) volumes belong to StatefulSets, which Kubernetes never deletes with their pods. They stay, and bill, until the environment is deleted or you remove them:
+
+```sh
+kubectl -n <environment namespace> delete pvc \
+  data-volumeclaim-template-chi-signoz-clickhouse-cluster-0-0-0 \
+  data-signoz-zookeeper-0 signoz-db-signoz-0
+```
+
+Recreating the service in the same environment before that reuses the old volumes, data and admin included.
 
 ## Notes
 

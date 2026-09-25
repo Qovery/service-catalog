@@ -46,6 +46,10 @@ signoz:
     # double-quoted scalar: a password containing `"` or `\` cannot break out of the value.
     signoz_user_root_password: {{ admin_password | json_encode() }}
     signoz_user_root_org_name: {{ org_name_v | json_encode() }}
+    # A fixed org id makes SigNoz find the org by id. Without it the lookup is by name, so changing
+    # org_name created a second organization, with its own copy of the admin, and split the users.
+    # Each install has its own database, so one constant for every install is fine.
+    signoz_user_root_org_id: "79f72932-a41c-43c7-9991-fd1decd00c10"
     signoz_statsreporter_enabled: {% if usage_reporting_v == "true" %}true{% else %}false{% endif %}
     signoz_analytics_enabled: {% if usage_reporting_v == "true" %}true{% else %}false{% endif %}
 {%- if external_url_v %}
