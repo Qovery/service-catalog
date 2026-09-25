@@ -189,7 +189,7 @@ spec:
       type: "string"
       required: false
       default: "true"
-      description: "Keep Grafana's database (users, saved dashboards, alert rules) on a volume. false = lost on every restart."
+      description: "Keep Grafana's database (users, saved dashboards, alert rules) on a volume. false = lost on every restart; switching an existing service to false deletes the volume."
       allowedValues:
         - "true"
         - "false"
@@ -197,12 +197,12 @@ spec:
       type: "string"
       required: false
       default: "10Gi"
-      description: "Size of the data volume. Valid Kubernetes quantity (e.g. 10Gi)."
+      description: "Size of the data volume. Valid Kubernetes quantity (e.g. 10Gi). It can only grow after creation, on a storage class that allows expansion."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki)$"
     - name: "storage_class"
       type: "string"
       required: false
-      description: "Unset = the cluster's default storage class. Set it to pick another one."
+      description: "Unset = the cluster's default storage class. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy."
       pattern: "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
       maxLength: 253
     - name: "cpu_request"

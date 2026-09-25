@@ -141,6 +141,11 @@ datasources:
 {%- endif %}
 {%- if dashboards_on %}
 
+# The chart's default is `-skf`: one dashboard grafana.com cannot serve (a mistyped id or
+# revision, an outage) fails the init container and Grafana never starts. Without -f the bad
+# download is written as an error body, Grafana logs that one dashboard as invalid and starts.
+defaultCurlOptions: "-sk --retry 3 --retry-delay 2"
+
 # The chart downloads these from grafana.com in an init container. `datasource` fills each
 # dashboard's datasource input; the preloaded ones are built for kube-prometheus-stack metrics,
 # which is what Qovery installs.

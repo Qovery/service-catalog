@@ -47,9 +47,9 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 | `default_theme` | string | `system` | UI theme for users who have not picked one (`system`/`dark`/`light`). |
 | `default_timezone` | string | `browser` | Dashboard timezone for users who have not picked one: `browser`, `utc` or an IANA name (`Europe/Paris`). |
 | `log_level` | string | `info` | Grafana server log level (`debug`/`info`/`warn`/`error`). |
-| `persistence` | string | `true` | Keep Grafana's database on a volume. `false` = users, saved dashboards and alert rules are lost on every restart. |
-| `storage_size` | string | `10Gi` | Size of the data volume. |
-| `storage_class` | string | — | Unset = the cluster's default storage class. |
+| `persistence` | string | `true` | Keep Grafana's database on a volume. `false` = users, saved dashboards and alert rules are lost on every restart; switching an existing service to `false` deletes the volume. |
+| `storage_size` | string | `10Gi` | Size of the data volume. It can only grow after creation, on a storage class that allows expansion. |
+| `storage_class` | string | — | Unset = the cluster's default storage class. Choose it at creation: a volume cannot change class, so changing it later fails the deploy. |
 | `cpu_request` | string | `100m` | CPU request for the Grafana container. |
 | `memory` | string | `512Mi` | Memory request and limit for the Grafana container. |
 
@@ -71,13 +71,15 @@ A port added by hand on the Helm service in the console is removed on the next b
 
 ## Notes
 
+- **Volume settings are creation-time.** Kubernetes forbids changing a bound volume's class, so an update that changes `storage_class` fails with `spec is immutable after creation`, and Helm's automatic rollback fails for the same reason. Grafana keeps running on the previous release; set `storage_class` back to its original value and redeploy. `storage_size` can only grow.
+
 - **Data sources depend on the cluster.** Thanos, Prometheus, Loki and Alertmanager exist only when metrics and logs are enabled on the Qovery cluster. Without them Grafana starts normally and the datasources report a connection error.
 - **GKE and AKS** host the metrics stack in the `qovery` namespace rather than `prometheus`; set `metrics_url`, `prometheus_url` and `alertmanager_url` accordingly. Loki lives in `logging` on every provider.
 - **Dashboards and plugins are downloaded from grafana.com** at each pod start, so the pod needs outbound HTTPS. On clusters without egress set `kubernetes_dashboards=false` and leave `extra_dashboards` and `plugins` unset.
 - `deploymentStrategy: Recreate`: the data volume is ReadWriteOnce, so a rolling update would leave the new pod waiting on a multi-attach error.
 - `fullnameOverride: grafana` gives a stable Service name. Deploy one Grafana blueprint per environment.
 - One replica, no replica variable: Grafana's embedded SQLite database sits on a ReadWriteOnce volume, which one pod at a time can mount.
-- `extra_dashboards` needs an explicit revision: without one the chart downloads revision 1, usually the oldest.
+- `extra_dashboards` entries are `id:revision`; the revision must exist on grafana.com (the dashboard page lists them). A dashboard that cannot be downloaded does not block Grafana: it is skipped and logged as invalid, the others load.
 - Sign-up is disabled and usage reporting to grafana.com is off.
 - The rendered values, admin password included, are stored in the Helm service's values override, like every Helm blueprint's inputs.
 - Chart pinned to `13.2.5` (Grafana `13.2.2`). The `grafana/grafana` chart is deprecated upstream; this is its community successor, not Bitnami.
