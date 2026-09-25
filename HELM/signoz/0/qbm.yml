@@ -43,7 +43,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "SigNoz admin password: at least 12 characters with an uppercase letter, a lowercase letter, a digit and one of ~!@#$%^&*()_+`-={}|[]\\:\"<>?,./ No spaces, quotes or semicolons. Changing it and redeploying resets it."
+      description: "SigNoz admin password: at least 12 characters with an uppercase letter, a lowercase letter, a digit and one of ~!@#$%^&*()_+`-={}|[]\\:\"<>?,./ No spaces, single quotes or semicolons. Changing it and redeploying resets it."
       minLength: 12
       maxLength: 128
       # SigNoz refuses a root password outside its rule and never becomes ready, so the deploy would
