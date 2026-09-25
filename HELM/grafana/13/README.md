@@ -41,7 +41,7 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 | `enable_prometheus_datasource` | string | `true` | Add the direct Prometheus datasource next to Thanos. |
 | `enable_loki_datasource` | string | `true` | Add the Loki datasource. `false` also drops the Loki logs dashboard. |
 | `enable_alertmanager_datasource` | string | `true` | Add the Alertmanager datasource. |
-| `scrape_interval` | string | `30s` | Scrape interval of the cluster's Prometheus, used as the minimum query step. Go duration. |
+| `scrape_interval` | string | `30s` | Scrape interval of the cluster's Prometheus, used as the minimum query step. Whole units, combinable: `30s`, `1m`, `1m30s`. |
 | `loki_max_lines` | number | `5000` | Maximum log lines a Loki query returns (100–50000). |
 | `kubernetes_dashboards` | string | `true` | Preload the Kubernetes, Node Exporter and Loki logs dashboards. |
 | `dashboards_folder` | string | `Kubernetes` | Folder for the preloaded and extra dashboards. Letters, digits, spaces, hyphens, underscores, max 40 chars. Renaming it moves the dashboards. |

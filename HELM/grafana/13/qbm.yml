@@ -119,8 +119,8 @@ spec:
       type: "string"
       required: false
       default: "30s"
-      description: "Scrape interval of the cluster's Prometheus; Grafana uses it as the minimum query step. Go duration, e.g. 30s or 1m."
-      pattern: "^[0-9]+(ms|s|m|h)$"
+      description: "Scrape interval of the cluster's Prometheus; Grafana uses it as the minimum query step. Whole units, combinable: 30s, 1m, 1m30s."
+      pattern: "^([0-9]+(ms|s|m|h))+$"
     - name: "loki_max_lines"
       type: "number"
       required: false
