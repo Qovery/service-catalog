@@ -17,7 +17,7 @@ The admin is SigNoz's **root user**, provisioned from `admin_email` and the sens
 
 `org_name` is only used when SigNoz creates the organization. The organization id is pinned, so a later change of `org_name` neither renames the organization nor creates a second one.
 
-The password must be at least 12 characters and contain an uppercase letter, a lowercase letter, a digit and a symbol. SigNoz refuses to start otherwise, and the deploy fails on readiness.
+The password must be at least 12 characters and contain an uppercase letter, a lowercase letter, a digit and one of ``~!@#$%^&*()_+`-={}|[]\:"<>?,./``, with no other characters (no spaces, quotes or semicolons). The form rejects anything else: SigNoz would refuse it and never become ready.
 
 ## Variables
 
@@ -26,7 +26,7 @@ The password must be at least 12 characters and contain an uppercase letter, a l
 | Name             | Type   | Sensitive | Description |
 | ---------------- | ------ | --------- | ----------- |
 | `admin_email`    | string |           | Email of the SigNoz admin (root user). Changing it and redeploying updates the admin's email. |
-| `admin_password` | string | yes       | At least 12 characters with an uppercase letter, a lowercase letter, a digit and a symbol. Changing it and redeploying resets it. |
+| `admin_password` | string | yes       | At least 12 characters with an uppercase letter, a lowercase letter, a digit and a symbol from the list above; no spaces, quotes or semicolons. Changing it and redeploying resets it. |
 
 ### Optional
 
@@ -38,7 +38,7 @@ The password must be at least 12 characters and contain an uppercase letter, a l
 | `prometheus_federation` | string | `true` | Copy metrics from the cluster's Prometheus into SigNoz (`true`/`false`). |
 | `prometheus_address` | string | `prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `prometheus-operated.qovery.svc.cluster.local:9090`. `host:port`, no scheme. |
 | `federation_match` | string | `{job=~"kubelet\|kube-state-metrics\|node-exporter"}` | Prometheus series selector of what to copy. Every series is stored again in ClickHouse; widen it with care. |
-| `federation_interval` | string | `60s` | How often metrics are copied. At least `15s`. |
+| `federation_interval` | string | `60s` | How often metrics are copied, in `s` or `m`. At least `15s`. |
 | `clickhouse_storage_size` | string | `50Gi` | Volume holding every trace, log and metric. Can only grow after creation, on a storage class that allows expansion. |
 | `storage_class` | string | — | Unset = the cluster's default storage class, for every SigNoz volume. Choose it at creation: changing it later fails the deploy. |
 | `clickhouse_cpu` | string | `500m` | CPU request for ClickHouse. |
@@ -88,7 +88,7 @@ Recreating the service in the same environment before that reuses the old volume
 
 ## Notes
 
-- **Sizing.** The defaults request about 1.5 vCPU and 4.5Gi of memory with federation on (ClickHouse 1Gi, collector 2.5Gi, ZooKeeper, SigNoz, operator), with limits up to about 10Gi. Without federation the collector requests 512Mi.
+- **Sizing.** The defaults request about 0.8 vCPU and 4.1Gi of memory with federation on (ClickHouse 500m/1Gi, collector 100m/2.5Gi, SigNoz 100m/256Mi, ZooKeeper 50m/256Mi, operator 30m/96Mi), with memory limits up to about 10.4Gi. Without federation the collector requests 512Mi, for about 2.1Gi in total.
 - **Federation cost.** One `/federate` pull of the default selector is tens of MB on a busy cluster; the collector holds it in memory, which is where its memory goes. Narrow `federation_match` or raise `federation_interval` on large clusters.
 - **Metric names are Prometheus names** (`container_cpu_usage_seconds_total`, `kube_pod_info`, …), queried with PromQL panels. SigNoz's built-in Infrastructure pages expect the OpenTelemetry names of its own `k8s-infra` agent and stay empty. No dashboard is preloaded: the chart offers no hook to create one.
 - **Logs** come only from what applications send over OTLP. Pod logs stay in Qovery's Loki; this blueprint does not install a log agent on the nodes.
