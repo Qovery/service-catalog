@@ -61,6 +61,11 @@ signoz:
       memory: "{{ signoz_memory_v }}"
 
 clickhouse:
+  # Fixed names for ClickHouse and ZooKeeper. By default they derive from the release name, and the
+  # operator builds "chi-<name>-deploy-confd-cluster-0-0" as a volume name: with Qovery's
+  # "helm-z<id>-<service>" release names, any service name over 7 characters pushes that past
+  # Kubernetes' 63-character limit and ClickHouse is never created.
+  fullnameOverride: "signoz-clickhouse"
   persistence:
     size: "{{ clickhouse_storage_size_v }}"
   resources:
@@ -70,6 +75,7 @@ clickhouse:
     limits:
       memory: "{{ clickhouse_memory_v }}"
   zookeeper:
+    fullnameOverride: "signoz-zookeeper"
     resources:
       requests:
         cpu: "50m"
