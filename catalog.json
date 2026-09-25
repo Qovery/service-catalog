@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-23T08:31:42Z",
+  "generatedAt": "2026-09-23T14:38:01Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -136,7 +136,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "AWS/s3/default/1.1.8"
+          "latestTag": "AWS/s3/default/1.2.0"
         }
       ]
     },
