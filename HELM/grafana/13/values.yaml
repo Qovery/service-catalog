@@ -1,0 +1,127 @@
+# Grafana chart values. User inputs are interpolated by Qovery (Tera).
+#
+# The platform sends only the variables the client supplied: an optional left alone arrives
+# undefined (or as ""), and interpolating it bare aborts the whole render. Every optional is
+# therefore resolved once here, falling back to the qbm.yml default. `if` rather than the
+# `default` filter, because `default` covers undefined only and clients also send "".
+{% if admin_user %}{% set admin_user_v = admin_user %}{% else %}{% set admin_user_v = "admin" %}{% endif %}
+{%- if metrics_url %}{% set metrics_url_v = metrics_url %}{% else %}{% set metrics_url_v = "http://thanos-query.prometheus.svc.cluster.local:9090" %}{% endif %}
+{%- if prometheus_url %}{% set prometheus_url_v = prometheus_url %}{% else %}{% set prometheus_url_v = "http://prometheus-operated.prometheus.svc.cluster.local:9090" %}{% endif %}
+{%- if loki_url %}{% set loki_url_v = loki_url %}{% else %}{% set loki_url_v = "http://loki.logging.svc.cluster.local:3100" %}{% endif %}
+{%- if alertmanager_url %}{% set alertmanager_url_v = alertmanager_url %}{% else %}{% set alertmanager_url_v = "http://alertmanager-operated.prometheus.svc.cluster.local:9093" %}{% endif %}
+{%- if kubernetes_dashboards %}{% set kubernetes_dashboards_v = kubernetes_dashboards %}{% else %}{% set kubernetes_dashboards_v = "true" %}{% endif %}
+{%- if storage_size %}{% set storage_size_v = storage_size %}{% else %}{% set storage_size_v = "10Gi" %}{% endif %}
+{%- if memory %}{% set memory_v = memory %}{% else %}{% set memory_v = "512Mi" %}{% endif %}
+
+# A stable Service name ("grafana") whatever the Qovery service is called, so port-forwards and
+# in-cluster links do not depend on the helm-z<id>-<name> release name.
+fullnameOverride: "grafana"
+
+adminUser: "{{ admin_user_v }}"
+# json_encode emits a double-quoted string with JSON escapes, which is also a valid YAML
+# double-quoted scalar: a password containing `"` or `\` cannot break out of the value.
+adminPassword: {{ admin_password | json_encode() }}
+
+# Keep RBAC in the service namespace; the blueprint does not request cluster-wide resources.
+rbac:
+  namespaced: true
+
+# The data volume is ReadWriteOnce: a rolling update would start the new pod while the old one
+# still holds the volume, and the new pod would wait on a multi-attach error forever.
+deploymentStrategy:
+  type: Recreate
+
+persistence:
+  enabled: true
+  type: pvc
+  size: "{{ storage_size_v }}"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "{{ memory_v }}"
+  limits:
+    memory: "{{ memory_v }}"
+
+# The chart's test pod only runs under `helm test`, which Qovery never calls.
+testFramework:
+  enabled: false
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      # Thanos is the default: it answers the same PromQL as Prometheus, with the long-term history.
+      - name: "Thanos"
+        uid: "thanos"
+        type: "prometheus"
+        access: "proxy"
+        url: "{{ metrics_url_v }}"
+        isDefault: true
+        jsonData:
+          timeInterval: "30s"
+      - name: "Prometheus"
+        uid: "prometheus"
+        type: "prometheus"
+        access: "proxy"
+        url: "{{ prometheus_url_v }}"
+        jsonData:
+          timeInterval: "30s"
+      - name: "Loki"
+        uid: "loki"
+        type: "loki"
+        access: "proxy"
+        url: "{{ loki_url_v }}"
+        jsonData:
+          maxLines: 5000
+      - name: "Alertmanager"
+        uid: "alertmanager"
+        type: "alertmanager"
+        access: "proxy"
+        url: "{{ alertmanager_url_v }}"
+        jsonData:
+          implementation: "prometheus"
+{% if kubernetes_dashboards_v == "true" %}
+
+# Community dashboards built for kube-prometheus-stack metrics, which is what Qovery installs.
+# The chart downloads them from grafana.com in an init container; `datasource` fills their
+# datasource input with the Thanos datasource above.
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: "kubernetes"
+        folder: "Kubernetes"
+        type: "file"
+        disableDeletion: false
+        editable: true
+        options:
+          path: "/var/lib/grafana/dashboards/kubernetes"
+
+dashboards:
+  kubernetes:
+    k8s-views-global:
+      gnetId: 15757
+      revision: 43
+      datasource: "Thanos"
+    k8s-views-namespaces:
+      gnetId: 15758
+      revision: 42
+      datasource: "Thanos"
+    k8s-views-nodes:
+      gnetId: 15759
+      revision: 37
+      datasource: "Thanos"
+    k8s-views-pods:
+      gnetId: 15760
+      revision: 36
+      datasource: "Thanos"
+    node-exporter-full:
+      gnetId: 1860
+      revision: 37
+      datasource: "Thanos"
+    loki-logs:
+      gnetId: 13639
+      revision: 2
+      datasource: "Loki"
+{% endif %}

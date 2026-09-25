@@ -1,0 +1,94 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "helm-grafana"
+  displayName: "Grafana"
+  primaryCategory: "Observability"
+  version: "1.0.0"
+  description: "Grafana wired to the cluster's Qovery-managed Prometheus (Thanos), Loki and Alertmanager, with Kubernetes dashboards preloaded"
+  icon: "app://qovery-console/grafana"
+  serviceFamily: "grafana"
+  categories:
+    - "monitoring"
+    - "observability"
+    - "grafana"
+    - "dashboards"
+
+spec:
+  engine:
+    type: helm
+    chart:
+      # grafana/helm-charts deprecated its grafana chart; development moved to grafana-community.
+      repository: "https://grafana-community.github.io/helm-charts"
+      name: "grafana"
+      version: "13.2.5"
+    arguments: []
+    # rbac.namespaced keeps the chart's Role/RoleBinding in the service namespace.
+    allowClusterWideResources: false
+
+  variables:
+    - name: "admin_user"
+      type: "string"
+      required: false
+      default: "admin"
+      description: "Grafana admin login. Letters, digits, dots, hyphens, underscores and @ only."
+      pattern: "^[a-zA-Z0-9._@-]+$"
+      minLength: 1
+      maxLength: 64
+    - name: "admin_password"
+      type: "string"
+      required: true
+      sensitive: true
+      description: "Grafana admin password, at least 12 characters."
+      minLength: 12
+      maxLength: 128
+    - name: "metrics_url"
+      type: "string"
+      required: false
+      default: "http://thanos-query.prometheus.svc.cluster.local:9090"
+      description: "Leave the default on AWS and Scaleway clusters: it is the Thanos query endpoint Qovery installs with cluster metrics. On GKE and AKS use http://thanos-query.qovery.svc.cluster.local:9090. Any Prometheus-compatible URL works."
+      pattern: "^https?://[^\\s]+$"
+    - name: "prometheus_url"
+      type: "string"
+      required: false
+      default: "http://prometheus-operated.prometheus.svc.cluster.local:9090"
+      description: "Leave the default on AWS and Scaleway clusters: it is the in-cluster Prometheus (recent data only, no Thanos history). On GKE and AKS use http://prometheus-operated.qovery.svc.cluster.local:9090."
+      pattern: "^https?://[^\\s]+$"
+    - name: "loki_url"
+      type: "string"
+      required: false
+      default: "http://loki.logging.svc.cluster.local:3100"
+      description: "Leave the default: it is the Loki Qovery installs with cluster logs. Set it only to read logs from another Loki."
+      pattern: "^https?://[^\\s]+$"
+    - name: "alertmanager_url"
+      type: "string"
+      required: false
+      default: "http://alertmanager-operated.prometheus.svc.cluster.local:9093"
+      description: "Leave the default on AWS and Scaleway clusters. On GKE and AKS use http://alertmanager-operated.qovery.svc.cluster.local:9093."
+      pattern: "^https?://[^\\s]+$"
+    - name: "kubernetes_dashboards"
+      type: "string"
+      required: false
+      default: "true"
+      description: "Preload the Kubernetes (cluster, namespaces, nodes, pods), Node Exporter and Loki logs dashboards. They are downloaded from grafana.com when the pod starts."
+      allowedValues:
+        - "true"
+        - "false"
+    - name: "storage_size"
+      type: "string"
+      required: false
+      default: "10Gi"
+      description: "Persistent volume for Grafana's database (users, saved dashboards, alert rules). Valid Kubernetes quantity."
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki)$"
+    - name: "memory"
+      type: "string"
+      required: false
+      default: "512Mi"
+      description: "Memory request and limit for the Grafana container. Valid Kubernetes quantity."
+      pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
+
+  outputs:
+    - name: "grafana_service"
+      description: "In-cluster Grafana service name (port 80)"
+      sensitive: false
