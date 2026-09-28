@@ -65,7 +65,7 @@ kubectl port-forward -n <environment namespace> svc/signoz 8080:8080
 
 ## Deleting the service
 
-**On engines without QOV-2336, deleting the service hangs until you clear one finalizer.** From that engine release on, the engine deletes the release's custom resources before uninstalling it, and no manual step is needed. `helm uninstall` removes the ClickHouse operator in the same pass as the `ClickHouseInstallation` it manages. That resource carries the operator's finalizer, and with the operator gone nothing removes it: the resource stays `Terminating` and the Qovery deletion waits on it until the 30-minute Helm timeout.
+**On engines without QOV-2336, deleting the service hangs until you clear one finalizer.** From that engine release on, the engine deletes the release's custom resources before uninstalling it and lets the ClickHouse operator clean up (about 30s), so no manual step is needed. If the operator cannot finish within 5 min, the deletion fails and names the stuck resource instead of hanging; the command below then unblocks it. `helm uninstall` removes the ClickHouse operator in the same pass as the `ClickHouseInstallation` it manages. That resource carries the operator's finalizer, and with the operator gone nothing removes it: the resource stays `Terminating` and the Qovery deletion waits on it until the 30-minute Helm timeout.
 
 Right after starting the deletion, from the service's namespace:
 
