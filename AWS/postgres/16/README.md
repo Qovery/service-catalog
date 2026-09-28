@@ -2,7 +2,7 @@
 
 Creates an AWS RDS PostgreSQL 16 instance with configurable instance class, storage, backups, maintenance window, monitoring, and network settings. Storage is encrypted by default.
 
-The RDS identifier is derived from `db_name` by lowercasing and replacing underscores with hyphens (AWS requirement). The actual PostgreSQL database name is kept as provided.
+When the blueprint creates the instance, the RDS identifier is derived from `db_name`: lowercased, each run of underscores turned into one hyphen, a trailing one dropped (AWS requirement). An adopted instance keeps its existing identifier (`import_identifier`), which can differ from `db_name`. The actual PostgreSQL database name is kept as provided.
 
 ## Variables
 
@@ -12,7 +12,7 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | ------------- | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `db_name`     | string |           | PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed. |
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
-| `allocated_storage` | number |           | Allocated storage in GiB (min 20, max 65536). Default suggestion: `20`.                             |
+| `allocated_storage` | number |           | Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, 16384 for gp2). Default suggestion: `20`.                           |
 
 ### Credentials
 
@@ -64,7 +64,7 @@ as the credential without ever being applied.
 
 | Name                   | Type   | Default | Description                                                                                              |
 | ---------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------- |
-| `multi_az`             | bool   | `false` | Enable Multi-AZ deployment                                                                               |
+| `multi_az`             | bool   | `true`  | Enable Multi-AZ deployment                                                                               |
 | `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                                                               |
 | `db_subnet_group_name` | string |         | Leave empty — the Qovery cluster DB subnet group. Set only on a user-provided VPC.                       |
 | `security_group_ids`   | string |         | Leave empty — the Qovery cluster workers security group. Set only on a user-provided VPC (comma-separated ids if multiple). |
@@ -87,7 +87,7 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | Name                           | Type   | Default               | Description                                          |
 | ------------------------------ | ------ | --------------------- | ---------------------------------------------------- |
 | `apply_changes_now`            | bool   | `false`               | Apply changes immediately                            |
-| `allow_major_version_upgrade`  | bool   | `false`               | Allow major engine version upgrades on apply         |
+| `allow_major_version_upgrade`  | bool   | `true`                | Allow major engine version upgrades on apply         |
 | `auto_minor_version_upgrade`   | bool   | `true`                | Auto-apply minor version upgrades during maintenance |
 | `preferred_maintenance_window` | string | `Tue:02:00-Tue:04:00` | Maintenance window (UTC), `ddd:hh24:mi-ddd:hh24:mi`  |
 
@@ -96,7 +96,7 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | Name                       | Type   | Default       | Description                                  |
 | -------------------------- | ------ | ------------- | -------------------------------------------- |
 | `preferred_backup_window`  | string | `00:00-01:00` | Daily backup window (UTC), `hh24:mi-hh24:mi` |
-| `backup_retention_period`  | number | `7`           | Days to retain backups (0–35). `0` disables. |
+| `backup_retention_period`  | number | `14`          | Days to retain backups (0–35). `0` disables. |
 | `skip_final_snapshot`      | bool   | `false`       | Skip final snapshot on deletion              |
 | `delete_automated_backups` | bool   | `false`       | Delete automated backups on deletion         |
 | `copy_tags_to_snapshot`    | bool   | `true`        | Propagate instance tags to snapshots         |
@@ -105,17 +105,17 @@ Deleting the service keeps a final snapshot and the automated backups by default
 costing storage until deleted by hand: the snapshot indefinitely, the backups for
 `backup_retention_period` days. For a throwaway or test instance, set both `skip_final_snapshot` and
 `delete_automated_backups` to `true`. The final snapshot is named
-`<cluster name>-<db name>-<YYYYMMDDhhmmss>`: `db_name` lowercased with `_` turned into `-`, the
-UTC time the name was stamped, and any character AWS rejects removed (prefixed `snap-` if the
-result does not start with a letter). It is stamped once at creation, so successive
+`<cluster name>-<db name>-<YYYYMMDDhhmmss>`: `db_name` slugged as for the identifier, the UTC
+time the name was stamped, any character AWS rejects removed and hyphen runs collapsed (prefixed
+`snap-` if the result does not start with a letter). It is stamped once at creation, so successive
 create/destroy cycles of the same name do not collide.
 
 ### Monitoring
 
 | Name                                    | Type   | Default             | Description                                                                    |
 | --------------------------------------- | ------ | ------------------- | ------------------------------------------------------------------------------ |
-| `performance_insights_enabled`          | bool   | `false`             | Enable RDS Performance Insights                                                |
-| `performance_insights_retention_period` | number | `7`                 | PI retention in days (only when enabled). 7, 31, or k·31 ≤ 731.                |
+| `performance_insights_enabled`          | bool   | `true`              | Enable RDS Performance Insights                                                |
+| `performance_insights_retention_period` | number | `7`                 | PI retention in days (only when enabled). 7, a multiple of 31 up to 713, or 731.|
 | `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval seconds. `0` disables. 0/1/5/10/15/30/60.         |
 | `monitoring_role_arn`                   | string |                     | IAM role ARN for enhanced monitoring. Required when `monitoring_interval > 0`. |
 | `ca_cert_identifier`                    | string | `rds-ca-rsa2048-g1` | CA certificate identifier                                                      |
@@ -153,6 +153,11 @@ create/destroy cycles of the same name do not collide.
 ### Upgrading from an earlier blueprint version
 
 Read this before repointing a deployment at this version.
+
+- **Repointing a service created on another PostgreSQL major's blueprint does not change its engine.**
+  `engine_version` is in `ignore_changes`, so the instance keeps running the major it has. From an
+  older major, upgrade it through RDS to 16 first, then repoint. From a newer major, do not repoint
+  here: RDS cannot downgrade, and the blueprint would claim 16 while a newer major runs.
 
 - Deleting now keeps a final snapshot and the automated backups for services **created** on this
   version. An existing service does not change behaviour: Qovery stores every variable default when

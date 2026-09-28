@@ -346,8 +346,8 @@ variable "read_replica_count" {
   description = "Number of same-region read replicas to create (0 disables). RDS PostgreSQL allows up to 15."
 
   validation {
-    condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15
-    error_message = "read_replica_count must be between 0 and 15."
+    condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15 && floor(var.read_replica_count) == var.read_replica_count
+    error_message = "read_replica_count must be a whole number between 0 and 15."
   }
 
   validation {
