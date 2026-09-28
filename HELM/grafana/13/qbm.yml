@@ -5,7 +5,7 @@ metadata:
   name: "helm-grafana"
   displayName: "Grafana"
   primaryCategory: "Observability"
-  version: "1.0.0"
+  version: "1.1.0"
   description: "Grafana wired to the cluster's Qovery-managed Prometheus (Thanos), Loki and Alertmanager, with Kubernetes dashboards preloaded"
   icon: "app://qovery-console/grafana"
   serviceFamily: "grafana"
@@ -26,6 +26,16 @@ spec:
     arguments: []
     # rbac.namespaced keeps the chart's Role/RoleBinding in the service namespace.
     allowClusterWideResources: false
+    # The Grafana UI, published on the Qovery-generated URL. serviceName relies on the chart's
+    # fullnameOverride ("grafana"), which keeps the Service name independent of the release.
+    # Engines without QOV-2335 ignore this block and create the service without a public URL.
+    ports:
+      - name: "http"
+        serviceName: "grafana"
+        internalPort: 80
+        externalPort: 443
+        protocol: "HTTP"
+        isDefault: true
 
   variables:
     # --- Access -----------------------------------------------------------------------------

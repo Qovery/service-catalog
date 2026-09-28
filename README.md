@@ -123,6 +123,24 @@ spec:
 | `resources`                 | optional                   | block             | `{cpu, ram, storage}` for the apply job pod |
 | `arguments`                 | optional (helm)            | `[string]`        | extra `helm install` args                   |
 | `allowClusterWideResources` | optional (helm)            | bool              | default `false`                             |
+| `ports`                     | optional (helm)            | `[port]`          | see below                                   |
+
+
+#### `ports` (helm)
+
+Ports of the created Helm service, passed as is to `qovery_helm.ports`. Qovery publishes each one on a generated URL, so this is how a blueprint that ships a UI gets a public address.
+
+```yaml
+ports:
+  - name: "http"            # required, unique
+    serviceName: "grafana"  # required: the chart's Service, with a fixed name (fullnameOverride)
+    internalPort: 80        # required
+    externalPort: 443       # default 443
+    protocol: "HTTP"        # HTTP (default), GRPC, TCP or UDP
+    isDefault: true         # required on exactly one entry when there are several
+```
+
+The release name is derived from the Qovery service id, so pin the chart's `fullnameOverride` or `serviceName` will not match.
 
 #### Version block (`terraform` / `opentofu`)
 

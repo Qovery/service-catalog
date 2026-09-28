@@ -175,6 +175,76 @@ struct ValidateEngine {
     opentofu: Option<ValidateEngineVersion>,
     credentials: Option<ValidateCredentials>,
     backend: Option<ValidateBackend>,
+    /// Ports of the created Helm service. Helm only; mirrors qovery_helm.ports.
+    ports: Option<Vec<ValidatePort>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct ValidatePort {
+    name: Option<String>,
+    #[serde(rename = "serviceName")]
+    service_name: Option<String>,
+    #[serde(rename = "internalPort")]
+    internal_port: Option<i64>,
+    #[serde(rename = "externalPort")]
+    external_port: Option<i64>,
+    protocol: Option<String>,
+    #[serde(rename = "isDefault")]
+    is_default: Option<bool>,
+}
+
+const PORT_PROTOCOLS: [&str; 4] = ["HTTP", "GRPC", "TCP", "UDP"];
+
+/// Same rules the engine enforces when it parses spec.engine.ports (QOV-2335), so a manifest the
+/// engine would refuse fails here instead of at deploy time.
+fn validate_ports(path: &str, ports: &[ValidatePort], errors: &mut Vec<String>) {
+    let mut names = HashSet::new();
+    for (i, port) in ports.iter().enumerate() {
+        let label = port.name.clone().unwrap_or_else(|| format!("#{i}"));
+        match port.name.as_deref() {
+            Some(name) if !name.is_empty() => {
+                if !names.insert(name.to_string()) {
+                    errors.push(format!("{path}: duplicate spec.engine.ports name '{name}'"));
+                }
+            }
+            _ => errors.push(format!("{path}: spec.engine.ports[{i}].name is required")),
+        }
+        if port.service_name.as_deref().is_none_or(str::is_empty) {
+            errors.push(format!(
+                "{path}: spec.engine.ports '{label}': serviceName is required"
+            ));
+        }
+        match port.internal_port {
+            Some(p) if (1..=65535).contains(&p) => {}
+            Some(_) => errors.push(format!(
+                "{path}: spec.engine.ports '{label}': internalPort must be 1-65535"
+            )),
+            None => errors.push(format!(
+                "{path}: spec.engine.ports '{label}': internalPort is required"
+            )),
+        }
+        if let Some(p) = port.external_port {
+            if !(1..=65535).contains(&p) {
+                errors.push(format!(
+                    "{path}: spec.engine.ports '{label}': externalPort must be 1-65535"
+                ));
+            }
+        }
+        if let Some(protocol) = &port.protocol {
+            if !PORT_PROTOCOLS.contains(&protocol.as_str()) {
+                errors.push(format!(
+                    "{path}: spec.engine.ports '{label}': protocol must be one of {}",
+                    PORT_PROTOCOLS.join(", ")
+                ));
+            }
+        }
+    }
+    if ports.len() > 1 && ports.iter().filter(|p| p.is_default == Some(true)).count() != 1 {
+        errors.push(format!(
+            "{path}: exactly one spec.engine.ports entry must set isDefault when several are declared"
+        ));
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -898,6 +968,12 @@ fn validate_blueprints(root: &Path) -> Result<()> {
 
             match engine_type {
                 Some("terraform") | Some("opentofu") => {
+                    if engine.and_then(|e| e.ports.as_ref()).is_some() {
+                        errors.push(format!(
+                            "{}: spec.engine.ports is only supported when engine.type is helm",
+                            vd.full_path
+                        ));
+                    }
                     match engine_provider {
                         None => errors.push(format!(
                             "{}: spec.engine.provider required when engine.type is terraform/opentofu",
@@ -1022,6 +1098,9 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                             "{}: spec.engine.opentofu block is not allowed when engine.type is helm",
                             vd.full_path
                         ));
+                    }
+                    if let Some(ports) = engine.and_then(|e| e.ports.as_ref()) {
+                        validate_ports(&vd.full_path, ports, &mut errors);
                     }
                 }
                 Some(other) => {
@@ -1891,7 +1970,7 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{looks_sensitive, validate_sensitive_naming, VarDecl};
+    use super::{looks_sensitive, validate_ports, validate_sensitive_naming, ValidatePort, VarDecl};
 
     #[test]
     fn secret_bearing_names_are_flagged() {
@@ -1963,5 +2042,47 @@ mod tests {
             &mut errors,
         );
         assert_eq!(errors.len(), 1, "only bool is exempt, got {errors:?}");
+    }
+
+    fn ports(yaml: &str) -> Vec<ValidatePort> {
+        serde_yaml::from_str(yaml).expect("test fixture should deserialize")
+    }
+
+    fn port_errors(yaml: &str) -> Vec<String> {
+        let mut errors = Vec::new();
+        validate_ports("HELM/x/1/qbm.yml", &ports(yaml), &mut errors);
+        errors
+    }
+
+    #[test]
+    fn a_single_port_with_defaults_is_valid() {
+        assert!(port_errors("- {name: http, serviceName: grafana, internalPort: 80}").is_empty());
+    }
+
+    #[test]
+    fn invalid_ports_are_reported() {
+        let cases = [
+            ("- {serviceName: grafana, internalPort: 80}", "name is required"),
+            ("- {name: http, internalPort: 80}", "serviceName is required"),
+            ("- {name: http, serviceName: grafana}", "internalPort is required"),
+            ("- {name: http, serviceName: grafana, internalPort: 70000}", "internalPort must be 1-65535"),
+            ("- {name: http, serviceName: grafana, internalPort: 80, externalPort: 0}", "externalPort must be 1-65535"),
+            ("- {name: http, serviceName: grafana, internalPort: 80, protocol: SMTP}", "protocol must be one of"),
+            (
+                "- {name: a, serviceName: a, internalPort: 80, isDefault: true}\n- {name: a, serviceName: b, internalPort: 81}",
+                "duplicate spec.engine.ports name 'a'",
+            ),
+            (
+                "- {name: a, serviceName: a, internalPort: 80}\n- {name: b, serviceName: b, internalPort: 81}",
+                "exactly one spec.engine.ports entry must set isDefault",
+            ),
+        ];
+        for (yaml, expected) in cases {
+            let errors = port_errors(yaml);
+            assert!(
+                errors.iter().any(|e| e.contains(expected)),
+                "expected '{expected}' in {errors:?}"
+            );
+        }
     }
 }
