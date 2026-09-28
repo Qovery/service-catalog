@@ -88,7 +88,7 @@ Recreating the service in the same environment before that reuses the old volume
 
 ## Notes
 
-- **Sizing.** The defaults request about 0.8 vCPU and 4.1Gi of memory with federation on (ClickHouse 500m/1Gi, collector 100m/2.5Gi, SigNoz 100m/256Mi, ZooKeeper 50m/256Mi, operator 30m/96Mi), with memory limits up to about 10.4Gi. Without federation the collector requests 512Mi, for about 2.1Gi in total.
+- **Sizing.** The defaults request about 0.8 vCPU and 4.1Gi of memory with federation on (ClickHouse 500m/1Gi, collector 100m/2.5Gi, SigNoz 100m/256Mi, ZooKeeper 50m/256Mi, operator 30m/96Mi), with memory limits up to about 10.4Gi. The schema migration job, which runs on install and before each upgrade, adds 50m/128Mi (limit 512Mi) while it runs. Without federation the collector requests 512Mi, for about 2.1Gi in total.
 - **Federation cost.** One `/federate` pull of the default selector is tens of MB on a busy cluster; the collector holds it in memory, which is where its memory goes. Narrow `federation_match` or raise `federation_interval` on large clusters.
 - **Metric names are Prometheus names** (`container_cpu_usage_seconds_total`, `kube_pod_info`, …), queried with PromQL panels. SigNoz's built-in Infrastructure pages expect the OpenTelemetry names of its own `k8s-infra` agent and stay empty. No dashboard is preloaded: the chart offers no hook to create one.
 - **Logs** come only from what applications send over OTLP. Pod logs stay in Qovery's Loki; this blueprint does not install a log agent on the nodes.

@@ -26,6 +26,10 @@
 {%- if collector_memory_v is ending_with("Gi") %}{% set col_limit_mi = col_limit_mi * 1024 %}{% endif %}
 {%- if federation_v == "true" %}{% set col_request_mi = 2560 %}{% else %}{% set col_request_mi = 512 %}{% endif %}
 {%- if col_request_mi > col_limit_mi %}{% set col_request_mi = col_limit_mi %}{% endif %}
+{#- SigNoz requests 256Mi, capped by its limit: a request above the limit is rejected by Kubernetes. #}
+{%- set sz_limit_mi = signoz_memory_v | replace(from="Gi", to="") | replace(from="Mi", to="") | int %}
+{%- if signoz_memory_v is ending_with("Gi") %}{% set sz_limit_mi = sz_limit_mi * 1024 %}{% endif %}
+{%- if sz_limit_mi < 256 %}{% set sz_request_mi = sz_limit_mi %}{% else %}{% set sz_request_mi = 256 %}{% endif %}
 
 global:
   storageClass: {% if storage_class_v %}"{{ storage_class_v }}"{% else %}null{% endif %}
@@ -61,7 +65,7 @@ signoz:
   resources:
     requests:
       cpu: "100m"
-      memory: "256Mi"
+      memory: "{{ sz_request_mi }}Mi"
     limits:
       memory: "{{ signoz_memory_v }}"
 
@@ -109,6 +113,17 @@ clickhouse:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+
+# The schema migration job (install and pre-upgrade hook), four containers sharing these values.
+# The chart leaves them empty, which makes the job BestEffort: first to be evicted under memory
+# pressure, and a deployment blocked on it.
+telemetryStoreMigrator:
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      memory: "512Mi"
 
 otelCollector:
   resources:
