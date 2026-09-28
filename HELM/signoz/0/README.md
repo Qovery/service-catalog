@@ -55,17 +55,17 @@ The password must be at least 12 characters and contain an uppercase letter, a l
 
 ## Accessing SigNoz
 
-Blueprints cannot declare ports yet, so the service is created without a public URL. Reach it with a port-forward from the service's namespace:
+The SigNoz UI is published on the URL Qovery generates for the service (Helm service → Overview → Links), over HTTPS. Log in with `admin_email` and `admin_password`. Set `external_url` to that URL so links in alert notifications point to it. The OTLP endpoints stay in-cluster only.
+
+On a Qovery engine older than the one that added blueprint ports (QOV-2335), the service is created without a public URL. Reach it with a port-forward instead:
 
 ```sh
 kubectl port-forward -n <environment namespace> svc/signoz 8080:8080
 ```
 
-A port added by hand on the Helm service in the console is removed on the next blueprint deploy, because the engine applies the service without one.
-
 ## Deleting the service
 
-**Deleting the service hangs until you clear one finalizer.** `helm uninstall` removes the ClickHouse operator in the same pass as the `ClickHouseInstallation` it manages. That resource carries the operator's finalizer, and with the operator gone nothing removes it: the resource stays `Terminating` and the Qovery deletion waits on it until the 30-minute Helm timeout.
+**On engines without QOV-2336, deleting the service hangs until you clear one finalizer.** From that engine release on, the engine deletes the release's custom resources before uninstalling it, and no manual step is needed. `helm uninstall` removes the ClickHouse operator in the same pass as the `ClickHouseInstallation` it manages. That resource carries the operator's finalizer, and with the operator gone nothing removes it: the resource stays `Terminating` and the Qovery deletion waits on it until the 30-minute Helm timeout.
 
 Right after starting the deletion, from the service's namespace:
 

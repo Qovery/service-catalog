@@ -30,6 +30,15 @@ spec:
     allowClusterWideResources: true
     # First install creates ClickHouse, ZooKeeper and runs the schema migrations.
     timeout: 1800
+    # The SigNoz UI, published on the Qovery-generated URL. serviceName relies on
+    # fullnameOverride ("signoz"). Engines without QOV-2335 ignore this block.
+    ports:
+      - name: "ui"
+        serviceName: "signoz"
+        internalPort: 8080
+        externalPort: 443
+        protocol: "HTTP"
+        isDefault: true
 
   variables:
     # --- Access -----------------------------------------------------------------------------
