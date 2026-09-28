@@ -85,6 +85,9 @@ clickhouse:
       memory: "{{ clickhouse_memory_v }}"
   zookeeper:
     fullnameOverride: "signoz-zookeeper"
+    # JVM heap in MB (Xms and Xmx). The subchart's 1024 equals the 1Gi limit and leaves nothing for
+    # metaspace, thread stacks and native memory, so the pod gets OOM-killed as the heap fills.
+    heapSize: 512
     resources:
       requests:
         cpu: "50m"
