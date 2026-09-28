@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-28T15:21:27Z",
+  "generatedAt": "2026-09-29T07:03:00Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -95,6 +95,10 @@
         {
           "serviceVersion": "17",
           "latestTag": "AWS/postgres/17/4.1.1"
+        },
+        {
+          "serviceVersion": "18",
+          "latestTag": "AWS/postgres/18/1.0.0"
         }
       ]
     },

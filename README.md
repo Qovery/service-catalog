@@ -10,6 +10,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | ---------- | ------------------------ | ---------------------------------------------------- |
 | S3         | `AWS/s3/default/`        | S3 bucket with encryption and versioning             |
 | PostgreSQL | `AWS/postgres/17/`       | RDS PostgreSQL 17 instance                           |
+| PostgreSQL | `AWS/postgres/18/`       | RDS PostgreSQL 18 instance                           |
 | MySQL      | `AWS/mysql/8/`           | RDS MySQL 8.4 instance                               |
 | Redis      | `AWS/redis/7/`           | ElastiCache for Redis 7 replication group with TLS   |
 | Valkey     | `AWS/valkey/9/`          | ElastiCache for Valkey 9 replication group with TLS  |
