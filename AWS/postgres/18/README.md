@@ -2,7 +2,7 @@
 
 Creates an AWS RDS PostgreSQL 18 instance with configurable instance class, storage, backups, maintenance window, monitoring, and network settings. Storage is encrypted by default.
 
-When the blueprint creates the instance, the RDS identifier is derived from `db_name`: lowercased, each run of underscores turned into one hyphen, a trailing one dropped (AWS requirement). An adopted instance keeps its existing identifier (`import_identifier`), which can differ from `db_name`. The actual PostgreSQL database name is kept as provided.
+When the blueprint creates the instance, the RDS identifier is derived from `db_name`: lowercased, each run of underscores turned into one hyphen, and a trailing hyphen dropped (AWS requirement). An adopted instance keeps its existing identifier (`import_identifier`), which can differ from `db_name`. The actual PostgreSQL database name is kept as provided.
 
 ## Variables
 
