@@ -2074,6 +2074,14 @@ mod tests {
     }
 
     #[test]
+    fn port_name_length_limit() {
+        let at_limit = format!("- {{name: {}, serviceName: grafana, internalPort: 80}}", "a".repeat(40));
+        assert!(port_errors(&at_limit).is_empty(), "40 chars is allowed");
+        let over = format!("- {{name: {}, serviceName: grafana, internalPort: 80}}", "a".repeat(41));
+        assert!(port_errors(&over).iter().any(|e| e.contains("name must be lowercase letters")), "41 chars is rejected");
+    }
+
+    #[test]
     fn a_single_port_with_defaults_is_valid() {
         assert!(port_errors("- {name: http, serviceName: grafana, internalPort: 80}").is_empty());
     }
@@ -2089,6 +2097,8 @@ mod tests {
             ("- {name: http, serviceName: grafana, internalPort: 80, protocol: SMTP}", "protocol must be one of"),
             ("- {name: db, serviceName: postgres, internalPort: 5432, protocol: TCP}", "protocol must be one of"),
             ("- {name: Web UI, serviceName: grafana, internalPort: 80}", "name must be lowercase letters"),
+            ("- {name: -http, serviceName: grafana, internalPort: 80}", "name must be lowercase letters"),
+            ("- {name: http-, serviceName: grafana, internalPort: 80}", "name must be lowercase letters"),
             (
                 "- {name: a, serviceName: a, internalPort: 80, isDefault: true}\n- {name: a, serviceName: b, internalPort: 81}",
                 "duplicate spec.engine.ports name 'a'",
