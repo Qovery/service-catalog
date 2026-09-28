@@ -194,7 +194,10 @@ struct ValidatePort {
     is_default: Option<bool>,
 }
 
-const PORT_PROTOCOLS: [&str; 4] = ["HTTP", "GRPC", "TCP", "UDP"];
+/// qovery_helm.ports accepts HTTP and GRPC only (terraform-provider-qovery helm.AllowedProtocols),
+/// and Qovery publishes both on 443 whatever is requested.
+const PORT_PROTOCOLS: [&str; 2] = ["HTTP", "GRPC"];
+const PUBLIC_PORT: i64 = 443;
 
 /// Same rules the engine enforces when it parses spec.engine.ports (QOV-2335), so a manifest the
 /// engine would refuse fails here instead of at deploy time.
@@ -225,9 +228,9 @@ fn validate_ports(path: &str, ports: &[ValidatePort], errors: &mut Vec<String>) 
             )),
         }
         if let Some(p) = port.external_port {
-            if !(1..=65535).contains(&p) {
+            if p != PUBLIC_PORT {
                 errors.push(format!(
-                    "{path}: spec.engine.ports '{label}': externalPort must be 1-65535"
+                    "{path}: spec.engine.ports '{label}': externalPort must be {PUBLIC_PORT}, the only port Qovery publishes HTTP and gRPC on"
                 ));
             }
         }
@@ -2066,8 +2069,9 @@ mod tests {
             ("- {name: http, internalPort: 80}", "serviceName is required"),
             ("- {name: http, serviceName: grafana}", "internalPort is required"),
             ("- {name: http, serviceName: grafana, internalPort: 70000}", "internalPort must be 1-65535"),
-            ("- {name: http, serviceName: grafana, internalPort: 80, externalPort: 0}", "externalPort must be 1-65535"),
+            ("- {name: http, serviceName: grafana, internalPort: 80, externalPort: 8443}", "externalPort must be 443"),
             ("- {name: http, serviceName: grafana, internalPort: 80, protocol: SMTP}", "protocol must be one of"),
+            ("- {name: db, serviceName: postgres, internalPort: 5432, protocol: TCP}", "protocol must be one of"),
             (
                 "- {name: a, serviceName: a, internalPort: 80, isDefault: true}\n- {name: a, serviceName: b, internalPort: 81}",
                 "duplicate spec.engine.ports name 'a'",

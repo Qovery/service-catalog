@@ -135,8 +135,8 @@ ports:
   - name: "http"            # required, unique
     serviceName: "grafana"  # required: the chart's Service, with a fixed name (fullnameOverride)
     internalPort: 80        # required
-    externalPort: 443       # default 443
-    protocol: "HTTP"        # HTTP (default), GRPC, TCP or UDP
+    externalPort: 443       # optional; 443 is the only accepted value
+    protocol: "HTTP"        # HTTP (default) or GRPC; Helm services have no TCP/UDP
     isDefault: true         # required on exactly one entry when there are several
 ```
 
