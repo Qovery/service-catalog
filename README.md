@@ -132,7 +132,7 @@ Ports of the created Helm service, passed as is to `qovery_helm.ports`. Qovery p
 
 ```yaml
 ports:
-  - name: "http"            # required, unique
+  - name: "http"            # required, unique; lowercase DNS label, max 40 chars (it prefixes the public host)
     serviceName: "grafana"  # required: the chart's Service, with a fixed name (fullnameOverride)
     internalPort: 80        # required
     externalPort: 443       # optional; 443 is the only accepted value

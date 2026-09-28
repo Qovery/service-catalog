@@ -198,6 +198,17 @@ struct ValidatePort {
 /// and Qovery publishes both on 443 whatever is requested.
 const PORT_PROTOCOLS: [&str; 2] = ["HTTP", "GRPC"];
 const PUBLIC_PORT: i64 = 443;
+/// The port name is the first label of the public host, so it must be a short lowercase DNS label.
+const PORT_NAME_MAX_LENGTH: usize = 40;
+
+fn is_valid_port_name(name: &str) -> bool {
+    let b = name.as_bytes();
+    !b.is_empty()
+        && b.len() <= PORT_NAME_MAX_LENGTH
+        && b.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+        && b[0] != b'-'
+        && b[b.len() - 1] != b'-'
+}
 
 /// Same rules the engine enforces when it parses spec.engine.ports (QOV-2335), so a manifest the
 /// engine would refuse fails here instead of at deploy time.
@@ -209,6 +220,11 @@ fn validate_ports(path: &str, ports: &[ValidatePort], errors: &mut Vec<String>) 
             Some(name) if !name.is_empty() => {
                 if !names.insert(name.to_string()) {
                     errors.push(format!("{path}: duplicate spec.engine.ports name '{name}'"));
+                }
+                if !is_valid_port_name(name) {
+                    errors.push(format!(
+                        "{path}: spec.engine.ports '{name}': name must be lowercase letters, digits and hyphens, max {PORT_NAME_MAX_LENGTH} chars (it is part of the public host)"
+                    ));
                 }
             }
             _ => errors.push(format!("{path}: spec.engine.ports[{i}].name is required")),
@@ -2072,6 +2088,7 @@ mod tests {
             ("- {name: http, serviceName: grafana, internalPort: 80, externalPort: 8443}", "externalPort must be 443"),
             ("- {name: http, serviceName: grafana, internalPort: 80, protocol: SMTP}", "protocol must be one of"),
             ("- {name: db, serviceName: postgres, internalPort: 5432, protocol: TCP}", "protocol must be one of"),
+            ("- {name: Web UI, serviceName: grafana, internalPort: 80}", "name must be lowercase letters"),
             (
                 "- {name: a, serviceName: a, internalPort: 80, isDefault: true}\n- {name: a, serviceName: b, internalPort: 81}",
                 "duplicate spec.engine.ports name 'a'",
