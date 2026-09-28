@@ -140,7 +140,13 @@ ports:
     isDefault: true         # required on exactly one entry when there are several
 ```
 
-The release name is derived from the Qovery service id, so pin the chart's `fullnameOverride` or `serviceName` will not match.
+Before declaring a port on a new blueprint, check three things:
+
+1. **The Service needs a fixed name.** Qovery names the Helm release `helm-z<id>-<service>`, and most charts derive their Service names from the release. Pin it in `values.yaml` (`fullnameOverride`, or whatever the chart offers) and put that name in `serviceName`, otherwise the port targets a Service that does not exist. Render the chart with `helm template` to read the real name.
+2. **HTTP or GRPC only, always published on 443.** Those are the only protocols `qovery_helm.ports` accepts; a TCP database or UDP endpoint cannot be exposed this way. `externalPort` is accepted only as 443.
+3. **The port is static.** It lives in `qbm.yml`, not in `values.yaml`, so no form variable can turn it on or off. A declared port is always public: only declare it for a UI with its own login (Grafana, SigNoz), never for an unauthenticated endpoint.
+
+Engines without QOV-2335 ignore `ports`; the service is then created without a public URL.
 
 #### Version block (`terraform` / `opentofu`)
 
