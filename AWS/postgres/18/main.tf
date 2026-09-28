@@ -10,10 +10,11 @@ locals {
   # cycles don't collide on an existing snapshot id, yet stable across plans, so the attribute
   # needs no ignore_changes and an adopted instance gets a name too.
   final_snapshot_timestamp = replace(time_static.created.rfc3339, "/[-:TZ]/", "")
-  final_snapshot_raw       = "${var.qovery_cluster_name}-${local.db_name_slug}-${local.final_snapshot_timestamp}"
-  # AWS requires the snapshot id to begin with a letter and contain only alphanumerics and single
-  # hyphens. The cluster name is unconstrained, so stripping it can leave runs or a leading hyphen.
-  final_snapshot_cleaned = replace(replace(replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", ""), "/-+/", "-"), "/^-/", "")
+  # AWS requires the snapshot id to begin with a letter, contain only alphanumerics and single
+  # hyphens, and stay within 255 chars. The cluster name is unconstrained, so only that part is
+  # cleaned and cut: 160 leaves room for the db slug (max 63), the timestamp and a "snap-" prefix.
+  final_snapshot_cluster = replace(substr(replace(replace(var.qovery_cluster_name, "/[^a-zA-Z0-9-]/", ""), "/-+/", "-"), 0, 160), "/^-|-$/", "")
+  final_snapshot_cleaned = join("-", compact([local.final_snapshot_cluster, local.db_name_slug, local.final_snapshot_timestamp]))
   final_snapshot_name    = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
 }
 
