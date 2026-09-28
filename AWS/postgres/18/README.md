@@ -106,10 +106,11 @@ costing storage until deleted by hand: the snapshot indefinitely, the backups fo
 `backup_retention_period` days. For a throwaway or test instance, set both `skip_final_snapshot` and
 `delete_automated_backups` to `true`. The final snapshot is named
 `<cluster name>-<db name>-<YYYYMMDDhhmmss>`: `db_name` slugged as for the identifier, the UTC
-time the name was stamped. From the cluster name, any character AWS rejects is removed, hyphen
-runs are collapsed, leading and trailing hyphens are dropped, and it is cut to 160 characters to
-stay within the 255-character limit (prefixed `snap-` if the result does not start with a letter). It is stamped once at creation, so successive
-create/destroy cycles of the same name do not collide.
+time the name was stamped. The cluster name is cleaned in this order: any character AWS rejects is
+removed, hyphen runs are collapsed, it is cut to 160 characters to stay within the 255-character
+limit, then leading and trailing hyphens are dropped. The whole name is prefixed `snap-` if it does
+not start with a letter. It is stamped once at creation, so successive create/destroy cycles of the
+same name do not collide.
 
 ### Monitoring
 
