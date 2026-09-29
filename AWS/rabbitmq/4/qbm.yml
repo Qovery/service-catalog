@@ -5,7 +5,7 @@ metadata:
   displayName: "Amazon MQ for RabbitMQ"
   primaryCategory: "Messaging & Streaming"
   version: "1.0.0"
-  description: "Amazon MQ for RabbitMQ 4 broker over AMQPS, attached to the Qovery cluster network, single node or three-node cluster"
+  description: "Amazon MQ for RabbitMQ 4 broker over AMQPS, attached to the Qovery cluster network, single node or three-node cluster. Requires mq:* on the deploying IAM role (see README)."
   icon: "app://qovery-console/rabbitmq"
   serviceFamily: "rabbitmq"
   categories:
