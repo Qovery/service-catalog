@@ -52,7 +52,7 @@ current values, and the outputs follow.
 | ---- | ---- | ------- | ----------- |
 | `publicly_accessible` | bool | `false` | Expose the broker to the internet. Changing it replaces the broker. |
 | `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty and the blueprint creates a security group opening 5671 and 443 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. |
+| `security_group_ids` | string | | Leave empty and the blueprint creates a security group opening 5671 and 443 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. Set at creation only. |
 | `allowed_cidrs` | string | | Leave empty to allow the whole VPC (every pod in the cluster). Set comma-separated CIDRs to narrow or widen access. Ignored when `security_group_ids` is set. |
 
 A single-instance broker takes the first subnet (one per availability zone, sorted by zone name);
@@ -63,6 +63,10 @@ subnets.
 The blueprint does not reuse the cluster workers security group, as the RDS blueprints do. That
 group only opens the ports of the native databases (5432, 3306, 6379), and nodes started by
 Karpenter carry the EKS cluster security group instead, so pods could not reach the broker.
+
+Amazon MQ does not let a RabbitMQ broker change security groups, so `security_group_ids` is set at
+creation and later edits are ignored. `allowed_cidrs` can change at any time: it edits the rules of
+the blueprint's group, not the group attached to the broker.
 
 A public broker is hosted by Amazon MQ outside the VPC and cannot have a security group: anyone who
 has the credentials can connect. Keep it private unless a client outside AWS needs it.

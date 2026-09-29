@@ -207,7 +207,9 @@ resource "aws_mq_broker" "this" {
     # Amazon MQ cannot update RabbitMQ users and never returns them, so a changed username or
     # password would plan an update on every run and never reach the broker. Credentials are set at
     # creation; the terraform_data resources below keep the outputs on the values the broker has.
-    ignore_changes = [user]
+    # Amazon MQ also refuses to change the security groups of a RabbitMQ broker, so they are set at
+    # creation too; allowed_cidrs still applies, since it edits the rules of the group in place.
+    ignore_changes = [user, security_groups]
   }
 
   depends_on = [aws_cloudwatch_log_resource_policy.mq]
