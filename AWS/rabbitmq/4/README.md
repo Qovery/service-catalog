@@ -2,8 +2,8 @@
 
 Creates an Amazon MQ for RabbitMQ 4 broker, reachable over AMQPS (port 5671, TLS only), on a single
 node or as a three-node cluster spread across availability zones. By default the broker joins the
-Qovery cluster network: the private subnets of the cluster's DB subnet group and the cluster
-workers security group, so pods reach it with no extra setup.
+Qovery cluster network, in the private subnets of the cluster's DB subnet group, with its own
+security group opening 5671 and 443 to the VPC, so pods reach it with no extra setup.
 
 The broker carries an Amazon MQ configuration holding `consumer_timeout`, `heartbeat` and any
 `extra_configuration` lines. Storage is EBS, encrypted at rest.
@@ -52,11 +52,17 @@ current values, and the outputs follow.
 | ---- | ---- | ------- | ----------- |
 | `publicly_accessible` | bool | `false` | Expose the broker to the internet. Changing it replaces the broker. |
 | `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty — derived from the Qovery cluster's workers security group. Set it only on a user-provided VPC. |
+| `security_group_ids` | string | | Leave empty and the blueprint creates a security group opening 5671 and 443 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. |
+| `allowed_cidrs` | string | | Leave empty to allow the whole VPC (every pod in the cluster). Set comma-separated CIDRs to narrow or widen access. Ignored when `security_group_ids` is set. |
 
 A single-instance broker takes the first subnet (one per availability zone, sorted by zone name);
-a cluster takes up to three. On a cluster deployed into an existing VPC, the `ClusterId` lookups may
-find nothing: set `subnet_ids` and `security_group_ids` explicitly.
+a cluster takes up to three. On a cluster deployed into an existing VPC, the `ClusterId` lookup may
+find nothing: set `subnet_ids` explicitly. The security group is then created in the VPC of those
+subnets.
+
+The blueprint does not reuse the cluster workers security group, as the RDS blueprints do. That
+group only opens the ports of the native databases (5432, 3306, 6379), and nodes started by
+Karpenter carry the EKS cluster security group instead, so pods could not reach the broker.
 
 A public broker is hosted by Amazon MQ outside the VPC and cannot have a security group: anyone who
 has the credentials can connect. Keep it private unless a client outside AWS needs it.
@@ -118,8 +124,8 @@ Amazon MQ can only publish logs once a CloudWatch Logs resource policy lets it. 
 The identity that deploys the blueprint needs the actions below. With `credentials: cluster` (the
 default) that is the cluster's IAM role, `qovery-user-role` on a standard installation: attach them
 to it as an extra policy. With `credentials: env`, the keys you supply need them. The EC2 and RDS
-read actions let Terraform find the cluster subnets and workers security group when the network
-variables are left empty; the `logs` actions are only used with `general_logs = true`.
+read actions let Terraform find the cluster subnets, and the security group actions create the
+broker's own group; the `logs` actions are only used with `general_logs = true`.
 
 ```json
 {
@@ -144,6 +150,12 @@ variables are left empty; the `logs` actions are only used with `general_logs = 
         "mq:ListTags",
         "mq:CreateUser",
         "mq:DescribeUser",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateTags",
         "ec2:CreateNetworkInterface",
         "ec2:CreateNetworkInterfacePermission",
         "ec2:DeleteNetworkInterface",

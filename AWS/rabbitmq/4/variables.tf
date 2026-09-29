@@ -116,7 +116,18 @@ variable "subnet_ids" {
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty and the blueprint creates a security group opening 5671 and 443 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead."
+}
+
+variable "allowed_cidrs" {
+  type        = string
+  default     = ""
+  description = "Leave empty to allow the whole VPC (every pod in the cluster). Set comma-separated CIDRs to narrow or widen access. Ignored when security_group_ids is set."
+
+  validation {
+    condition     = var.allowed_cidrs == "" || alltrue([for c in split(",", var.allowed_cidrs) : can(cidrhost(trimspace(c), 0))])
+    error_message = "allowed_cidrs must be comma-separated IPv4 CIDRs, e.g. 10.0.0.0/16,192.168.1.0/24."
+  }
 }
 
 variable "apply_changes_now" {

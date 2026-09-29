@@ -1,6 +1,6 @@
 # Attach to the Qovery cluster network by default, like the RDS blueprints: cluster bootstrap tags
 # the VPC with ClusterId = <cluster short id> and creates a DB subnet group named after the VPC id,
-# whose private subnets span the cluster's availability zones. A public broker takes neither:
+# whose private subnets span the cluster's availability zones. A public broker takes none of this:
 # Amazon MQ hosts it outside the VPC and refuses security groups on it.
 data "aws_vpc" "cluster" {
   count = var.subnet_ids == "" && !var.publicly_accessible ? 1 : 0
@@ -23,20 +23,6 @@ data "aws_subnet" "cluster" {
   id = each.value
 }
 
-data "aws_security_group" "cluster_workers" {
-  count = var.security_group_ids == "" && !var.publicly_accessible ? 1 : 0
-
-  filter {
-    name   = "tag:Name"
-    values = ["qovery-${var.qovery_cluster_id}-sg-workers", "qovery-eks-workers"]
-  }
-
-  filter {
-    name   = "tag:kubernetes.io/cluster/qovery-${var.qovery_cluster_id}"
-    values = ["owned"]
-  }
-}
-
 locals {
   # One subnet per availability zone, in a stable order: a single-instance broker takes exactly one
   # subnet, a cluster spreads its three nodes over up to three zones.
@@ -55,10 +41,63 @@ locals {
     : var.deployment_mode == "SINGLE_INSTANCE" ? slice(local.all_subnet_ids, 0, 1)
     : slice(local.all_subnet_ids, 0, min(3, length(local.all_subnet_ids)))
   )
+
+  # The cluster workers security group only opens the ports of the native databases, and Karpenter
+  # nodes do not even carry it, so the broker gets its own group instead.
+  create_security_group = !var.publicly_accessible && var.security_group_ids == ""
+}
+
+data "aws_subnet" "broker" {
+  count = local.create_security_group ? 1 : 0
+
+  id = local.subnet_ids[0]
+}
+
+data "aws_vpc" "broker" {
+  count = local.create_security_group ? 1 : 0
+
+  id = data.aws_subnet.broker[0].vpc_id
+}
+
+locals {
+  allowed_cidrs = (
+    !local.create_security_group ? []
+    : var.allowed_cidrs != "" ? [for c in split(",", var.allowed_cidrs) : trimspace(c)]
+    : [for a in data.aws_vpc.broker[0].cidr_block_associations : a.cidr_block]
+  )
+}
+
+resource "aws_security_group" "broker" {
+  count = local.create_security_group ? 1 : 0
+
+  name        = "qovery-amazonmq-${var.broker_name}"
+  description = "Amazon MQ broker ${var.broker_name}: AMQPS and management UI"
+  vpc_id      = data.aws_vpc.broker[0].id
+
+  ingress {
+    description = "AMQPS"
+    from_port   = 5671
+    to_port     = 5671
+    protocol    = "tcp"
+    cidr_blocks = local.allowed_cidrs
+  }
+
+  ingress {
+    description = "RabbitMQ management UI and HTTP API"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = local.allowed_cidrs
+  }
+
+  tags = local.tags
+}
+
+locals {
   security_group_ids = (
     var.publicly_accessible ? null
     : var.security_group_ids != "" ? [for id in split(",", var.security_group_ids) : trimspace(id)]
-    : [data.aws_security_group.cluster_workers[0].id]
+    : [aws_security_group.broker[0].id]
   )
 
   admin_password = var.admin_password != "" ? var.admin_password : random_password.admin.result
