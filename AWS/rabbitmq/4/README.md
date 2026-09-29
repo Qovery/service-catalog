@@ -8,6 +8,12 @@ workers security group, so pods reach it with no extra setup.
 The broker carries an Amazon MQ configuration holding `consumer_timeout`, `heartbeat` and any
 `extra_configuration` lines. Storage is EBS, encrypted at rest.
 
+**Before the first deploy**, give the deploying identity the Amazon MQ permissions listed in
+[Required AWS IAM permissions](#required-aws-iam-permissions). The Qovery IAM policy does not
+include `mq:*`, so with the default cluster credentials the deploy fails on the first Amazon MQ
+call with `AccessDeniedException: ... is not authorized to perform: mq:CreateConfiguration`.
+Nothing is created on AWS when that happens.
+
 ## Variables
 
 ### Required
@@ -106,6 +112,12 @@ Amazon MQ can only publish logs once a CloudWatch Logs resource policy lets it. 
 | `configuration_id` | | Amazon MQ configuration holding the `rabbitmq.conf` settings |
 
 ## Required AWS IAM permissions
+
+The identity that deploys the blueprint needs the actions below. With `credentials: cluster` (the
+default) that is the cluster's IAM role, `qovery-user-role` on a standard installation: attach them
+to it as an extra policy. With `credentials: env`, the keys you supply need them. The EC2 and RDS
+read actions let Terraform find the cluster subnets and workers security group when the network
+variables are left empty; the `logs` actions are only used with `general_logs = true`.
 
 ```json
 {
