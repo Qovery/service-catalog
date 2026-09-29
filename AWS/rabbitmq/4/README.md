@@ -12,7 +12,9 @@ The broker carries an Amazon MQ configuration holding `consumer_timeout`, `heart
 [Required AWS IAM permissions](#required-aws-iam-permissions). The Qovery IAM policy does not
 include `mq:*`, so with the default cluster credentials the deploy fails on the first Amazon MQ
 call with `AccessDeniedException: ... is not authorized to perform: mq:CreateConfiguration`.
-Nothing is created on AWS when that happens.
+No broker or configuration is created when that happens. With `general_logs = true`, the
+CloudWatch Logs resource policy is created in parallel and can remain: delete the service to
+remove it.
 
 ## Variables
 
@@ -34,8 +36,8 @@ Nothing is created on AWS when that happens.
 
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `admin_username` | string | | `qoveryadmin` | 2-100 chars: letters, digits, `-` `.` `_` `~`; `guest` is refused. |
-| `admin_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character alphanumeric password. To set your own: 12-250 chars, at least 4 distinct characters, no comma, colon or equals sign. |
+| `admin_username` | string | | `qoveryadmin` | 2-100 chars: letters, digits, `-` `.` `_` `~`; `guest` is refused at deploy. |
+| `admin_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters. |
 
 Both are set **at creation only**. Amazon MQ cannot update RabbitMQ users and never returns them,
 so the blueprint ignores later edits to the `user` block, and the `username`, `password` and

@@ -81,7 +81,7 @@ spec:
       type: "string"
       required: false
       default: "qoveryadmin"
-      description: "Admin username, set at creation only. 2-100 chars: letters, digits, - . _ ~; guest is refused."
+      description: "Admin username, set at creation only. 2-100 chars: letters, digits, - . _ ~; guest is refused at deploy."
       pattern: "^[a-zA-Z0-9._~-]{2,100}$"
       minLength: 2
       maxLength: 100
@@ -89,7 +89,7 @@ spec:
       type: "string"
       required: false
       sensitive: true
-      description: "Leave empty and Qovery generates a 32-character alphanumeric password. To set your own: 12-250 chars, at least 4 distinct characters, no comma, colon or equals sign. Set at creation only."
+      description: "Leave empty and Qovery generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters (checked at deploy). Set at creation only."
       pattern: "^([^,:=]{12,250})?$"
       maxLength: 250
     - name: "publicly_accessible"

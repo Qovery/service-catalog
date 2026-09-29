@@ -66,7 +66,7 @@ variable "deployment_mode" {
 variable "admin_username" {
   type        = string
   default     = "qoveryadmin"
-  description = "Admin username, set at creation only (2-100 chars: letters, digits, - . _ ~; not guest)."
+  description = "Admin username, set at creation only (2-100 chars: letters, digits, - . _ ~; guest is refused at deploy)."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9._~-]{2,100}$", var.admin_username))
@@ -83,7 +83,7 @@ variable "admin_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Admin password, set at creation only. Empty generates a 32-character alphanumeric password. To set your own: 12-250 chars, at least 4 distinct characters, no comma, colon or equals sign."
+  description = "Admin password, set at creation only. Empty generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters (checked at deploy)."
 
   validation {
     condition     = var.admin_password == "" || (length(var.admin_password) >= 12 && length(var.admin_password) <= 250)

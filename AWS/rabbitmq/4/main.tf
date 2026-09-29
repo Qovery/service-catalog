@@ -86,10 +86,14 @@ locals {
 
 resource "random_password" "admin" {
   length      = 32
-  special     = false
   min_lower   = 1
   min_upper   = 1
   min_numeric = 1
+  # A fourth mandatory class guarantees the four distinct characters Amazon MQ requires. The set
+  # leaves out , : = (refused by Amazon MQ) and $ ( (expanded by Kubernetes in consumers' env).
+  special          = true
+  min_special      = 1
+  override_special = "-_.!"
 }
 
 resource "aws_mq_configuration" "this" {
