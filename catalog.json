@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-29T12:01:58Z",
+  "generatedAt": "2026-09-29T12:30:38Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -99,6 +99,29 @@
         {
           "serviceVersion": "18",
           "latestTag": "AWS/postgres/18/1.1.0"
+        }
+      ]
+    },
+    {
+      "name": "aws-amazon-mq-rabbitmq",
+      "displayName": "Amazon MQ for RabbitMQ",
+      "primaryCategory": "Messaging & Streaming",
+      "kind": "ServiceBlueprint",
+      "description": "Amazon MQ for RabbitMQ 4 broker over AMQPS, attached to the Qovery cluster network, single node or three-node cluster. Requires mq:* on the deploying IAM role (see README).",
+      "icon": "app://qovery-console/amazon-mq",
+      "categories": [
+        "messaging",
+        "queue",
+        "rabbitmq",
+        "amazon-mq",
+        "aws"
+      ],
+      "provider": "AWS",
+      "serviceFamily": "rabbitmq",
+      "majorVersions": [
+        {
+          "serviceVersion": "4",
+          "latestTag": "AWS/rabbitmq/4/1.0.0"
         }
       ]
     },

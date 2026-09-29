@@ -1,0 +1,184 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+metadata:
+  name: "aws-amazon-mq-rabbitmq"
+  displayName: "Amazon MQ for RabbitMQ"
+  primaryCategory: "Messaging & Streaming"
+  version: "1.0.0"
+  description: "Amazon MQ for RabbitMQ 4 broker over AMQPS, attached to the Qovery cluster network, single node or three-node cluster. Requires mq:* on the deploying IAM role (see README)."
+  icon: "app://qovery-console/amazon-mq"
+  serviceFamily: "rabbitmq"
+  categories:
+    - "messaging"
+    - "queue"
+    - "rabbitmq"
+    - "amazon-mq"
+    - "aws"
+spec:
+  engine:
+    type: terraform
+    provider: AWS
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    # A three-node cluster takes 20-30 minutes to create; its deletion is about as long.
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
+  variables:
+    - name: "broker_name"
+      type: "string"
+      required: true
+      description: "Broker name, unique in the AWS account and region. Letters, digits, hyphens, underscores; max 50 chars."
+      pattern: "^[a-zA-Z0-9_-]{1,50}$"
+      minLength: 1
+      maxLength: 50
+    - name: "host_instance_type"
+      type: "string"
+      required: true
+      default: "mq.m7g.medium"
+      description: "Broker instance type. mq.m7g.medium is sized for evaluation; use mq.m7g.large or above in production."
+      allowedValues:
+        - "mq.m7g.medium"
+        - "mq.m7g.large"
+        - "mq.m7g.xlarge"
+        - "mq.m7g.2xlarge"
+        - "mq.m7g.4xlarge"
+        - "mq.m7g.8xlarge"
+        - "mq.m7g.12xlarge"
+        - "mq.m7g.16xlarge"
+    - name: "deployment_mode"
+      type: "string"
+      required: true
+      default: "SINGLE_INSTANCE"
+      description: "One node, or a three-node cluster across availability zones. Changing it replaces the broker."
+      allowedValues: ["SINGLE_INSTANCE", "CLUSTER_MULTI_AZ"]
+    - name: "engine_version"
+      type: "string"
+      required: false
+      default: "4.3"
+      description: "RabbitMQ version. Amazon MQ applies patch versions itself."
+      allowedValues: ["4.2", "4.3"]
+    - name: "admin_username"
+      type: "string"
+      required: false
+      default: "qoveryadmin"
+      description: "Admin username, set at creation only. 2-100 chars: letters, digits, - . _ ~; guest is refused at deploy."
+      pattern: "^[a-zA-Z0-9._~-]{2,100}$"
+      minLength: 2
+      maxLength: 100
+    - name: "admin_password"
+      type: "string"
+      required: false
+      sensitive: true
+      description: "Leave empty and Qovery generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters (checked at deploy). Set at creation only."
+      pattern: "^([^,:=]{12,250})?$"
+      maxLength: 250
+    - name: "publicly_accessible"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Expose the broker to the internet. A public broker has no security group: anyone with the credentials can connect. Changing it replaces the broker."
+    - name: "subnet_ids"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated ids, one per AZ) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+    - name: "security_group_ids"
+      type: "string"
+      required: false
+      description: "Leave empty and the broker gets the blueprint's security group, opening 5671 and 443 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead. Set at creation only: switching later needs a new broker."
+    - name: "allowed_cidrs"
+      type: "string"
+      required: false
+      description: "Leave empty to allow the whole VPC: every pod in the cluster, and anything else in a shared VPC. Set comma-separated IPv4 CIDRs to narrow or widen access. Only affects the blueprint's security group."
+      pattern: "^(([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}( *, *([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2})*)?$"
+    - name: "apply_changes_now"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Apply changes at once (the broker reboots). Off: they wait for the maintenance window."
+    - name: "maintenance_day_of_week"
+      type: "string"
+      required: false
+      default: "SUNDAY"
+      description: "Maintenance window day"
+      allowedValues: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+    - name: "maintenance_time_of_day"
+      type: "string"
+      required: false
+      default: "03:00"
+      description: "Maintenance window start, hh:mm in 24-hour format"
+      pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+    - name: "maintenance_time_zone"
+      type: "string"
+      required: false
+      default: "UTC"
+      description: "Maintenance window time zone, e.g. UTC or Europe/Paris"
+    - name: "general_logs"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Send broker logs to CloudWatch Logs (billed by CloudWatch). Adds a CloudWatch Logs resource policy; AWS allows 10 per region."
+    - name: "kms_key_id"
+      type: "string"
+      required: false
+      description: "Empty = encrypted with an AWS-owned key. Set a KMS key ARN to use your own key. Changing it replaces the broker."
+    - name: "consumer_timeout_ms"
+      type: "number"
+      required: false
+      default: "1800000"
+      description: "Ack timeout in ms: a consumer that does not ack in time has its channel closed. 0 = no timeout."
+      min: 0
+      max: 2147483647
+    - name: "heartbeat_seconds"
+      type: "number"
+      required: false
+      default: "60"
+      description: "Seconds without traffic before RabbitMQ considers a connection dead"
+      min: 60
+      max: 3600
+    - name: "extra_configuration"
+      type: "string"
+      required: false
+      description: "Extra rabbitmq.conf lines, separated by ';'. Amazon MQ rejects keys it does not allow at apply."
+  outputs:
+    - name: "broker_id"
+      description: "Amazon MQ broker id"
+    - name: "broker_arn"
+      description: "Amazon MQ broker ARN"
+    - name: "amqps_endpoint"
+      description: "AMQPS endpoint (amqps://host:5671)"
+    - name: "host"
+      description: "Broker hostname"
+    - name: "port"
+      description: "AMQPS port (TLS only; Amazon MQ does not expose plain AMQP)"
+    - name: "console_url"
+      description: "RabbitMQ management UI URL"
+    - name: "username"
+      description: "Admin username the broker was created with"
+    - name: "password"
+      description: "Admin password the broker was created with"
+      sensitive: true
+    - name: "amqp_url"
+      description: "Full connection URL with credentials (amqps://user:password@host:5671)"
+      sensitive: true
+    - name: "configuration_id"
+      description: "Amazon MQ configuration id holding the rabbitmq.conf settings"
