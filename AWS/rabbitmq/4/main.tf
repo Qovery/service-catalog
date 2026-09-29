@@ -197,6 +197,8 @@ resource "terraform_data" "admin_password" {
 }
 
 locals {
-  amqps_endpoint = aws_mq_broker.this.instances[0].endpoints[0]
-  host           = regex("^amqps://([^:/]+)", local.amqps_endpoint)[0]
+  # The endpoint list is not ordered by protocol: RabbitMQ 4 brokers list an https:// endpoint
+  # first. Every entry carries the same host, so take it from the first and build the AMQPS URL.
+  host           = regex("^[a-z+]+://([^:/]+)", aws_mq_broker.this.instances[0].endpoints[0])[0]
+  amqps_endpoint = "amqps://${local.host}:5671"
 }
