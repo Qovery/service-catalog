@@ -1,0 +1,20 @@
+terraform {
+  # Cross-variable validation and terraform_data both need a recent Terraform; 1.9 covers them.
+  required_version = ">= 1.9"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.region
+}

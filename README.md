@@ -16,6 +16,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | Valkey     | `AWS/valkey/9/`          | ElastiCache for Valkey 9 replication group with TLS  |
 | CloudFront | `AWS/cloudfront/default/`| CloudFront CDN distribution in front of an HTTP/S origin |
 | MSK        | `AWS/msk/default/`       | MSK Serverless (managed Kafka) with SASL/IAM auth    |
+| Amazon MQ  | `AWS/rabbitmq/4/`        | Amazon MQ for RabbitMQ 4 broker over AMQPS           |
 
 ### GCP (Terraform)
 
