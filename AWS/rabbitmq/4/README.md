@@ -52,8 +52,8 @@ current values, and the outputs follow.
 | ---- | ---- | ------- | ----------- |
 | `publicly_accessible` | bool | `false` | Expose the broker to the internet. Changing it replaces the broker. |
 | `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty and the blueprint creates a security group opening 5671 and 443 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. Set at creation only. |
-| `allowed_cidrs` | string | | Leave empty to allow the whole VPC (every pod in the cluster). Set comma-separated CIDRs to narrow or widen access. Ignored when `security_group_ids` is set. |
+| `security_group_ids` | string | | Leave empty and the broker gets the blueprint's security group, opening 5671 and 443 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. Set at creation only: switching later needs a new broker. |
+| `allowed_cidrs` | string | | Leave empty to allow the whole VPC: every pod in the cluster, and anything else in a shared VPC. Set comma-separated IPv4 CIDRs to narrow or widen access. Only affects the blueprint's security group. |
 
 A single-instance broker takes the first subnet (one per availability zone, sorted by zone name);
 a cluster takes up to three. On a cluster deployed into an existing VPC, the `ClusterId` lookup may
@@ -64,9 +64,19 @@ The blueprint does not reuse the cluster workers security group, as the RDS blue
 group only opens the ports of the native databases (5432, 3306, 6379), and nodes started by
 Karpenter carry the EKS cluster security group instead, so pods could not reach the broker.
 
-Amazon MQ does not let a RabbitMQ broker change security groups, so `security_group_ids` is set at
-creation and later edits are ignored. `allowed_cidrs` can change at any time: it edits the rules of
-the blueprint's group, not the group attached to the broker.
+Amazon MQ does not let a RabbitMQ broker change security groups, so the groups are set at creation.
+Setting or clearing `security_group_ids` afterwards changes nothing on the broker: to switch between
+the blueprint's group and your own, delete the service and create a new one. The blueprint's group
+exists for every private broker, attached or not, so such an edit never deletes a group the broker
+still uses.
+
+`allowed_cidrs` can change at any time. It edits the ingress rules of the blueprint's group, which
+is the group attached to the broker by default, without touching the broker's `security_groups`.
+
+The default opens 5671 and 443 to the whole VPC, not only the broker's subnets: pods get their IPs
+from the node subnets, which are not the DB subnets the broker sits in. On a VPC shared with other
+workloads, set `allowed_cidrs` to the cluster's node subnets, or use `security_group_ids`. Port 443
+is the RabbitMQ management API, which can manage users, vhosts and policies.
 
 A public broker is hosted by Amazon MQ outside the VPC and cannot have a security group: anyone who
 has the credentials can connect. Keep it private unless a client outside AWS needs it.

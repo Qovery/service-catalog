@@ -43,8 +43,11 @@ locals {
   )
 
   # The cluster workers security group only opens the ports of the native databases, and Karpenter
-  # nodes do not even carry it, so the broker gets its own group instead.
-  create_security_group = !var.publicly_accessible && var.security_group_ids == ""
+  # nodes do not even carry it, so the broker gets its own group instead. The group exists for every
+  # private broker, even one attached to security_group_ids: Amazon MQ never changes a RabbitMQ
+  # broker's groups, so keying the group on security_group_ids would destroy it while still attached
+  # (DependencyViolation on every apply) when that variable is set after creation.
+  create_security_group = !var.publicly_accessible
 }
 
 data "aws_subnet" "broker" {

@@ -116,16 +116,17 @@ variable "subnet_ids" {
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty and the blueprint creates a security group opening 5671 and 443 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead. Set at creation only."
+  description = "Leave empty and the broker gets the blueprint's security group, opening 5671 and 443 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead. Set at creation only: switching later needs a new broker."
 }
 
 variable "allowed_cidrs" {
   type        = string
   default     = ""
-  description = "Leave empty to allow the whole VPC (every pod in the cluster). Set comma-separated CIDRs to narrow or widen access. Ignored when security_group_ids is set."
+  description = "Leave empty to allow the whole VPC: every pod in the cluster, and anything else in a shared VPC. Set comma-separated IPv4 CIDRs to narrow or widen access. Only affects the blueprint's security group."
 
   validation {
-    condition     = var.allowed_cidrs == "" || alltrue([for c in split(",", var.allowed_cidrs) : can(cidrhost(trimspace(c), 0))])
+    # cidrhost also accepts IPv6, which the IPv4-only cidr_blocks would reject at apply.
+    condition     = var.allowed_cidrs == "" || alltrue([for c in split(",", var.allowed_cidrs) : can(regex("^[0-9.]+/[0-9]+$", trimspace(c))) && can(cidrhost(trimspace(c), 0))])
     error_message = "allowed_cidrs must be comma-separated IPv4 CIDRs, e.g. 10.0.0.0/16,192.168.1.0/24."
   }
 }
