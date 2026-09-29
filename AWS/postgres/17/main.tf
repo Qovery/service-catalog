@@ -1,14 +1,20 @@
 locals {
+  # RDS identifiers reject consecutive hyphens and a trailing one, which db_name's underscores
+  # would otherwise produce (app__db, app_).
+  db_name_slug = replace(replace(lower(var.db_name), "/_+/", "-"), "/-$/", "")
+
   # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
-  db_identifier = var.import_identifier != "" ? var.import_identifier : replace(lower(var.db_name), "_", "-")
+  db_identifier = var.import_identifier != "" ? var.import_identifier : local.db_name_slug
 
   # Stamped from time_static, not timestamp(): unique per create so successive create/destroy
   # cycles don't collide on an existing snapshot id, yet stable across plans, so the attribute
   # needs no ignore_changes and an adopted instance gets a name too.
   final_snapshot_timestamp = replace(time_static.created.rfc3339, "/[-:TZ]/", "")
-  final_snapshot_raw       = "${var.qovery_cluster_name}-${replace(lower(var.db_name), "_", "-")}-${local.final_snapshot_timestamp}"
-  # AWS requires the snapshot id to begin with a letter and contain only alphanumerics/hyphens.
-  final_snapshot_cleaned = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
+  # AWS requires the snapshot id to begin with a letter, contain only alphanumerics and single
+  # hyphens, and stay within 255 chars. The cluster name is unconstrained, so only that part is
+  # cleaned and cut: 160 leaves room for the db slug (max 63), the timestamp and a "snap-" prefix.
+  final_snapshot_cluster = replace(substr(replace(replace(var.qovery_cluster_name, "/[^a-zA-Z0-9-]/", ""), "/-+/", "-"), 0, 160), "/^-|-$/", "")
+  final_snapshot_cleaned = join("-", compact([local.final_snapshot_cluster, local.db_name_slug, local.final_snapshot_timestamp]))
   final_snapshot_name    = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
 }
 
@@ -193,9 +199,9 @@ resource "aws_db_instance" "this" {
 resource "aws_db_instance" "read_replica" {
   count = var.read_replica_count
 
-  # Identifier: primary base (already lowercased, underscores → hyphens) capped so the
-  # "-replica-N" suffix keeps the total within the 63-char RDS limit.
-  identifier          = "${substr(replace(lower(var.db_name), "_", "-"), 0, 50)}-replica-${count.index + 1}"
+  # Identifier: primary slug capped so the "-replica-N" suffix keeps the total within the
+  # 63-char RDS limit; the cut can land on a hyphen, which would double against the suffix.
+  identifier          = "${replace(substr(local.db_name_slug, 0, 50), "/-$/", "")}-replica-${count.index + 1}"
   replicate_source_db = aws_db_instance.this.identifier
 
   instance_class = var.read_replica_instance_class != "" ? var.read_replica_instance_class : var.instance_class

@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "4.1.0"
+  version: "4.1.1"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -64,7 +64,7 @@ spec:
       required: false
       sensitive: true
       description: 'Leave empty when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance this must carry the current master password of that instance, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. Changing it rotates the master password on the live instance (adopted instances: only once manage_db_password is true).'
-      pattern: '^([^/@" ]+)?$'
+      pattern: '^([^/@" ]{8,128})?$'
       maxLength: 128
     - name: "manage_db_password"
       type: "bool"

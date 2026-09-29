@@ -136,6 +136,11 @@ variable "allocated_storage" {
   }
 
   validation {
+    condition     = var.allocated_storage <= 65536
+    error_message = "allocated_storage must not exceed 65536 GiB."
+  }
+
+  validation {
     # gp2 caps at 16384 GiB; io1/io2/gp3 go to 65536.
     condition     = var.storage_type != "gp2" || var.allocated_storage <= 16384
     error_message = "allocated_storage must not exceed 16384 GiB for gp2 storage."
@@ -346,8 +351,8 @@ variable "read_replica_count" {
   description = "Number of same-region read replicas to create (0 disables). RDS PostgreSQL allows up to 15."
 
   validation {
-    condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15
-    error_message = "read_replica_count must be between 0 and 15."
+    condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15 && floor(var.read_replica_count) == var.read_replica_count
+    error_message = "read_replica_count must be a whole number between 0 and 15."
   }
 
   validation {
