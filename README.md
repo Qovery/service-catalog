@@ -40,6 +40,7 @@ Pre-built blueprints for provisioning cloud resources and Kubernetes services th
 | Datadog   | `HELM/datadog/7/`        | Datadog Agent (metrics, logs, optional APM) via official chart  |
 | Grafana   | `HELM/grafana/13/`       | Grafana 13 wired to the cluster's Thanos, Prometheus, Loki and Alertmanager, Kubernetes dashboards preloaded |
 | New Relic | `HELM/newrelic/default/` | New Relic Kubernetes monitoring via official nri-bundle chart   |
+| SigNoz    | `HELM/signoz/0/`         | SigNoz APM (OTLP traces, metrics, logs) with the cluster's Prometheus metrics federated in |
 
 ### External (Terraform)
 
