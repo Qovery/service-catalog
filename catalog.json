@@ -108,7 +108,7 @@
       "primaryCategory": "Messaging & Streaming",
       "kind": "ServiceBlueprint",
       "description": "Amazon MQ for RabbitMQ 4 broker over AMQPS, attached to the Qovery cluster network, single node or three-node cluster. Requires mq:* on the deploying IAM role (see README).",
-      "icon": "app://qovery-console/rabbitmq",
+      "icon": "app://qovery-console/amazon-mq",
       "categories": [
         "messaging",
         "queue",
