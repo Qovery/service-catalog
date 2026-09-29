@@ -123,6 +123,30 @@ spec:
 | `resources`                 | optional                   | block             | `{cpu, ram, storage}` for the apply job pod |
 | `arguments`                 | optional (helm)            | `[string]`        | extra `helm install` args                   |
 | `allowClusterWideResources` | optional (helm)            | bool              | default `false`                             |
+| `ports`                     | optional (helm)            | `[port]`          | see below                                   |
+
+
+#### `ports` (helm)
+
+Ports of the created Helm service, passed as is to `qovery_helm.ports`. Qovery publishes each one on a generated URL, so this is how a blueprint that ships a UI gets a public address.
+
+```yaml
+ports:
+  - name: "http"            # required, unique; lowercase DNS label, max 40 chars (it prefixes the public host)
+    serviceName: "grafana"  # required: the chart's Service, with a fixed name (fullnameOverride)
+    internalPort: 80        # required
+    externalPort: 443       # optional; 443 is the only accepted value
+    protocol: "HTTP"        # HTTP (default) or GRPC; Helm services have no TCP/UDP
+    isDefault: true         # required on exactly one entry when there are several
+```
+
+Before declaring a port on a new blueprint, check three things:
+
+1. **The Service needs a fixed name.** Qovery names the Helm release `helm-z<id>-<service>`, and most charts derive their Service names from the release. Pin it in `values.yaml` (`fullnameOverride`, or whatever the chart offers) and put that name in `serviceName`, otherwise the port targets a Service that does not exist. Render the chart with `helm template` to read the real name.
+2. **HTTP or GRPC only, always published on 443.** Those are the only protocols `qovery_helm.ports` accepts; a TCP database or UDP endpoint cannot be exposed this way. `externalPort` is accepted only as 443.
+3. **The port is static.** It lives in `qbm.yml`, not in `values.yaml`, so no form variable can turn it on or off. A declared port is always public: only declare it for a UI with its own login (Grafana, SigNoz), never for an unauthenticated endpoint.
+
+Engines without QOV-2335 ignore `ports`; the service is then created without a public URL.
 
 #### Version block (`terraform` / `opentofu`)
 

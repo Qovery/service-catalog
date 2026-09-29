@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-29T08:25:25Z",
+  "generatedAt": "2026-09-29T08:30:37Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -477,7 +477,7 @@
       "majorVersions": [
         {
           "serviceVersion": "13",
-          "latestTag": "HELM/grafana/13/1.0.0"
+          "latestTag": "HELM/grafana/13/1.1.0"
         }
       ]
     },

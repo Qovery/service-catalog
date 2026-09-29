@@ -64,13 +64,13 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 
 ## Accessing Grafana
 
-Blueprints cannot declare ports yet, so the service is created without a public URL. Reach it with a port-forward from the service's namespace:
+The Grafana UI is published on the URL Qovery generates for the service (Helm service → Overview → Links), over HTTPS. Log in with `admin_user` and `admin_password`. Set `root_url` to that URL, or to your custom domain, so links in alert notifications point to it.
+
+On a Qovery engine older than the one that added blueprint ports (QOV-2335), the service is created without a public URL. Reach it with a port-forward instead:
 
 ```sh
 kubectl port-forward -n <environment namespace> svc/grafana 3000:80
 ```
-
-A port added by hand on the Helm service in the console is removed on the next blueprint deploy, because the engine applies the service without one.
 
 ## Notes
 
