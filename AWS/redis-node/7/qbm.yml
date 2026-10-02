@@ -2,11 +2,11 @@ apiVersion: "qovery.com/v1"
 kind: ServiceBlueprint
 
 metadata:
-  name: "aws-elasticache-redis"
-  displayName: "Amazon ElastiCache for Redis"
+  name: "aws-elasticache-redis-node"
+  displayName: "Amazon ElastiCache for Redis (legacy single node)"
   primaryCategory: "Databases & Caches"
-  version: "1.1.0"
-  description: "AWS ElastiCache for Redis 7 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
+  version: "1.0.0"
+  description: "Adopts an existing single-node AWS ElastiCache for Redis cluster created by Qovery native managed Redis. Import only: it cannot create a new cluster. This shape has no auth token and no TLS."
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
   categories:
@@ -21,7 +21,7 @@ spec:
     provider: AWS
     terraform:
       version: "1.9.7"
-      # Pinned to 1.9+: catalog uses cross-variable validation (a variable's validation references another).
+      # Pinned to 1.9+: catalog uses cross-variable validation elsewhere; kept aligned with AWS/redis.
       allowedValues: ["1.9.7", "1.13.3"]
       overridable: true
     credentials:
@@ -50,23 +50,21 @@ spec:
     - name: "redis_name"
       type: "string"
       required: true
-      description: "Replication group name. Must start with a letter, end with a letter or digit, and use single hyphens between them; max 40 chars. Underscores are not allowed."
-      pattern: "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      description: "Display name, set as the Name tag. Max 40 chars."
       minLength: 1
       maxLength: 40
-    - name: "redis_password"
+    - name: "engine_version"
       type: "string"
       required: false
-      sensitive: true
-      description: 'Leave empty and Qovery generates a 32-character alphanumeric auth token. To set your own: 16–128 chars, must not contain /, @, ", or spaces.'
-      pattern: '^([^/@" ]{16,128})?$'
-      maxLength: 128
+      default: "7.0"
+      description: "Redis engine version of the adopted cluster"
+      allowedValues:
+        - "7.0"
+        - "7.1"
     - name: "instance_class"
       type: "string"
       required: true
-      default: "cache.t3.micro"
-      description: "ElastiCache node type"
-      # Every node type Qovery offers for native managed Redis, so an adopted instance always fits.
+      description: "ElastiCache node type of the adopted cluster"
       allowedValues:
         - "cache.c7gn.12xlarge"
         - "cache.c7gn.16xlarge"
@@ -132,14 +130,6 @@ spec:
         - "cache.t4g.medium"
         - "cache.t4g.micro"
         - "cache.t4g.small"
-    - name: "engine_version"
-      type: "string"
-      required: false
-      default: "7.0"
-      description: "Redis engine version"
-      allowedValues:
-        - "7.0"
-        - "7.1"
     - name: "port"
       type: "number"
       required: false
@@ -147,45 +137,29 @@ spec:
       description: "Redis port"
       min: 1024
       max: 65535
-    - name: "instances_number"
-      type: "number"
-      required: false
-      default: "1"
-      description: "Node groups (shards). 1 = a single node with no replica. Above 1 enables cluster mode with one replica per shard, and forces failover and Multi-AZ. Pick it at creation — ElastiCache cannot turn cluster mode on later."
-      min: 1
-      max: 45
-    - name: "at_rest_encryption_enabled"
-      type: "bool"
-      required: false
-      default: "true"
-      description: "Encrypt data at rest"
     - name: "parameter_group_name"
       type: "string"
-      required: false
-      description: "Leave empty — derived from the topology: default.redis7 for a single node group, default.redis7.cluster.on when instances_number > 1."
-    - name: "subnet_group_name"
+      required: true
+      description: "Parameter group of the adopted cluster (native Qovery Redis uses default.redis7)."
+    - name: "legacy_connection_username"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
-    - name: "security_group_ids"
+      description: "Leave empty — Qovery's migration sets it to the login held in the legacy connection variables. Not used for auth."
+    - name: "legacy_connection_password"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      sensitive: true
+      description: "Leave empty — Qovery's migration sets it to the password held in the legacy connection variables. Not used for auth: this shape has none."
     - name: "apply_changes_now"
       type: "bool"
       required: false
       default: "false"
       description: "Apply changes immediately instead of waiting for the next maintenance window"
-    - name: "auto_minor_version_upgrade"
-      type: "bool"
-      required: false
-      default: "true"
-      description: "Automatically apply minor version upgrades during the maintenance window"
     - name: "preferred_maintenance_window"
       type: "string"
       required: false
       default: "Tue:02:00-Tue:04:00"
-      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi. Ignored after adoption, like the native template."
     - name: "preferred_backup_window"
       type: "string"
       required: false
@@ -202,49 +176,31 @@ spec:
       type: "bool"
       required: false
       default: "false"
-      description: "Skip the final snapshot on deletion. False leaves a snapshot behind after the group is destroyed."
-    - name: "snapshot_name"
-      type: "string"
-      required: false
-      description: "Existing ElastiCache snapshot to seed the group from. Unset = start empty. Read at creation only."
+      description: "Skip the final snapshot on deletion. False leaves a snapshot behind after the cluster is destroyed."
 
   outputs:
     - name: "redis_identifier"
-      description: "ElastiCache replication group id (what the AWS console shows as the cluster name)"
+      description: "ElastiCache cluster id (what the AWS console shows as the cluster name)"
     - name: "redis_host"
-      description: "Hostname applications connect to (configuration endpoint in cluster mode, primary endpoint otherwise)"
+      description: "Hostname applications connect to"
     - name: "redis_port"
       description: "Redis port"
-    - name: "redis_username"
-      description: "Redis user applications authenticate as — always the built-in 'default' user"
-    - name: "redis_password"
-      description: "Auth token (generated when the input was left empty)"
-      sensitive: true
     - name: "redis_url"
-      description: "Connection URL over TLS"
-      sensitive: true
-    - name: "redis_primary_endpoint_address"
-      description: "Primary endpoint hostname (empty in cluster mode)"
-    - name: "redis_reader_endpoint_address"
-      description: "Reader endpoint hostname, load-balanced across replicas (empty in cluster mode)"
-    - name: "redis_configuration_endpoint_address"
-      description: "Configuration endpoint hostname (empty when instances_number = 1)"
+      description: "Connection URL, plaintext with no auth (this shape supports neither)"
     - name: "redis_arn"
-      description: "Replication group ARN"
+      description: "Cluster ARN"
     - name: "redis_engine_version_actual"
-      description: "Engine version actually running (may include the patch AWS chose)"
-    - name: "redis_member_clusters"
-      description: "Cache cluster ids that make up the replication group"
+      description: "Engine version actually running"
     - name: "db_identifier"
       description: "Alias of redis_identifier"
     - name: "db_address"
       description: "Alias of redis_host"
     - name: "db_port"
       description: "Alias of redis_port"
-    - name: "db_username"
-      description: "Alias of redis_username"
-    - name: "db_password"
-      description: "Alias of redis_password"
-      sensitive: true
     - name: "db_name"
       description: "Redis logical database applications use — always 0"
+    - name: "db_username"
+      description: "Legacy connection login, republished unchanged (not used for auth)"
+    - name: "db_password"
+      description: "Legacy connection password, republished unchanged (not used for auth)"
+      sensitive: true

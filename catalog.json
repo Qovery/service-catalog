@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-09-29T12:30:38Z",
+  "generatedAt": "2026-10-02T12:52:52Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -130,7 +130,7 @@
       "displayName": "Amazon ElastiCache for Redis",
       "primaryCategory": "Databases & Caches",
       "kind": "ServiceBlueprint",
-      "description": "AWS ElastiCache for Redis 7 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance",
+      "description": "AWS ElastiCache for Redis replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance",
       "icon": "app://qovery-console/redis",
       "categories": [
         "database",
@@ -142,8 +142,42 @@
       "serviceFamily": "redis",
       "majorVersions": [
         {
+          "serviceVersion": "6",
+          "latestTag": "AWS/redis/6/1.0.0"
+        },
+        {
           "serviceVersion": "7",
-          "latestTag": "AWS/redis/7/1.0.0"
+          "latestTag": "AWS/redis/7/1.1.0"
+        }
+      ]
+    },
+    {
+      "name": "aws-elasticache-redis-node",
+      "displayName": "Amazon ElastiCache for Redis (legacy single node)",
+      "primaryCategory": "Databases & Caches",
+      "kind": "ServiceBlueprint",
+      "description": "Adopts an existing single-node AWS ElastiCache for Redis cluster created by Qovery native managed Redis. Import only: it cannot create a new cluster. This shape has no auth token and no TLS.",
+      "icon": "app://qovery-console/redis",
+      "categories": [
+        "database",
+        "cache",
+        "redis",
+        "elasticache"
+      ],
+      "provider": "AWS",
+      "serviceFamily": "redis",
+      "majorVersions": [
+        {
+          "serviceVersion": "5",
+          "latestTag": "AWS/redis-node/5/1.0.0"
+        },
+        {
+          "serviceVersion": "6",
+          "latestTag": "AWS/redis-node/6/1.0.0"
+        },
+        {
+          "serviceVersion": "7",
+          "latestTag": "AWS/redis-node/7/1.0.0"
         }
       ]
     },

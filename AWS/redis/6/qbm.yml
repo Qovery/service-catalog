@@ -5,8 +5,8 @@ metadata:
   name: "aws-elasticache-redis"
   displayName: "Amazon ElastiCache for Redis"
   primaryCategory: "Databases & Caches"
-  version: "1.1.0"
-  description: "AWS ElastiCache for Redis 7 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
+  version: "1.0.0"
+  description: "AWS ElastiCache for Redis replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
   categories:
@@ -135,11 +135,10 @@ spec:
     - name: "engine_version"
       type: "string"
       required: false
-      default: "7.0"
+      default: "6.2"
       description: "Redis engine version"
       allowedValues:
-        - "7.0"
-        - "7.1"
+        - "6.2"
     - name: "port"
       type: "number"
       required: false
@@ -162,7 +161,7 @@ spec:
     - name: "parameter_group_name"
       type: "string"
       required: false
-      description: "Leave empty — derived from the topology: default.redis7 for a single node group, default.redis7.cluster.on when instances_number > 1."
+      description: "Leave empty — derived from the topology: default.redis6.x for a single node group, default.redis6.x.cluster.on when instances_number > 1."
     - name: "subnet_group_name"
       type: "string"
       required: false
