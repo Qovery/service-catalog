@@ -1,6 +1,6 @@
-# AWS ElastiCache for Redis 7
+# AWS ElastiCache for Redis 6
 
-Creates an AWS ElastiCache for Redis 7 replication group with configurable node type, topology, backups, maintenance window, and network settings. Traffic is encrypted in transit and protected by an auth token, and data is encrypted at rest.
+Creates an AWS ElastiCache for Redis 6 (6.0 or 6.2) replication group with configurable node type, topology, backups, maintenance window, and network settings. Traffic is encrypted in transit and protected by an auth token, and data is encrypted at rest.
 
 The replication group id is `redis_name` lowercased (AWS requirement). Applications connect over TLS as the built-in `default` user with the auth token as password: `rediss://default:<token>@<host>:6379/0`, published as the `redis_url` output.
 
@@ -27,12 +27,12 @@ In the Console, leaving the field blank omits it. Through the API or Terraform, 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `engine_version` | string | `7.0` | Redis engine version: `7.0`, `7.1` |
+| `engine_version` | string | `6.2` | Redis engine version: `6.0`, `6.2`. `6.0` does not run the `c7gn`, `m7g` and `r7g` node families. |
 | `port` | number | `6379` | Redis port |
 | `instances_number` | number | `1` | Node groups (shards). Above 1 enables cluster mode. |
 | `parameter_group_name` | string | | Leave empty — derived from the topology. |
 
-`instances_number = 1` creates a single node with no replica. Above 1, the group switches to cluster mode: `N` shards, one replica each (so `2N` nodes), with automatic failover and Multi-AZ enabled because AWS requires both there, and the `default.redis7.cluster.on` parameter group instead of `default.redis7`. Clients then need a cluster-aware Redis library and the `redis_configuration_endpoint_address` output.
+`instances_number = 1` creates a single node with no replica. Above 1, the group switches to cluster mode: `N` shards, one replica each (so `2N` nodes), with automatic failover and Multi-AZ enabled because AWS requires both there, and the `default.redis6.x.cluster.on` parameter group instead of `default.redis6.x`. Clients then need a cluster-aware Redis library and the `redis_configuration_endpoint_address` output.
 
 **Pick the topology at creation.** ElastiCache cannot turn cluster mode on for an existing group, so raising `instances_number` from 1 fails at apply rather than resharding — deploy a new service instead. Changing it between two cluster-mode values (2 → 4) does reshard in place.
 
