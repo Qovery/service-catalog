@@ -9,19 +9,23 @@ Adopts an existing single-node AWS ElastiCache for Redis 5 cluster (`aws_elastic
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `import_identifier` | string | | Live cluster id to adopt. Required. Not shown in the console: Qovery's migration sets it. |
-| `redis_name` | string | | Display name, set as the `Name` tag |
+| `redis_name` | string | | Required. Display name. Informational: tags are ignored after adoption, so the cluster keeps its native `Name` tag. |
 | `engine_version` | string | `5.0.6` | Engine version of the adopted cluster: `5.0`, `5.0.6`. Ignored after adoption. |
-| `instance_class` | string | | Node type of the adopted cluster |
-| `port` | number | `6379` | Redis port |
-| `parameter_group_name` | string | | Parameter group of the adopted cluster (native: `default.redis5.0`) |
+| `instance_class` | string | | Required. Node type of the adopted cluster, one of the types listed in `qbm.yml`. |
+| `port` | number | `6379` | Redis port of the adopted cluster. Ignored after adoption (ForceNew). |
+| `parameter_group_name` | string | | Required. Parameter group of the adopted cluster (native: `default.redis5.0`) |
 | `legacy_connection_username`, `legacy_connection_password` | string | | Values held in the legacy connection variables, republished as `db_username` / `db_password` so those variables keep refreshing. Not used for auth. Qovery's migration sets them. |
 | `apply_changes_now` | bool | `false` | Apply changes immediately instead of during the maintenance window |
 | `preferred_maintenance_window` | string | `Tue:02:00-Tue:04:00` | Maintenance window (UTC). Ignored after adoption. |
 | `preferred_backup_window` | string | `00:00-01:00` | Daily snapshot window (UTC), used when `backup_retention_period > 0` |
 | `backup_retention_period` | number | `14` | Days to retain automatic snapshots (0 disables) |
-| `skip_final_snapshot` | bool | `false` | Skip the final snapshot on deletion |
+| `skip_final_snapshot` | bool | `false` | Skip the final snapshot on deletion. With `false`, deleting the service leaves a `<cluster id>-final-snap-<timestamp>` snapshot behind, billed until you delete it. |
 
 The node count is fixed at 1, like the native template.
+
+Node types: every ElastiCache node type Qovery offers for native managed Redis, except `cache.r6gd` (needs data tiering, which a single-node cluster lacks) and the `c7gn`, `m7g` and `r7g` families (Redis 6.2 or later only). The full list is in `qbm.yml`.
+
+**Adoption note.** The backup settings (`backup_retention_period`, `preferred_backup_window`) are managed, as in the native template: if the live cluster's values differ from the ones passed, the first apply updates them in place. Pass the live values to keep them.
 
 ## Outputs
 
@@ -39,6 +43,7 @@ The node count is fixed at 1, like the native template.
 ## Lifecycle ignore_changes
 
 - `engine_version` — AWS reports its own version format back; an adopted engine is never mutated.
+- `port` — ForceNew: a mismatch would replace the adopted cluster with a new one that has no auth.
 - `maintenance_window`, `log_delivery_configuration`, `notification_topic_arn`, `auto_minor_version_upgrade` — the same list the native template ignores.
 - `tags` — preserves native tags (`cluster_id` drives YACE metrics).
 

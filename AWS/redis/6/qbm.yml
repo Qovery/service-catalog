@@ -138,6 +138,7 @@ spec:
       default: "6.2"
       description: "Redis engine version"
       allowedValues:
+        - "6.0"
         - "6.2"
     - name: "port"
       type: "number"

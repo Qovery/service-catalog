@@ -1,6 +1,6 @@
 # AWS ElastiCache for Redis 6
 
-Creates an AWS ElastiCache for Redis 6.2 replication group with configurable node type, topology, backups, maintenance window, and network settings. Traffic is encrypted in transit and protected by an auth token, and data is encrypted at rest.
+Creates an AWS ElastiCache for Redis 6 (6.0 or 6.2) replication group with configurable node type, topology, backups, maintenance window, and network settings. Traffic is encrypted in transit and protected by an auth token, and data is encrypted at rest.
 
 The replication group id is `redis_name` lowercased (AWS requirement). Applications connect over TLS as the built-in `default` user with the auth token as password: `rediss://default:<token>@<host>:6379/0`, published as the `redis_url` output.
 
@@ -27,7 +27,7 @@ In the Console, leaving the field blank omits it. Through the API or Terraform, 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `engine_version` | string | `6.2` | Redis engine version: `6.2` |
+| `engine_version` | string | `6.2` | Redis engine version: `6.0`, `6.2`. `6.0` does not run the `c7gn`, `m7g` and `r7g` node families. |
 | `port` | number | `6379` | Redis port |
 | `instances_number` | number | `1` | Node groups (shards). Above 1 enables cluster mode. |
 | `parameter_group_name` | string | | Leave empty — derived from the topology. |

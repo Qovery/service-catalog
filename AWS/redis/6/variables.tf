@@ -57,11 +57,17 @@ variable "redis_name" {
 variable "engine_version" {
   type        = string
   default     = "6.2"
-  description = "Redis engine version (6.2)"
+  description = "Redis engine version (6.0 or 6.2)"
 
   validation {
-    condition     = contains(["6.2"], var.engine_version)
-    error_message = "engine_version must be 6.2 (this blueprint is the Redis 6 major)."
+    condition     = contains(["6.0", "6.2"], var.engine_version)
+    error_message = "engine_version must be 6.0 or 6.2 (this blueprint is the Redis 6 major)."
+  }
+
+  validation {
+    # AWS runs the c7gn, m7g and r7g node families only on Redis 6.2 and later.
+    condition     = var.engine_version != "6.0" || !can(regex("^cache\\.(c7gn|m7g|r7g)\\.", var.instance_class))
+    error_message = "engine_version 6.0 does not support the cache.c7gn, cache.m7g or cache.r7g node families: use 6.2 or another node type."
   }
 }
 

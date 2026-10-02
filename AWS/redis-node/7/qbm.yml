@@ -50,7 +50,7 @@ spec:
     - name: "redis_name"
       type: "string"
       required: true
-      description: "Display name, set as the Name tag. Max 40 chars."
+      description: "Display name. Max 40 chars. Informational: the adopted cluster keeps its native tags."
       minLength: 1
       maxLength: 40
     - name: "engine_version"

@@ -36,7 +36,7 @@ variable "import_identifier" {
 # User-provided variables
 variable "redis_name" {
   type        = string
-  description = "Display name, set as the Name tag (letters, digits, single hyphens; max 40 chars)."
+  description = "Display name (max 40 chars). Informational: the adopted cluster keeps its native tags."
 
   validation {
     condition     = length(var.redis_name) >= 1 && length(var.redis_name) <= 40

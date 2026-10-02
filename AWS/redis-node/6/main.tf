@@ -62,6 +62,8 @@ resource "aws_elasticache_cluster" "this" {
     ignore_changes = [
       # AWS reports its own version format back (e.g. 5.0.6 vs 5.0); never mutate a live engine.
       engine_version,
+      # ForceNew: a mismatch would replace the adopted cluster with a new one that has no auth.
+      port,
       # Same list the native Qovery template ignores on this shape.
       maintenance_window,
       log_delivery_configuration,
