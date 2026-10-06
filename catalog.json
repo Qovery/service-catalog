@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-10-02T14:12:53Z",
+  "generatedAt": "2026-10-06T08:42:44Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -61,7 +61,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/3.2.0"
+          "latestTag": "AWS/mysql/8/3.3.0"
         }
       ]
     },
@@ -82,23 +82,23 @@
       "majorVersions": [
         {
           "serviceVersion": "14",
-          "latestTag": "AWS/postgres/14/4.2.0"
+          "latestTag": "AWS/postgres/14/4.3.0"
         },
         {
           "serviceVersion": "15",
-          "latestTag": "AWS/postgres/15/4.2.0"
+          "latestTag": "AWS/postgres/15/4.3.0"
         },
         {
           "serviceVersion": "16",
-          "latestTag": "AWS/postgres/16/4.2.0"
+          "latestTag": "AWS/postgres/16/4.3.0"
         },
         {
           "serviceVersion": "17",
-          "latestTag": "AWS/postgres/17/4.2.0"
+          "latestTag": "AWS/postgres/17/4.3.0"
         },
         {
           "serviceVersion": "18",
-          "latestTag": "AWS/postgres/18/1.1.0"
+          "latestTag": "AWS/postgres/18/1.2.0"
         }
       ]
     },
