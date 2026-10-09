@@ -14,6 +14,8 @@ When the blueprint creates the instance, the RDS identifier is derived from `db_
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
 | `allocated_storage` | number |           | Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, 16384 for gp2). Default suggestion: `20`.                           |
 
+Available instance classes: every RDS instance class Qovery offers for native managed PostgreSQL and MySQL (the `db.t3`, `t4g`, `m5`–`m8g`, `r5`–`r8g`, `x2g`, `x2idn` and `x2iedn` families, including their `d`/`n` local-storage and network-optimized variants; `c6gd` is left out because RDS offers it only for Multi-AZ DB clusters). The full list is in `qbm.yml`.
+
 ### Credentials
 
 Both are optional — omit them and Qovery supplies the values, the way native managed
