@@ -16,6 +16,8 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
 | `allocated_storage` | number |           | Allocated storage in GiB (min 20, max 65536). Default suggestion: `20`.                             |
 
+Available instance classes: every RDS instance class Qovery offers for native managed PostgreSQL and MySQL — the `db.t3`, `db.t4g`, `db.m5`–`db.m8g`, `db.r5`–`db.r8g` (including `db.r5b`), `db.x2g`, `db.x2idn` and `db.x2iedn` families, with their Graviton (`g`), Intel (`i`), local-storage (`d`) and network-optimized (`n`) variants. `db.c6gd` is left out because RDS offers it only for Multi-AZ DB clusters. The full list is in `qbm.yml`.
+
 ### Credentials
 
 Both are optional — omit them and Qovery supplies the values, the way native managed
