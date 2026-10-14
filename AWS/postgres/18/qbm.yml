@@ -511,7 +511,8 @@ spec:
     - name: "read_replica_allowed_cidrs"
       type: "string"
       required: false
-      description: "Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs) allowed to reach the replicas on the database port; public addresses also need read_replica_publicly_accessible = true."
+      description: "Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs) allowed to reach the replicas on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
+      pattern: "^(([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}( *, *([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2})*)?$"
     - name: "read_replica_multi_az"
       type: "bool"
       required: false

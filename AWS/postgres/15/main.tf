@@ -242,14 +242,17 @@ resource "aws_vpc_security_group_ingress_rule" "read_replica" {
 }
 
 locals {
-  # An adopted instance leaves local.vpc_security_group_ids null; fall back to what the primary
-  # actually carries so adding the allow list never drops its groups from the replicas.
+  # Replicas mirror the primary's groups. An adopted instance leaves local.vpc_security_group_ids
+  # null, so read what the primary actually carries instead: null would mean "keep the live list"
+  # on the replicas, and clearing the allow list could then never detach its group.
+  read_replica_base_security_group_ids = (
+    local.vpc_security_group_ids != null ? local.vpc_security_group_ids
+    : tolist(aws_db_instance.this.vpc_security_group_ids)
+  )
   read_replica_security_group_ids = (
-    local.read_replica_ingress ? concat(
-      local.vpc_security_group_ids != null ? local.vpc_security_group_ids : tolist(aws_db_instance.this.vpc_security_group_ids),
-      [aws_security_group.read_replica_ingress[0].id],
-    )
-    : local.vpc_security_group_ids
+    local.read_replica_ingress
+    ? concat(local.read_replica_base_security_group_ids, [aws_security_group.read_replica_ingress[0].id])
+    : local.read_replica_base_security_group_ids
   )
 }
 

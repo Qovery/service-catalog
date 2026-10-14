@@ -377,14 +377,17 @@ variable "read_replica_publicly_accessible" {
 variable "read_replica_allowed_cidrs" {
   type        = string
   default     = ""
-  description = "Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs) allowed to reach the replicas on the database port; public addresses also need read_replica_publicly_accessible = true."
+  description = "Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs) allowed to reach the replicas on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
 
   validation {
+    # Network address only: EC2 stores 10.0.0.5/24 as 10.0.0.0/24, which would diff on every plan
+    # and collide with a 10.0.0.0/24 entry. cidrnetmask rejects IPv6.
     condition = alltrue([
       for cidr in split(",", var.read_replica_allowed_cidrs) :
-      can(cidrnetmask(trimspace(cidr))) if trimspace(cidr) != ""
+      can(cidrnetmask(trimspace(cidr))) && try(cidrhost(trimspace(cidr), 0) == split("/", trimspace(cidr))[0], false)
+      if trimspace(cidr) != ""
     ])
-    error_message = "read_replica_allowed_cidrs must be comma-separated IPv4 CIDRs, e.g. 18.207.81.126/32,3.211.20.157/32."
+    error_message = "read_replica_allowed_cidrs must be comma-separated IPv4 network CIDRs, e.g. 18.207.81.126/32,10.0.0.0/24 (not 10.0.0.5/24)."
   }
 }
 
