@@ -192,8 +192,10 @@ resource "aws_db_instance" "this" {
 }
 
 # Opt-in ingress for read replicas only, so an external analytics tool (Metabase Cloud, BI SaaS)
-# can reach a replica from an allow list without the rule ever touching the primary. Attached on
-# top of the primary's security groups, never instead of them, so in-cluster clients keep access.
+# can reach a replica from an allow list without the rule ever touching the primary. When set,
+# this group REPLACES the primary's groups on the replicas: on a Qovery network the workers group
+# also carries the cluster-wide database.postgresql.allowed_cidrs rule (0.0.0.0/0 by default), so
+# keeping it would leave a public replica open to the internet whatever the allow list says.
 locals {
   read_replica_allowed_cidrs = toset(compact([for cidr in split(",", var.read_replica_allowed_cidrs) : trimspace(cidr)]))
   read_replica_ingress       = var.read_replica_count > 0 && length(local.read_replica_allowed_cidrs) > 0
@@ -204,6 +206,14 @@ locals {
 data "aws_db_subnet_group" "primary" {
   count = local.read_replica_ingress ? 1 : 0
   name  = aws_db_instance.this.db_subnet_group_name
+}
+
+# Every CIDR of that VPC, secondary ones included, so in-cluster clients keep reaching the
+# replicas once the workers group is no longer attached -- Karpenter nodes, which do not carry
+# that group, included.
+data "aws_vpc" "replica" {
+  count = local.read_replica_ingress ? 1 : 0
+  id    = data.aws_db_subnet_group.primary[0].vpc_id
 }
 
 resource "aws_security_group" "read_replica_ingress" {
@@ -230,15 +240,24 @@ resource "aws_security_group" "read_replica_ingress" {
   }
 }
 
+locals {
+  # Keyed by CIDR so an allow-list entry equal to a VPC CIDR yields one rule, not a duplicate
+  # EC2 rejects.
+  read_replica_ingress_cidrs = local.read_replica_ingress ? merge(
+    { for cidr in data.aws_vpc.replica[0].cidr_block_associations[*].cidr_block : cidr => "VPC" },
+    { for cidr in local.read_replica_allowed_cidrs : cidr => "allow list" },
+  ) : {}
+}
+
 resource "aws_vpc_security_group_ingress_rule" "read_replica" {
-  for_each = local.read_replica_ingress ? local.read_replica_allowed_cidrs : toset([])
+  for_each = local.read_replica_ingress_cidrs
 
   security_group_id = aws_security_group.read_replica_ingress[0].id
-  description       = "PostgreSQL from ${each.value}"
+  description       = "PostgreSQL from ${each.key} (${each.value})"
   ip_protocol       = "tcp"
   from_port         = var.port
   to_port           = var.port
-  cidr_ipv4         = each.value
+  cidr_ipv4         = each.key
 }
 
 locals {
@@ -251,7 +270,7 @@ locals {
   )
   read_replica_security_group_ids = (
     local.read_replica_ingress
-    ? concat(local.read_replica_base_security_group_ids, [aws_security_group.read_replica_ingress[0].id])
+    ? [aws_security_group.read_replica_ingress[0].id]
     : local.read_replica_base_security_group_ids
   )
 }
@@ -275,7 +294,7 @@ resource "aws_db_instance" "read_replica" {
   ca_cert_identifier = var.ca_cert_identifier
 
   # Network. A same-region replica inherits the source's subnet group, so only the security
-  # group and public exposure are set here — the primary's SGs, plus the allow-list SG when set.
+  # group and public exposure are set here — the primary's SGs, or the allow-list SG alone when set.
   multi_az               = var.read_replica_multi_az
   publicly_accessible    = var.read_replica_publicly_accessible
   vpc_security_group_ids = local.read_replica_security_group_ids

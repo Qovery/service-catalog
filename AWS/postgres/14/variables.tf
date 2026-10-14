@@ -377,7 +377,7 @@ variable "read_replica_publicly_accessible" {
 variable "read_replica_allowed_cidrs" {
   type        = string
   default     = ""
-  description = "Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs) allowed to reach the replicas on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
+  description = "Empty = replicas use the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs): replicas then accept only these and the VPC on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
 
   validation {
     # Network address only: EC2 stores 10.0.0.5/24 as 10.0.0.0/24, which would diff on every plan
