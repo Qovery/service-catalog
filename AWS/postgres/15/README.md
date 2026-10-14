@@ -80,9 +80,10 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | `read_replica_count`               | number | `0`     | Number of same-region read replicas (0 disables; max 15). Requires backups enabled.    |
 | `read_replica_instance_class`      | string |         | Instance class for replicas. Unset = same as the primary.                              |
 | `read_replica_publicly_accessible` | bool   | `false` | Expose replicas to the public internet.                                                |
+| `read_replica_allowed_cidrs`       | string |         | Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs allowed on the database port; public addresses also need `read_replica_publicly_accessible`. |
 | `read_replica_multi_az`            | bool   | `false` | Enable Multi-AZ for replicas.                                                           |
 
-Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC.
+Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC. To let such a tool in without opening the primary, set `read_replica_publicly_accessible = true` and list its egress IPs in `read_replica_allowed_cidrs` (e.g. the Metabase Cloud IPs for your region): the blueprint creates a dedicated security group holding only those CIDRs on the database port and attaches it to the replicas alone, alongside the primary's groups.
 
 ### Maintenance & upgrades
 
@@ -194,7 +195,7 @@ A few attributes remain ignored:
 
 ## Required AWS IAM permissions
 
-The credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured.
+The credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured. The EC2 write actions are only used when `read_replica_allowed_cidrs` is set.
 
 ```json
 {
@@ -224,6 +225,19 @@ The credentials used to deploy this blueprint must allow the actions below. The 
         "ec2:DescribeSubnets",
         "ec2:DescribeSecurityGroups",
         "ec2:DescribeAvailabilityZones"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:DescribeSecurityGroupRules",
+        "ec2:CreateTags"
       ],
       "Resource": "*"
     }

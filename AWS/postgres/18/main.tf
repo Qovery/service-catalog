@@ -191,6 +191,68 @@ resource "aws_db_instance" "this" {
   }
 }
 
+# Opt-in ingress for read replicas only, so an external analytics tool (Metabase Cloud, BI SaaS)
+# can reach a replica from an allow list without the rule ever touching the primary. Attached on
+# top of the primary's security groups, never instead of them, so in-cluster clients keep access.
+locals {
+  read_replica_allowed_cidrs = toset(compact([for cidr in split(",", var.read_replica_allowed_cidrs) : trimspace(cidr)]))
+  read_replica_ingress       = var.read_replica_count > 0 && length(local.read_replica_allowed_cidrs) > 0
+}
+
+# The VPC comes from the primary's subnet group rather than the ClusterId tag lookup, so it also
+# resolves on a user-provided VPC and on an adopted instance.
+data "aws_db_subnet_group" "primary" {
+  count = local.read_replica_ingress ? 1 : 0
+  name  = aws_db_instance.this.db_subnet_group_name
+}
+
+resource "aws_security_group" "read_replica_ingress" {
+  count = local.read_replica_ingress ? 1 : 0
+
+  # A prefix plus create_before_destroy lets a replacement attach before the old group is
+  # removed; a fixed name would collide with the group still attached to the replicas.
+  name_prefix = "${substr(local.db_name_slug, 0, 40)}-replica-ingress-"
+  description = "Allow-listed ingress to the ${var.db_name} read replicas"
+  vpc_id      = data.aws_db_subnet_group.primary[0].vpc_id
+
+  tags = {
+    Name            = "${var.db_name}-replica-ingress"
+    ManagedBy       = "qovery-blueprint"
+    Blueprint       = "aws-rds-postgresql"
+    ClusterName     = var.qovery_cluster_name
+    cluster_id      = var.qovery_cluster_id
+    cluster_long_id = var.qovery_cluster_long_id
+    region          = var.region
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "read_replica" {
+  for_each = local.read_replica_ingress ? local.read_replica_allowed_cidrs : toset([])
+
+  security_group_id = aws_security_group.read_replica_ingress[0].id
+  description       = "PostgreSQL from ${each.value}"
+  ip_protocol       = "tcp"
+  from_port         = var.port
+  to_port           = var.port
+  cidr_ipv4         = each.value
+}
+
+locals {
+  # An adopted instance leaves local.vpc_security_group_ids null; fall back to what the primary
+  # actually carries so adding the allow list never drops its groups from the replicas.
+  read_replica_security_group_ids = (
+    local.read_replica_ingress ? concat(
+      local.vpc_security_group_ids != null ? local.vpc_security_group_ids : tolist(aws_db_instance.this.vpc_security_group_ids),
+      [aws_security_group.read_replica_ingress[0].id],
+    )
+    : local.vpc_security_group_ids
+  )
+}
+
 # Same-region read replicas. Each is an asynchronous read-only copy of the primary; point
 # analytics / BI tools at their endpoints to offload heavy reads. Replicas inherit engine
 # version, storage size, storage type, and encryption from the source — those attributes
@@ -210,10 +272,10 @@ resource "aws_db_instance" "read_replica" {
   ca_cert_identifier = var.ca_cert_identifier
 
   # Network. A same-region replica inherits the source's subnet group, so only the security
-  # group and public exposure are set here — same cluster-workers SG the primary attaches to.
+  # group and public exposure are set here — the primary's SGs, plus the allow-list SG when set.
   multi_az               = var.read_replica_multi_az
   publicly_accessible    = var.read_replica_publicly_accessible
-  vpc_security_group_ids = local.vpc_security_group_ids
+  vpc_security_group_ids = local.read_replica_security_group_ids
 
   # Maintenance / upgrades — mirror the primary.
   apply_immediately          = var.apply_changes_now

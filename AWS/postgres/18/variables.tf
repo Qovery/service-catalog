@@ -374,6 +374,20 @@ variable "read_replica_publicly_accessible" {
   description = "Expose read replicas to the public internet. Keep false unless an external analytics tool must reach them directly."
 }
 
+variable "read_replica_allowed_cidrs" {
+  type        = string
+  default     = ""
+  description = "Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs (e.g. Metabase Cloud IPs) allowed to reach the replicas on the database port; public addresses also need read_replica_publicly_accessible = true."
+
+  validation {
+    condition = alltrue([
+      for cidr in split(",", var.read_replica_allowed_cidrs) :
+      can(cidrnetmask(trimspace(cidr))) if trimspace(cidr) != ""
+    ])
+    error_message = "read_replica_allowed_cidrs must be comma-separated IPv4 CIDRs, e.g. 18.207.81.126/32,3.211.20.157/32."
+  }
+}
+
 variable "read_replica_multi_az" {
   type        = bool
   default     = false
