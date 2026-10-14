@@ -374,6 +374,36 @@ variable "read_replica_publicly_accessible" {
   description = "Expose read replicas to the public internet. Keep false unless an external analytics tool must reach them directly."
 }
 
+variable "read_replica_allowed_cidrs" {
+  type        = string
+  default     = ""
+  description = "Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (e.g. Metabase Cloud IPs; 10.0.0.0/24, not 10.0.0.5/24): replicas then accept only these and the VPC on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
+
+  validation {
+    # Network address only: EC2 stores 10.0.0.5/24 as 10.0.0.0/24, which would diff on every plan
+    # and collide with a 10.0.0.0/24 entry. cidrnetmask rejects IPv6.
+    condition = alltrue([
+      for cidr in split(",", var.read_replica_allowed_cidrs) :
+      can(cidrnetmask(trimspace(cidr))) && try(cidrhost(trimspace(cidr), 0) == split("/", trimspace(cidr))[0], false)
+      if trimspace(cidr) != ""
+    ])
+    error_message = "read_replica_allowed_cidrs must be comma-separated IPv4 network CIDRs, e.g. 18.207.81.126/32,10.0.0.0/24 (not 10.0.0.5/24)."
+  }
+
+  validation {
+    # Without a replica there is nothing to attach the group to; fail rather than ignore the value.
+    condition     = trimspace(var.read_replica_allowed_cidrs) == "" || var.read_replica_count > 0
+    error_message = "read_replica_allowed_cidrs requires read_replica_count > 0."
+  }
+
+  validation {
+    # One rule per entry plus one per VPC CIDR (up to 5), under the default 60 inbound rules
+    # per security group.
+    condition     = length(compact([for cidr in split(",", var.read_replica_allowed_cidrs) : trimspace(cidr)])) <= 50
+    error_message = "read_replica_allowed_cidrs accepts at most 50 CIDRs."
+  }
+}
+
 variable "read_replica_multi_az" {
   type        = bool
   default     = false

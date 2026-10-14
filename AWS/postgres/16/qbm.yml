@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "4.4.0"
+  version: "4.5.0"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -508,6 +508,11 @@ spec:
       required: false
       default: "false"
       description: "Expose read replicas to the public internet. Keep false unless an external analytics tool must reach them directly."
+    - name: "read_replica_allowed_cidrs"
+      type: "string"
+      required: false
+      description: "Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (e.g. Metabase Cloud IPs; 10.0.0.0/24, not 10.0.0.5/24): replicas then accept only these and the VPC on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
+      pattern: "^(((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(3[0-2]|[12]?[0-9])( *, *((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(3[0-2]|[12]?[0-9])){0,49})?$"
     - name: "read_replica_multi_az"
       type: "bool"
       required: false
