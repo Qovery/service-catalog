@@ -389,6 +389,12 @@ variable "read_replica_allowed_cidrs" {
     ])
     error_message = "read_replica_allowed_cidrs must be comma-separated IPv4 network CIDRs, e.g. 18.207.81.126/32,10.0.0.0/24 (not 10.0.0.5/24)."
   }
+
+  validation {
+    # Without a replica there is nothing to attach the group to; fail rather than ignore the value.
+    condition     = trimspace(var.read_replica_allowed_cidrs) == "" || var.read_replica_count > 0
+    error_message = "read_replica_allowed_cidrs requires read_replica_count > 0."
+  }
 }
 
 variable "read_replica_multi_az" {

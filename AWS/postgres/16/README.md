@@ -80,7 +80,7 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | `read_replica_count`               | number | `0`     | Number of same-region read replicas (0 disables; max 15). Requires backups enabled.    |
 | `read_replica_instance_class`      | string |         | Instance class for replicas. Unset = same as the primary.                              |
 | `read_replica_publicly_accessible` | bool   | `false` | Expose replicas to the public internet.                                                |
-| `read_replica_allowed_cidrs`       | string |         | Empty = replicas only accept the primary's security groups. Comma-separated IPv4 CIDRs allowed on the database port. Needs `read_replica_count > 0`; public addresses also need `read_replica_publicly_accessible`. |
+| `read_replica_allowed_cidrs`       | string |         | Empty = replicas only accept the primary's security groups. Comma-separated IPv4 network CIDRs (`10.0.0.0/24`, not `10.0.0.5/24`) allowed on the database port. Needs `read_replica_count > 0`; public addresses also need `read_replica_publicly_accessible`. |
 | `read_replica_multi_az`            | bool   | `false` | Enable Multi-AZ for replicas.                                                           |
 
 Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC. To let such a tool in without opening the primary, set `read_replica_publicly_accessible = true` and list its egress IPs in `read_replica_allowed_cidrs` (e.g. the Metabase Cloud IPs for your region): the blueprint creates a dedicated security group holding only those CIDRs on the database port and attaches it to the replicas alone, alongside the primary's groups. Replicas always carry the primary's security groups, including on an adopted instance.
@@ -183,6 +183,10 @@ Read this before repointing a deployment at this version.
 - Terraform moves from 1.9.7 to 1.13.3, and `1.9.7` is no longer an accepted override. State written by
   1.13.3 cannot be read by 1.9.7, so a deployment cannot be repointed at an earlier blueprint version
   once it has applied.
+- On an **adopted** instance with read replicas, the replicas are now given the primary's security
+  groups explicitly, even with `read_replica_allowed_cidrs` unset. If they currently carry other
+  groups (typically the VPC default group), the first apply swaps them in place: no replacement,
+  no reboot. An instance this blueprint created is unaffected; its replicas already had these groups.
 
 ## Lifecycle ignore_changes
 
