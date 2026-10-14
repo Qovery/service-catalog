@@ -6,6 +6,14 @@ locals {
   # On adoption, keep the live identifier so the import is a no-op (renaming forces replacement).
   db_identifier = var.import_identifier != "" ? var.import_identifier : local.db_name_slug
 
+  # Exact engine version. The deployment engine supplies the live version (or the upgrade target)
+  # through var.engine_version. Without it, an adopted instance keeps its live version and a new
+  # one gets the bare major. A bare major is not safe on a live instance: AWS resolves it to the
+  # region's default minor, which upgrades an older minor and is refused on a newer one.
+  engine_version = var.engine_version != "" ? var.engine_version : (
+    var.import_identifier != "" ? one(data.aws_db_instance.adopted[*].engine_version) : "17"
+  )
+
   # Stamped from time_static, not timestamp(): unique per create so successive create/destroy
   # cycles don't collide on an existing snapshot id, yet stable across plans, so the attribute
   # needs no ignore_changes and an adopted instance gets a name too.
@@ -23,6 +31,23 @@ import {
   for_each = var.import_identifier != "" ? toset([var.import_identifier]) : toset([])
   to       = aws_db_instance.this
   id       = each.value
+}
+
+# Live version of the instance being adopted, read only until the deployment engine supplies one.
+# Looked up through the list data source first: it returns nothing for a missing instance, where
+# the single-instance one fails, so deleting a service whose instance is already gone still plans.
+data "aws_db_instances" "adopted" {
+  count = var.import_identifier != "" && var.engine_version == "" ? 1 : 0
+
+  filter {
+    name   = "db-instance-id"
+    values = [var.import_identifier]
+  }
+}
+
+data "aws_db_instance" "adopted" {
+  count                  = length(flatten(data.aws_db_instances.adopted[*].instance_identifiers))
+  db_instance_identifier = var.import_identifier
 }
 
 # Attach to the Qovery cluster network by default, like native managed
@@ -106,7 +131,7 @@ resource "aws_db_instance" "this" {
   identifier = local.db_identifier
 
   engine         = "postgres"
-  engine_version = "17"
+  engine_version = local.engine_version
   instance_class = var.instance_class
   port           = var.port
 
@@ -172,9 +197,6 @@ resource "aws_db_instance" "this" {
 
   lifecycle {
     ignore_changes = [
-      # Adoption: never mutate a live DB's running version. Catalog hard-codes the major per
-      # version dir; adopted instances may run a different minor (e.g. 8.0 vs 8.4) or major.
-      engine_version,
       # Neutralises legacy state: instances created before password_wo carry a value here, and
       # password is no longer in the configuration, so without this the stale value reads as a removal.
       password,
@@ -337,8 +359,10 @@ resource "aws_db_instance" "read_replica" {
 
   lifecycle {
     ignore_changes = [
-      # Same rationale as the primary above.
+      # A same-region replica runs the source's version and RDS upgrades it along with the
+      # primary, so its version changes outside this configuration.
       engine_version,
+      # Same rationale as the primary above for the rest.
       enabled_cloudwatch_logs_exports,
       parameter_group_name,
       max_allocated_storage,

@@ -27,6 +27,12 @@ variable "import_identifier" {
   description = "Existing RDS instance identifier to adopt via terraform import. Empty = create a new instance."
 }
 
+variable "engine_version" {
+  type        = string
+  default     = ""
+  description = "Exact engine version to run (e.g. 18.4). Set by the deployment engine from the live instance, or to the upgrade target on a major change. Empty = the live version on adoption, else the bare major."
+}
+
 # User-provided variables
 variable "db_name" {
   type        = string

@@ -159,10 +159,12 @@ create/destroy cycles of the same name do not collide.
 
 Read this before repointing a deployment at this version.
 
-- **Repointing a service created on another PostgreSQL major's blueprint does not change its engine.**
-  `engine_version` is in `ignore_changes`, so the instance keeps running the major it has. From an
-  older major, upgrade it through RDS to 15 first, then repoint. From a newer major, do not repoint
-  here: RDS cannot downgrade, and the blueprint would claim 15 while a newer major runs.
+- **Repointing a service from an older PostgreSQL major upgrades its engine in place.** Qovery
+  sets `engine_version` to the highest 15.x that RDS lists as a valid upgrade target from the
+  running version, and Terraform runs the major upgrade (downtime; with `apply_changes_now = false`,
+  in the next maintenance window). An instance already upgraded through RDS to 15 is only
+  relabelled. An instance on a custom parameter group needs a group of the new family first: RDS
+  refuses the upgrade otherwise. From a newer major, do not repoint here: RDS cannot downgrade.
 
 - Deleting now keeps a final snapshot and the automated backups for services **created** on this
   version. An existing service does not change behaviour: Qovery stores every variable default when
@@ -189,6 +191,13 @@ Read this before repointing a deployment at this version.
   no reboot. An instance this blueprint created is unaffected; its replicas already had these groups.
 
 ## Lifecycle ignore_changes
+
+`engine_version` is no longer ignored. The instance runs the exact version in the internal
+`engine_version` variable, which Qovery sets on every deploy: the live version, or the upgrade
+target when the service moves to a newer major. A bare major such as `"15"` is never sent to a
+live instance, because AWS resolves it to the region's default minor, which upgrades an older
+minor and is refused on a newer one. Without that variable, an adopted instance keeps its live
+version (read through the `aws_db_instance` data source) and a new instance gets the bare major.
 
 A few attributes remain ignored:
 
