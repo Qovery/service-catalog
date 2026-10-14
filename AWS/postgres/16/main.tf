@@ -288,6 +288,10 @@ resource "aws_db_instance" "read_replica" {
   identifier          = "${replace(substr(local.db_name_slug, 0, 50), "/-$/", "")}-replica-${count.index + 1}"
   replicate_source_db = aws_db_instance.this.identifier
 
+  # The allow-list group replaces the replica's groups, so its rules must exist before it is
+  # attached or the replica is briefly unreachable, in-cluster clients included.
+  depends_on = [aws_vpc_security_group_ingress_rule.read_replica]
+
   instance_class = var.read_replica_instance_class != "" ? var.read_replica_instance_class : var.instance_class
   port           = var.port
 
