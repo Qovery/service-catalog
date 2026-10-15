@@ -192,12 +192,20 @@ Read this before repointing a deployment at this version.
 
 ## Lifecycle ignore_changes
 
-`engine_version` is no longer ignored. The instance runs the exact version in the internal
-`engine_version` variable, which Qovery sets on every deploy: the live version, or the upgrade
-target when the service moves to a newer major. A bare major such as `"15"` is never sent to a
-live instance, because AWS resolves it to the region's default minor, which upgrades an older
-minor and is refused on a newer one. Without that variable, an adopted instance keeps its live
-version (read through the `aws_db_instance` data source) and a new instance gets the bare major.
+On the primary instance, `engine_version` is no longer ignored. Terraform requests the exact
+version held in the internal `engine_version` variable, which Qovery sets on every deploy:
+
+- the live version, while the service stays on this major
+- the highest valid upgrade target, when the service moves here from an older major.
+
+With `auto_minor_version_upgrade` enabled, AWS may still move the running minor forward; the next
+deploy then requests that newer version, so Terraform never tries to go back. Read replicas inherit
+the primary's version.
+
+A bare major such as `"15"` is never sent to a live instance, because AWS resolves it to the
+region's default minor, which upgrades an older minor and is refused on a newer one. Without the
+variable, an existing instance keeps its live version (read through the `aws_db_instance` data
+source) and only a new instance gets the bare major.
 
 A few attributes remain ignored:
 

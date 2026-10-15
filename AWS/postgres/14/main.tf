@@ -7,12 +7,10 @@ locals {
   db_identifier = var.import_identifier != "" ? var.import_identifier : local.db_name_slug
 
   # Exact engine version. The deployment engine supplies the live version (or the upgrade target)
-  # through var.engine_version. Without it, an adopted instance keeps its live version and a new
-  # one gets the bare major. A bare major is not safe on a live instance: AWS resolves it to the
-  # region's default minor, which upgrades an older minor and is refused on a newer one.
-  engine_version = var.engine_version != "" ? var.engine_version : (
-    var.import_identifier != "" ? one(data.aws_db_instance.adopted[*].engine_version) : "14"
-  )
+  # through var.engine_version. Without it, an existing instance (created or adopted) keeps its live
+  # version and only a new one gets the bare major. A bare major is not safe on a live instance: AWS
+  # resolves it to the region's default minor, which upgrades an older minor and is refused on a newer one.
+  engine_version = var.engine_version != "" ? var.engine_version : coalesce(one(data.aws_db_instance.live[*].engine_version), "14")
 
   # Stamped from time_static, not timestamp(): unique per create so successive create/destroy
   # cycles don't collide on an existing snapshot id, yet stable across plans, so the attribute
@@ -33,21 +31,21 @@ import {
   id       = each.value
 }
 
-# Live version of the instance being adopted, read only until the deployment engine supplies one.
-# Looked up through the list data source first: it returns nothing for a missing instance, where
-# the single-instance one fails, so deleting a service whose instance is already gone still plans.
-data "aws_db_instances" "adopted" {
-  count = var.import_identifier != "" && var.engine_version == "" ? 1 : 0
+# Live version of the instance, read only when the deployment engine supplies none. Covers created
+# and adopted instances alike. Looked up through the list data source first: it returns nothing for an
+# instance that does not exist yet (or is already gone), where the single-instance one fails.
+data "aws_db_instances" "live" {
+  count = var.engine_version == "" ? 1 : 0
 
   filter {
     name   = "db-instance-id"
-    values = [var.import_identifier]
+    values = [local.db_identifier]
   }
 }
 
-data "aws_db_instance" "adopted" {
-  count                  = length(flatten(data.aws_db_instances.adopted[*].instance_identifiers))
-  db_instance_identifier = var.import_identifier
+data "aws_db_instance" "live" {
+  count                  = length(flatten(data.aws_db_instances.live[*].instance_identifiers))
+  db_instance_identifier = local.db_identifier
 }
 
 # Attach to the Qovery cluster network by default, like native managed

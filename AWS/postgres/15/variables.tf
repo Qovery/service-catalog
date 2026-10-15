@@ -30,7 +30,7 @@ variable "import_identifier" {
 variable "engine_version" {
   type        = string
   default     = ""
-  description = "Exact engine version to run (e.g. 15.4). Set by the deployment engine from the live instance, or to the upgrade target on a major change. Empty = the live version on adoption, else the bare major."
+  description = "Exact engine version Terraform requests (e.g. 14.4). Set by the deployment engine on every deploy: the live version, or the upgrade target on a major change. Empty = the live version of an existing instance, else the bare major for a new one."
 }
 
 # User-provided variables
