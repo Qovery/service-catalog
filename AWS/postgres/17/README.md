@@ -159,10 +159,12 @@ create/destroy cycles of the same name do not collide.
 
 Read this before repointing a deployment at this version.
 
-- **Repointing a service created on another PostgreSQL major's blueprint does not change its engine.**
-  `engine_version` is in `ignore_changes`, so the instance keeps running the major it has. From an
-  older major, upgrade it through RDS to 17 first, then repoint. From a newer major, do not repoint
-  here: RDS cannot downgrade, and the blueprint would claim 17 while a newer major runs.
+- **Repointing a service from an older PostgreSQL major upgrades its engine in place.** Qovery
+  sets `engine_version` to the highest 17.x that RDS lists as a valid upgrade target from the
+  running version, and Terraform runs the major upgrade (downtime; with `apply_changes_now = false`,
+  in the next maintenance window). An instance already upgraded through RDS to 17 is only
+  relabelled. An instance on a custom parameter group needs a group of the new family first: RDS
+  refuses the upgrade otherwise. From a newer major, do not repoint here: RDS cannot downgrade.
 
 - Deleting now keeps a final snapshot and the automated backups for services **created** on this
   version. An existing service does not change behaviour: Qovery stores every variable default when
@@ -189,6 +191,21 @@ Read this before repointing a deployment at this version.
   no reboot. An instance this blueprint created is unaffected; its replicas already had these groups.
 
 ## Lifecycle ignore_changes
+
+On the primary instance, `engine_version` is no longer ignored. Terraform requests the exact
+version held in the internal `engine_version` variable, which Qovery sets on every deploy:
+
+- the live version, while the service stays on this major
+- the highest valid upgrade target, when the service moves here from an older major.
+
+With `auto_minor_version_upgrade` enabled, AWS may still move the running minor forward; the next
+deploy then requests that newer version, so Terraform never tries to go back. Read replicas inherit
+the primary's version.
+
+A bare major such as `"17"` is never sent to a live instance, because AWS resolves it to the
+region's default minor, which upgrades an older minor and is refused on a newer one. Without the
+variable, an existing instance keeps its live version (read through the `aws_db_instance` data
+source) and only a new instance gets the bare major.
 
 A few attributes remain ignored:
 

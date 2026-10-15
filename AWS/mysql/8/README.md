@@ -141,6 +141,8 @@ create/destroy cycles of the same name do not collide.
 
 Read this before repointing a deployment at this version.
 
+- An adopted instance now keeps running its exact live version (for example `8.0.x`) instead of
+  having `engine_version` ignored. Nothing is sent to AWS for an instance whose version is unchanged.
 - Deleting now keeps a final snapshot and the automated backups for services **created** on this
   version. An existing service does not change behaviour: Qovery stores every variable default when
   the service is created, so repointing it here keeps `skip_final_snapshot = true` and
@@ -162,6 +164,17 @@ Read this before repointing a deployment at this version.
   once it has applied.
 
 ## Lifecycle ignore_changes
+
+On the primary instance, `engine_version` is no longer ignored. Terraform requests the exact
+version held in the internal `engine_version` variable, which Qovery sets on every deploy to the
+live version, so an adopted `8.0.x` instance stays on `8.0.x`. With `auto_minor_version_upgrade`
+enabled, AWS may still move the running minor forward; the next deploy then requests that newer
+version, so Terraform never tries to go back. Read replicas inherit the primary's version.
+
+A bare `"8.4"` is never sent to a live instance, because AWS resolves it to the region's default
+minor, which upgrades an older minor and is refused on a newer one. Without the variable, an
+existing instance keeps its live version (read through the `aws_db_instance` data source) and only
+a new instance gets `8.4`.
 
 A few attributes remain ignored:
 
