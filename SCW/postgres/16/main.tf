@@ -80,6 +80,15 @@ resource "scaleway_rdb_database" "this" {
   name        = var.db_name
 }
 
+# Scaleway grants a new database to its internal superadmin only: without this the admin user
+# cannot connect to it.
+resource "scaleway_rdb_privilege" "this" {
+  instance_id   = scaleway_rdb_instance.this.id
+  user_name     = local.db_username
+  database_name = scaleway_rdb_database.this.name
+  permission    = "all"
+}
+
 # The ACL filters the public endpoint only, so it is created only when that endpoint exists.
 resource "scaleway_rdb_acl" "this" {
   count       = var.publicly_accessible ? 1 : 0
