@@ -36,6 +36,13 @@ locals {
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
 }
 
+# The cluster bootstrap names its private network after the cluster short id. Attaching the
+# instance to it keeps database traffic from the cluster off the public endpoint.
+data "scaleway_vpc_private_network" "cluster" {
+  name   = "private_network_${var.qovery_cluster_id}"
+  region = var.region
+}
+
 resource "scaleway_rdb_instance" "this" {
   name           = "${var.qovery_cluster_name}-${var.instance_name}"
   node_type      = var.node_type
@@ -54,6 +61,18 @@ resource "scaleway_rdb_instance" "this" {
   region = var.region
 
   tags = local.rdb_tags
+
+  private_network {
+    pn_id       = data.scaleway_vpc_private_network.cluster.id
+    enable_ipam = true
+  }
+
+  # With a private network set, Scaleway creates a public endpoint only when this block exists.
+  # The provider ignores a removed block, so an existing public endpoint survives an update.
+  dynamic "load_balancer" {
+    for_each = var.publicly_accessible ? [1] : []
+    content {}
+  }
 }
 
 resource "scaleway_rdb_database" "this" {
@@ -61,8 +80,7 @@ resource "scaleway_rdb_database" "this" {
   name        = var.db_name
 }
 
-# ACL is only created when publicly_accessible. Without an ACL, the instance is unreachable
-# from outside Scaleway's private network — which is the expected default for private DBs.
+# The ACL filters the public endpoint only, so it is created only when that endpoint exists.
 resource "scaleway_rdb_acl" "this" {
   count       = var.publicly_accessible ? 1 : 0
   instance_id = scaleway_rdb_instance.this.id

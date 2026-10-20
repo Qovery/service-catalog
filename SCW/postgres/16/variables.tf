@@ -143,7 +143,7 @@ variable "activate_backups" {
 variable "publicly_accessible" {
   type        = bool
   default     = false
-  description = "Open the database to traffic from acl_allowed_cidr. When false, no ACL is created."
+  description = "Open the database to traffic from acl_allowed_cidr through a public endpoint. When false, the database is reachable only from the cluster's private network."
 }
 
 variable "acl_allowed_cidr" {
