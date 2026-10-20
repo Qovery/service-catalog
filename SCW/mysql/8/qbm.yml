@@ -5,7 +5,7 @@ metadata:
   name: "scaleway-mysql"
   displayName: "Scaleway MySQL"
   primaryCategory: "Databases & Caches"
-  version: "1.5.0"
+  version: "1.5.1"
   description: "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
