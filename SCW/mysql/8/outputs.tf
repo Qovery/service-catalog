@@ -41,6 +41,6 @@ output "instance_id" {
 
 output "certificate" {
   description = "TLS CA certificate served by the database (PEM). Use for verify-full SSL."
-  value       = scaleway_rdb_instance.this.certificate
+  value       = trimspace(scaleway_rdb_instance.this.certificate)
   sensitive   = true
 }
