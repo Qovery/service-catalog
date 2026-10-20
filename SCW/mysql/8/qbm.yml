@@ -5,7 +5,7 @@ metadata:
   name: "scaleway-mysql"
   displayName: "Scaleway MySQL"
   primaryCategory: "Databases & Caches"
-  version: "1.4.2"
+  version: "1.5.0"
   description: "Scaleway Managed Database MySQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -129,7 +129,7 @@ spec:
       type: "bool"
       required: false
       default: "false"
-      description: "Open the database to traffic from acl_allowed_cidr. When false, no ACL is created (instance unreachable from outside the Scaleway private network)."
+      description: "Open the database to traffic from acl_allowed_cidr through a public endpoint. When false, a new database has no public endpoint and is reachable only from the cluster's private network. Turning it off on an existing database keeps its public endpoint: delete it in the Scaleway console (see the README)."
     - name: "acl_allowed_cidr"
       type: "string"
       required: false
@@ -139,9 +139,13 @@ spec:
 
   outputs:
     - name: "endpoint_ip"
-      description: "Database endpoint IP (Load Balancer)"
+      description: "Database endpoint IP: the public endpoint when publicly_accessible, else the private network endpoint"
     - name: "endpoint_port"
-      description: "Database endpoint port (Load Balancer)"
+      description: "Database endpoint port: the public endpoint when publicly_accessible, else the private network endpoint"
+    - name: "private_endpoint_ip"
+      description: "Database IP on the cluster's private network"
+    - name: "private_endpoint_port"
+      description: "Database port on the cluster's private network"
     - name: "db_name"
       description: "Database name"
     - name: "db_username"

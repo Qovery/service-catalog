@@ -14,6 +14,22 @@ terraform state rm scaleway_rdb_user.this
 
 This removes the resource from state without touching the user in Scaleway; the instance then takes ownership on the next apply.
 
+## Networking
+
+The instance is always attached to the private network of the Qovery cluster, read from the
+Kapsule cluster `qovery-<cluster short id>`. Applications in the cluster reach it there. With
+`publicly_accessible`, a public endpoint filtered by `acl_allowed_cidr` is added. Public access
+needs a narrower CIDR than the `0.0.0.0/0` default, which validation rejects in public mode.
+
+## Upgrading to 1.5.0
+
+Before 1.5.0, `publicly_accessible = false` did not make the instance private: Scaleway created
+a public endpoint anyway, with its default ACL open to `0.0.0.0/0`. Upgrading an existing
+instance attaches it to the private network and points `endpoint_ip` / `endpoint_port` at the
+private endpoint, but the old public endpoint stays, because the provider never removes it once
+the `load_balancer` block is gone. Delete that endpoint in the Scaleway console once the
+applications use the private one.
+
 ## Variables
 
 ### Required
@@ -50,15 +66,17 @@ empty variable value.
 | Name                  | Type   | Default     | Description                                                                                    |
 | --------------------- | ------ | ----------- | ---------------------------------------------------------------------------------------------- |
 | `activate_backups`    | bool   | `true`      | Enable automated backups.                                                                      |
-| `publicly_accessible` | bool   | `false`     | Create an ACL allowing `acl_allowed_cidr`. When false, no ACL — instance is private-only.      |
-| `acl_allowed_cidr`    | string | `0.0.0.0/0` | Single CIDR allowed to reach the instance. Use the Scaleway console for multi-CIDR allowlists. |
+| `publicly_accessible` | bool   | `false`     | Expose a public endpoint that accepts `acl_allowed_cidr`. When false, a new database is reachable only from the cluster's private network. An existing public endpoint is not removed (see Upgrading to 1.5.0). |
+| `acl_allowed_cidr`    | string | `0.0.0.0/0` | Single CIDR allowed to reach the instance. Required and narrower than `0.0.0.0/0` when `publicly_accessible`. Use the Scaleway console for multi-CIDR allowlists. |
 
 ## Outputs
 
 | Name            | Sensitive | Description                                                       |
 | --------------- | --------- | ----------------------------------------------------------------- |
-| `endpoint_ip`   |           | Database endpoint IP (Load Balancer)                              |
-| `endpoint_port` |           | Database endpoint port (Load Balancer)                            |
+| `endpoint_ip`   |           | Database endpoint IP: the public endpoint when `publicly_accessible`, else the private network endpoint |
+| `endpoint_port` |           | Database endpoint port: the public endpoint when `publicly_accessible`, else the private network endpoint |
+| `private_endpoint_ip`   |  | Database IP on the cluster's private network |
+| `private_endpoint_port` |  | Database port on the cluster's private network |
 | `db_name`       |           | Database name                                                     |
 | `db_username`   |           | Database username                                                 |
 | `db_password`   | yes       | Database user password (generated when the input was left empty)                        |
@@ -74,6 +92,8 @@ Attach a policy with the following permission sets, scoped to the target Project
 | Permission set                  | Why                                                                |
 | ------------------------------- | ------------------------------------------------------------------ |
 | `RelationalDatabasesFullAccess` | Create / read / update / delete RDB instance, database, user, ACL. |
+| `PrivateNetworksFullAccess`     | Attach the instance to the cluster's private network.             |
+| `KubernetesReadOnly`            | Read the cluster's private network id.                             |
 | `ProjectReadOnly`               | Resolve the project context for the API call.                      |
 
 The minimum scope is the Project where Qovery deploys this blueprint.

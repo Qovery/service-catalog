@@ -1,11 +1,21 @@
 output "endpoint_ip" {
-  description = "Database endpoint IP (Load Balancer)"
-  value       = scaleway_rdb_instance.this.load_balancer[0].ip
+  description = "Database endpoint IP: the public endpoint when publicly_accessible, else the private network endpoint"
+  value       = var.publicly_accessible ? try(scaleway_rdb_instance.this.load_balancer[0].ip, null) : scaleway_rdb_instance.this.private_network[0].ip
 }
 
 output "endpoint_port" {
-  description = "Database endpoint port (Load Balancer)"
-  value       = scaleway_rdb_instance.this.load_balancer[0].port
+  description = "Database endpoint port: the public endpoint when publicly_accessible, else the private network endpoint"
+  value       = var.publicly_accessible ? try(scaleway_rdb_instance.this.load_balancer[0].port, null) : scaleway_rdb_instance.this.private_network[0].port
+}
+
+output "private_endpoint_ip" {
+  description = "Database IP on the cluster's private network"
+  value       = scaleway_rdb_instance.this.private_network[0].ip
+}
+
+output "private_endpoint_port" {
+  description = "Database port on the cluster's private network"
+  value       = scaleway_rdb_instance.this.private_network[0].port
 }
 
 output "db_name" {

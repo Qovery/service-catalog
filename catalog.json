@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-10-15T13:09:28Z",
+  "generatedAt": "2026-10-20T10:29:56Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -640,7 +640,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "SCW/mysql/8/1.4.2"
+          "latestTag": "SCW/mysql/8/1.5.0"
         }
       ]
     },
@@ -681,7 +681,7 @@
       "majorVersions": [
         {
           "serviceVersion": "16",
-          "latestTag": "SCW/postgres/16/1.4.2"
+          "latestTag": "SCW/postgres/16/1.5.0"
         }
       ]
     }
