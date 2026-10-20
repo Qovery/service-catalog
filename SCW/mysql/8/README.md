@@ -16,12 +16,10 @@ This removes the resource from state without touching the user in Scaleway; the 
 
 ## Networking
 
-The instance is always attached to the private network the Qovery cluster runs on, looked up by
-its name `private_network_<cluster short id>`. Applications in the cluster reach it there. With
-`publicly_accessible`, a public endpoint filtered by `acl_allowed_cidr` is added.
-
-A cluster created before Scaleway required private networks for Kapsule may have none, and the
-deploy then fails on the `scaleway_vpc_private_network` lookup.
+The instance is always attached to the private network of the Qovery cluster, read from the
+Kapsule cluster `qovery-<cluster short id>`. Applications in the cluster reach it there. With
+`publicly_accessible`, a public endpoint filtered by `acl_allowed_cidr` is added. Public access
+needs a narrower CIDR than the `0.0.0.0/0` default, which validation rejects in public mode.
 
 ## Upgrading to 1.5.0
 
@@ -69,8 +67,8 @@ empty variable value.
 | --------------------- | ------ | ----------- | ---------------------------------------------------------------------------------------------- |
 | `activate_backups`    | bool   | `true`      | Enable automated backups.                                                                      |
 | `slow_query_log`      | bool   | `true`      | Enable MySQL slow query log via the instance settings.                                         |
-| `publicly_accessible` | bool   | `false`     | Expose a public endpoint that accepts `acl_allowed_cidr`. When false, the database is reachable only from the cluster's private network. |
-| `acl_allowed_cidr`    | string | `0.0.0.0/0` | Single CIDR allowed to reach the instance. Use the Scaleway console for multi-CIDR allowlists. |
+| `publicly_accessible` | bool   | `false`     | Expose a public endpoint that accepts `acl_allowed_cidr`. When false, a new database is reachable only from the cluster's private network. An existing public endpoint is not removed (see Upgrading to 1.5.0). |
+| `acl_allowed_cidr`    | string | `0.0.0.0/0` | Single CIDR allowed to reach the instance. Required and narrower than `0.0.0.0/0` when `publicly_accessible`. Use the Scaleway console for multi-CIDR allowlists. |
 
 ## Outputs
 
@@ -95,7 +93,8 @@ Attach a policy with the following permission sets, scoped to the target Project
 | Permission set                  | Why                                                                |
 | ------------------------------- | ------------------------------------------------------------------ |
 | `RelationalDatabasesFullAccess` | Create / read / update / delete RDB instance, database, user, ACL. |
-| `PrivateNetworksFullAccess`     | Look up the cluster's private network and attach the instance to it. |
+| `PrivateNetworksFullAccess`     | Attach the instance to the cluster's private network.             |
+| `KubernetesReadOnly`            | Read the cluster's private network id.                             |
 | `ProjectReadOnly`               | Resolve the project context for the API call.                      |
 
 The minimum scope is the Project where Qovery deploys this blueprint.

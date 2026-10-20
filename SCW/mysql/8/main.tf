@@ -36,10 +36,10 @@ locals {
   db_password = var.db_password != "" ? var.db_password : random_password.master.result
 }
 
-# The cluster bootstrap names its private network after the cluster short id. Attaching the
-# instance to it keeps database traffic from the cluster off the public endpoint.
-data "scaleway_vpc_private_network" "cluster" {
-  name   = "private_network_${var.qovery_cluster_id}"
+# Read the private network from the Kapsule cluster rather than by name: clusters Scaleway
+# migrated to a private network in 2024 carry one that Qovery did not create or name.
+data "scaleway_k8s_cluster" "qovery" {
+  name   = "qovery-${var.qovery_cluster_id}"
   region = var.region
 }
 
@@ -67,7 +67,7 @@ resource "scaleway_rdb_instance" "this" {
   tags = local.rdb_tags
 
   private_network {
-    pn_id       = data.scaleway_vpc_private_network.cluster.id
+    pn_id       = data.scaleway_k8s_cluster.qovery.private_network_id
     enable_ipam = true
   }
 
