@@ -222,10 +222,17 @@ locals {
 }
 
 # The VPC comes from the primary's subnet group rather than the ClusterId tag lookup, so it also
-# resolves on a user-provided VPC and on an adopted instance.
+# resolves on a user-provided VPC and on an adopted instance. The group name must not come from
+# aws_db_instance.this: any pending change on the primary (a create, an engine_version pin)
+# defers the lookup to apply, and the ingress rules' for_each keys become unknown at plan.
+data "aws_db_instance" "adopted" {
+  count                  = local.read_replica_ingress && var.import_identifier != "" ? 1 : 0
+  db_instance_identifier = var.import_identifier
+}
+
 data "aws_db_subnet_group" "primary" {
   count = local.read_replica_ingress ? 1 : 0
-  name  = aws_db_instance.this.db_subnet_group_name
+  name  = coalesce(local.db_subnet_group_name, one(data.aws_db_instance.adopted[*].db_subnet_group))
 }
 
 # Every CIDR of that VPC, secondary ones included, so in-cluster clients keep reaching the
