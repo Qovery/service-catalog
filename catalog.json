@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-10-22T10:16:17Z",
+  "generatedAt": "2026-10-22T11:38:19Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -121,7 +121,7 @@
       "majorVersions": [
         {
           "serviceVersion": "4",
-          "latestTag": "AWS/rabbitmq/4/1.0.0"
+          "latestTag": "AWS/rabbitmq/4/2.0.0"
         }
       ]
     },

@@ -116,7 +116,7 @@ variable "subnet_ids" {
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty and the broker gets the blueprint's security group, opening 5671 and 443 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead. Set at creation only: switching later needs a new broker."
+  description = "Leave empty and the broker gets the blueprint's security group, opening 5671, 443 and 16001-16003 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead. Set at creation only: switching later needs a new broker."
 }
 
 variable "allowed_cidrs" {

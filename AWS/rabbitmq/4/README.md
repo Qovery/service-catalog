@@ -3,7 +3,8 @@
 Creates an Amazon MQ for RabbitMQ 4 broker, reachable over AMQPS (port 5671, TLS only), on a single
 node or as a three-node cluster spread across availability zones. By default the broker joins the
 Qovery cluster network, in the private subnets of the cluster's DB subnet group, with its own
-security group opening 5671 and 443 to the VPC, so pods reach it with no extra setup.
+security group opening 5671, 443 and the Prometheus ports 16001-16003 to the VPC, so pods
+reach it with no extra setup.
 
 The broker carries an Amazon MQ configuration holding `consumer_timeout`, `heartbeat` and any
 `extra_configuration` lines. Storage is EBS, encrypted at rest.
@@ -40,8 +41,8 @@ remove it.
 | `admin_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters. |
 
 Both are set **at creation only**. Amazon MQ cannot update RabbitMQ users and never returns them,
-so the blueprint ignores later edits to the `user` block, and the `username`, `password` and
-`amqp_url` outputs keep the values the broker was created with. Editing either variable afterwards
+so the blueprint ignores later edits to the `user` block, and the `rabbitmq_username`,
+`rabbitmq_password` and `rabbitmq_amqp_url` outputs keep the values the broker was created with. Editing either variable afterwards
 has no effect. Change the password in the RabbitMQ management UI instead, then update your
 applications. A replaced broker (for example after a `deployment_mode` change) is created with the
 current values, and the outputs follow.
@@ -52,7 +53,7 @@ current values, and the outputs follow.
 | ---- | ---- | ------- | ----------- |
 | `publicly_accessible` | bool | `false` | Expose the broker to the internet. Changing it replaces the broker. |
 | `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty and the broker gets the blueprint's security group, opening 5671 and 443 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. Set at creation only: switching later needs a new broker. |
+| `security_group_ids` | string | | Leave empty and the broker gets the blueprint's security group, opening 5671, 443 and 16001-16003 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. Set at creation only: switching later needs a new broker. |
 | `allowed_cidrs` | string | | Leave empty to allow the whole VPC: every pod in the cluster, and anything else in a shared VPC. Set comma-separated IPv4 CIDRs to narrow or widen access. Only affects the blueprint's security group. |
 
 A single-instance broker takes the first subnet (one per availability zone, sorted by zone name);
@@ -73,7 +74,7 @@ still uses.
 `allowed_cidrs` can change at any time. It edits the ingress rules of the blueprint's group, which
 is the group attached to the broker by default, without touching the broker's `security_groups`.
 
-The default opens 5671 and 443 to the whole VPC, not only the broker's subnets: pods get their IPs
+The default opens 5671, 443 and 16001-16003 to the whole VPC, not only the broker's subnets: pods get their IPs
 from the node subnets, which are not the DB subnets the broker sits in. On a VPC shared with other
 workloads, set `allowed_cidrs` to the cluster's node subnets, or use `security_group_ids`. Port 443
 is the RabbitMQ management API, which can manage users, vhosts and policies.
@@ -122,16 +123,44 @@ Amazon MQ can only publish logs once a CloudWatch Logs resource policy lets it. 
 
 | Name | Sensitive | Description |
 | ---- | --------- | ----------- |
-| `broker_id` | | Amazon MQ broker id |
-| `broker_arn` | | Amazon MQ broker ARN |
-| `amqps_endpoint` | | `amqps://<host>:5671` |
-| `host` | | Broker hostname |
-| `port` | | `5671` (TLS only; Amazon MQ does not expose plain AMQP) |
-| `console_url` | | RabbitMQ management UI URL |
-| `username` | | Admin username the broker was created with |
-| `password` | yes | Admin password the broker was created with |
-| `amqp_url` | yes | `amqps://<user>:<password>@<host>:5671`, URL-encoded |
-| `configuration_id` | | Amazon MQ configuration holding the `rabbitmq.conf` settings |
+| `rabbitmq_broker_id` | | Amazon MQ broker id |
+| `rabbitmq_broker_arn` | | Amazon MQ broker ARN |
+| `rabbitmq_amqps_endpoint` | | `amqps://<host>:5671` |
+| `rabbitmq_host` | | Broker hostname |
+| `rabbitmq_port` | | `5671` (TLS only; Amazon MQ does not expose plain AMQP) |
+| `rabbitmq_console_url` | | RabbitMQ management UI URL |
+| `rabbitmq_username` | | Admin username the broker was created with |
+| `rabbitmq_password` | yes | Admin password the broker was created with |
+| `rabbitmq_amqp_url` | yes | `amqps://<user>:<password>@<host>:5671`, URL-encoded |
+| `rabbitmq_configuration_id` | | Amazon MQ configuration holding the `rabbitmq.conf` settings |
+
+Qovery publishes each output as an environment variable alias with the same name in upper case
+(`RABBITMQ_HOST`, `RABBITMQ_PASSWORD`...). Blueprint versions before 2.0.0 had unprefixed outputs
+(`HOST`, `PORT`, `USERNAME`, `PASSWORD`...); services that read those aliases must switch to the
+`RABBITMQ_` names when the blueprint is upgraded.
+
+## Prometheus metrics
+
+RabbitMQ 4.2 and later expose Prometheus metrics on ports 16001, 16002 and 16003, one per node,
+which the blueprint's security group opens to `allowed_cidrs`. Scrape them over HTTPS with basic
+auth (the broker credentials), on the broker host, every 60 seconds or more:
+
+```yaml
+scrape_configs:
+  - job_name: amazon-mq-rabbitmq
+    scheme: https
+    scrape_interval: 60s
+    metrics_path: /metrics
+    basic_auth:
+      username: <rabbitmq_username>
+      password: <rabbitmq_password>
+    static_configs:
+      - targets: ["<rabbitmq_host>:16001", "<rabbitmq_host>:16002", "<rabbitmq_host>:16003"]
+```
+
+`/metrics/detailed` and `/metrics/memory-breakdown` are also available; `/metrics/per-object` is
+not. See
+[Accessing Prometheus metrics](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-prometheus-metrics.html).
 
 ## Required AWS IAM permissions
 

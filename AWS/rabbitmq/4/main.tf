@@ -70,6 +70,7 @@ locals {
   )
 }
 
+# Keep the description as is: changing it replaces the group, which fails while the broker uses it.
 resource "aws_security_group" "broker" {
   count = local.create_security_group ? 1 : 0
 
@@ -89,6 +90,14 @@ resource "aws_security_group" "broker" {
     description = "RabbitMQ management UI and HTTP API"
     from_port   = 443
     to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = local.allowed_cidrs
+  }
+
+  ingress {
+    description = "Prometheus metrics, one port per node"
+    from_port   = 16001
+    to_port     = 16003
     protocol    = "tcp"
     cidr_blocks = local.allowed_cidrs
   }
