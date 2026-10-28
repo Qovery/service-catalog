@@ -176,6 +176,8 @@ dynamic parameter with `immediate` (the default here) and refuses it for a stati
 - Clearing `db_parameters` moves the instance and replicas back to `default.postgres15` and deletes
   the group; dynamic parameters revert straight away, static ones at the next reboot. Left unset, the
   blueprint does not touch the parameter group, so a group attached by other means stays in place.
+  The blueprint recognises its own group by name, `<identifier>-params-` followed by 26 hex
+  characters: do not give a group of your own a name of that shape.
 
 ## Outputs
 

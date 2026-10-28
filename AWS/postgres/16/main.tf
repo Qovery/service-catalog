@@ -65,10 +65,14 @@ locals {
   parameter_group_prefix = "${replace(substr(local.db_identifier, 0, 200), "/-$/", "")}-params-"
   live_parameter_group   = try(one(data.aws_db_instance.live).db_parameter_groups[0], "")
 
+  # Owned = the prefix plus the 26-character suffix name_prefix generates (18-digit timestamp, 8-hex
+  # counter). Group tags cannot be read back, so this shape is the ownership check.
+  live_parameter_group_owned = can(regex("^${local.parameter_group_prefix}[0-9a-f]{26}$", local.live_parameter_group))
+
   # True while the blueprint's group is involved in a major upgrade: being set, or being cleared.
   parameter_group_major_upgrade = (
     local.live_parameter_family != local.parameter_group_family
-    && (var.db_parameters != "" || startswith(local.live_parameter_group, local.parameter_group_prefix))
+    && (var.db_parameters != "" || local.live_parameter_group_owned)
   )
 
   # Unset leaves the live group alone (null is Optional+Computed): the AWS default, a group set in
@@ -76,7 +80,7 @@ locals {
   # swapped back to the family default, so clearing db_parameters can delete it.
   parameter_group_name = (
     var.db_parameters != "" ? aws_db_parameter_group.this[0].name
-    : startswith(local.live_parameter_group, local.parameter_group_prefix) ? "default.${local.parameter_group_family}"
+    : local.live_parameter_group_owned ? "default.${local.parameter_group_family}"
     : null
   )
 
@@ -416,11 +420,15 @@ resource "aws_db_instance" "read_replica" {
   monitoring_interval                   = var.monitoring_interval
   monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
 
-  # A major upgrade of the primary waits for its in-Region replicas to be upgraded too, so by the time
-  # Terraform reaches them they take a group of the new family. Being updated before the old group is
-  # deleted, they never hold it at deletion.
-  parameter_group_name = local.parameter_group_name
-  deletion_protection  = var.deletion_protection
+  # A major upgrade of the primary waits for its in-Region replicas to be upgraded too, and RDS moves
+  # them to the new family's default group, so they never hold the old group at deletion. Setting
+  # db_parameters moves them on to the new blueprint group; clearing it during the upgrade leaves them
+  # alone, as requesting the default they already have is refused as "no modifications".
+  parameter_group_name = (
+    local.live_parameter_family != local.parameter_group_family && var.db_parameters == "" ? null
+    : local.parameter_group_name
+  )
+  deletion_protection = var.deletion_protection
 
   tags = {
     Name          = "${var.db_name}-replica-${count.index + 1}"
