@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "4.6.1"
+  version: "4.7.0"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -350,6 +350,13 @@ spec:
       description: "Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default."
       min: 0
       max: 256000
+    - name: "storage_throughput"
+      type: "number"
+      required: false
+      default: "0"
+      description: "Provisioned storage throughput in MiB/s, 500-4000. gp3 with allocated_storage ≥400 GiB only: below that AWS fixes it at 125 MiB/s, so leave 0. Max 0.25 × disk_iops (3000 when disk_iops is 0). 0 = AWS baseline on a new instance; an existing one keeps its current value, so set 500 to return to baseline."
+      min: 0
+      max: 4000
     - name: "multi_az"
       type: "bool"
       required: false
