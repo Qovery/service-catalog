@@ -204,6 +204,11 @@ variable "storage_throughput" {
   }
 
   validation {
+    condition     = floor(var.storage_throughput) == var.storage_throughput
+    error_message = "storage_throughput must be a whole number."
+  }
+
+  validation {
     condition     = var.storage_throughput == 0 || var.storage_type == "gp3"
     error_message = "storage_throughput can only be set when storage_type is gp3."
   }
