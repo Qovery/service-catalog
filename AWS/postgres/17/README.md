@@ -138,7 +138,7 @@ create/destroy cycles of the same name do not collide.
 
 | Name            | Type   | Default | Description |
 | --------------- | ------ | ------- | ----------- |
-| `db_parameters` | string |         | Empty = the instance keeps its current parameter group. JSON object of PostgreSQL parameters: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need `apply_method` `pending-reboot` and take effect at the next reboot. |
+| `db_parameters` | string |         | Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need `apply_method` `pending-reboot` and take effect at the next reboot. |
 
 Each value is either the parameter value, or an object carrying `apply_method` too. RDS applies a
 dynamic parameter with `immediate` (the default here) and refuses it for a static one, which needs
@@ -155,19 +155,20 @@ dynamic parameter with `immediate` (the default here) and refuses it for a stati
 }
 ```
 
-- **Write values the way RDS stores them** — `1`/`0` for booleans, plain integers in the
-  parameter's own unit (`max_wal_size` in MB, `checkpoint_timeout` in seconds). Anything else is
-  normalised by AWS and shows up as a change on every deploy.
+- **Write values the way RDS stores them** — plain integers in the parameter's own unit (`max_wal_size` in MB, `checkpoint_timeout` in seconds). Anything else is
+  normalised by AWS and shows up as a change on every deploy. JSON `true`/`false` are sent as
+  `1`/`0`.
 - **Overriding `shared_preload_libraries` replaces the RDS default**, `pg_stat_statements`. Keep it
   in the list, or Performance Insights' SQL statistics stop.
-- **The blueprint never reboots the instance.** A new instance starts on the group. On an existing
+- **The blueprint never reboots the instance to apply parameters.** A new instance starts on the group. On an existing
   one, attaching the group for the first time, and every change to a `pending-reboot` parameter,
   waits for a reboot: the instance shows `pending-reboot` in the AWS console until you reboot it
   there. Changes to dynamic parameters apply without one.
 - The group is named `<identifier>-params-<suffix>` and its family follows the engine major
-  (`postgres17`). A major upgrade creates a group of the new family with the same `db_parameters`,
-  moves the instance onto it along with the engine and deletes the old group, which is never sent a
-  parameter its version may not know. Read replicas move to the new group on the next deploy.
+  (`postgres17`). With `db_parameters` set, a major upgrade creates a group of the new family with
+  the same parameters and moves the instance onto it along with the engine. RDS upgrades the read
+  replicas as part of the primary's upgrade, so they move onto the new group in the same deploy, and
+  only then is the old group deleted: it is never sent a parameter its version may not know.
 - **A major upgrade with `db_parameters` set, or being cleared, needs `apply_changes_now = true`**,
   and the deploy fails before changing anything otherwise. Deferred to the maintenance window, the
   upgrade would keep the old group attached, and it could not be deleted. Either apply the upgrade

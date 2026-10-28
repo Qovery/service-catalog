@@ -480,7 +480,7 @@ spec:
     - name: "db_parameters"
       type: "string"
       required: false
-      description: 'Empty = the instance keeps its current parameter group. JSON object of PostgreSQL parameters, e.g. {"log_connections":"1","shared_preload_libraries":{"value":"pg_stat_statements,auto_explain","apply_method":"pending-reboot"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot.'
+      description: 'Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters, e.g. {"log_connections":"1","shared_preload_libraries":{"value":"pg_stat_statements,auto_explain","apply_method":"pending-reboot"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot.'
     - name: "deletion_protection"
       type: "bool"
       required: false

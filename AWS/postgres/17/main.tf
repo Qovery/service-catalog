@@ -54,7 +54,8 @@ data "aws_db_instance" "live" {
 locals {
   db_parameters = var.db_parameters == "" ? {} : {
     for name, v in jsondecode(var.db_parameters) : name => {
-      value        = tostring(try(v.value, v))
+      # RDS stores booleans as 1/0; sending true/false would read back as a change on every plan.
+      value        = try(v.value, v) == true ? "1" : try(v.value, v) == false ? "0" : tostring(try(v.value, v))
       apply_method = try(v.apply_method, "immediate")
     }
   }
@@ -79,9 +80,6 @@ locals {
     : null
   )
 
-  # Replicas are modified only after the primary, while RDS may still be upgrading them, so during a
-  # major upgrade they keep their group and pick up the new one on the next deploy.
-  read_replica_parameter_group_name = local.live_parameter_family == local.parameter_group_family ? local.parameter_group_name : null
 }
 
 resource "aws_db_parameter_group" "this" {
@@ -418,7 +416,10 @@ resource "aws_db_instance" "read_replica" {
   monitoring_interval                   = var.monitoring_interval
   monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
 
-  parameter_group_name = local.read_replica_parameter_group_name
+  # A major upgrade of the primary waits for its in-Region replicas to be upgraded too, so by the time
+  # Terraform reaches them they take a group of the new family. Being updated before the old group is
+  # deleted, they never hold it at deletion.
+  parameter_group_name = local.parameter_group_name
   deletion_protection  = var.deletion_protection
 
   tags = {

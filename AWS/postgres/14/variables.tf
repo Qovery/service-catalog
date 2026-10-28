@@ -334,7 +334,7 @@ variable "option_group_name" {
 variable "db_parameters" {
   type        = string
   default     = ""
-  description = "Empty = the instance keeps its current parameter group. JSON object of PostgreSQL parameters, e.g. {\"log_connections\":\"1\",\"shared_preload_libraries\":{\"value\":\"pg_stat_statements,auto_explain\",\"apply_method\":\"pending-reboot\"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot."
+  description = "Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters, e.g. {\"log_connections\":\"1\",\"shared_preload_libraries\":{\"value\":\"pg_stat_statements,auto_explain\",\"apply_method\":\"pending-reboot\"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot."
 
   validation {
     condition     = var.db_parameters == "" || can(keys(jsondecode(var.db_parameters)))
@@ -342,10 +342,13 @@ variable "db_parameters" {
   }
 
   validation {
-    condition = try(alltrue([
+    # tostring(null) succeeds, so null is rejected explicitly; any evaluation error is a rejection.
+    condition = var.db_parameters == "" || try(alltrue([
       for name, v in jsondecode(var.db_parameters) :
-      can(tostring(try(v.value, v))) && contains(["immediate", "pending-reboot"], try(v.apply_method, "immediate"))
-    ]), true)
+      try(v.value, v) != null
+      && can(tostring(try(v.value, v)))
+      && try(contains(["immediate", "pending-reboot"], try(v.apply_method, "immediate")), false)
+    ]), false)
     error_message = "Each db_parameters value must be a string, number or bool, or {\"value\": ..., \"apply_method\": \"immediate\" | \"pending-reboot\"}."
   }
 }
