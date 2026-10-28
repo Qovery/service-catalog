@@ -31,12 +31,10 @@ import {
   id       = each.value
 }
 
-# Live version of the instance, read only when the deployment engine supplies none. Covers created
-# and adopted instances alike. Looked up through the list data source first: it returns nothing for an
-# instance that does not exist yet (or is already gone), where the single-instance one fails.
+# Live instance: its version, when the deployment engine supplies none, and its parameter group.
+# Covers created and adopted instances alike. Looked up through the list data source first: it returns
+# nothing for an instance that does not exist yet (or is already gone), where the single-instance one fails.
 data "aws_db_instances" "live" {
-  count = var.engine_version == "" ? 1 : 0
-
   filter {
     name   = "db-instance-id"
     values = [local.db_identifier]
@@ -44,8 +42,77 @@ data "aws_db_instances" "live" {
 }
 
 data "aws_db_instance" "live" {
-  count                  = length(flatten(data.aws_db_instances.live[*].instance_identifiers))
+  count                  = length(data.aws_db_instances.live.instance_identifiers)
   db_instance_identifier = local.db_identifier
+}
+
+# Custom parameter group, created only when db_parameters is set. The family follows the engine
+# major, so a major upgrade replaces the group: the prefix plus create_before_destroy creates the new
+# one, the instance moves onto it with the engine, and the old group is deleted untouched -- never
+# sent parameters its major may not know. That deletion needs the upgrade applied now, which the
+# precondition on the instance enforces.
+locals {
+  db_parameters = var.db_parameters == "" ? {} : {
+    for name, v in jsondecode(var.db_parameters) : name => {
+      value        = tostring(try(v.value, v))
+      apply_method = try(v.apply_method, "immediate")
+    }
+  }
+
+  parameter_group_family = "postgres${split(".", local.engine_version)[0]}"
+  live_parameter_family  = try("postgres${split(".", one(data.aws_db_instance.live).engine_version)[0]}", local.parameter_group_family)
+  parameter_group_prefix = "${replace(substr(local.db_identifier, 0, 200), "/-$/", "")}-params-"
+  live_parameter_group   = try(one(data.aws_db_instance.live).db_parameter_groups[0], "")
+
+  # True while the blueprint's group is involved in a major upgrade: being set, or being cleared.
+  parameter_group_major_upgrade = (
+    local.live_parameter_family != local.parameter_group_family
+    && (var.db_parameters != "" || startswith(local.live_parameter_group, local.parameter_group_prefix))
+  )
+
+  # Unset leaves the live group alone (null is Optional+Computed): the AWS default, a group set in
+  # the AWS console, or an adopted instance's own group. Only a group this blueprint created is
+  # swapped back to the family default, so clearing db_parameters can delete it.
+  parameter_group_name = (
+    var.db_parameters != "" ? aws_db_parameter_group.this[0].name
+    : startswith(local.live_parameter_group, local.parameter_group_prefix) ? "default.${local.parameter_group_family}"
+    : null
+  )
+
+  # Replicas are modified only after the primary, while RDS may still be upgrading them, so during a
+  # major upgrade they keep their group and pick up the new one on the next deploy.
+  read_replica_parameter_group_name = local.live_parameter_family == local.parameter_group_family ? local.parameter_group_name : null
+}
+
+resource "aws_db_parameter_group" "this" {
+  count = var.db_parameters != "" ? 1 : 0
+
+  name_prefix = local.parameter_group_prefix
+  family      = local.parameter_group_family
+  description = "Parameters for the ${var.db_name} PostgreSQL instance"
+
+  dynamic "parameter" {
+    for_each = local.db_parameters
+    content {
+      name         = parameter.key
+      value        = parameter.value.value
+      apply_method = parameter.value.apply_method
+    }
+  }
+
+  tags = {
+    Name            = "${var.db_name}-params"
+    ManagedBy       = "qovery-blueprint"
+    Blueprint       = "aws-rds-postgresql"
+    ClusterName     = var.qovery_cluster_name
+    cluster_id      = var.qovery_cluster_id
+    cluster_long_id = var.qovery_cluster_long_id
+    region          = var.region
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Attach to the Qovery cluster network by default, like native managed
@@ -174,6 +241,7 @@ resource "aws_db_instance" "this" {
   monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
 
   # Misc
+  parameter_group_name                = local.parameter_group_name
   option_group_name                   = var.option_group_name == "" ? null : var.option_group_name
   deletion_protection                 = var.deletion_protection
   iam_database_authentication_enabled = var.iam_database_authentication_enabled
@@ -194,14 +262,19 @@ resource "aws_db_instance" "this" {
   }
 
   lifecycle {
+    # Deferred, the upgrade keeps the old group attached until the maintenance window, so deleting
+    # it would fail mid-apply.
+    precondition {
+      condition     = !local.parameter_group_major_upgrade || var.apply_changes_now
+      error_message = "A major version upgrade with db_parameters set (or being cleared) needs apply_changes_now = true: RDS keeps the old parameter group attached until the upgrade runs, so it cannot be deleted before then."
+    }
+
     ignore_changes = [
       # Neutralises legacy state: instances created before password_wo carry a value here, and
       # password is no longer in the configuration, so without this the stale value reads as a removal.
       password,
       # No list type in qbm.yml — defer to a manifest schema extension
       enabled_cloudwatch_logs_exports,
-      # AWS may auto-replace the param group during minor upgrades; user can override via console
-      parameter_group_name,
       # Will turn into a managed input when the storage autoscale feature is added
       max_allocated_storage,
       # Preserve existing AWS tags on adoption: the native path tags managed RDS with cluster_id
@@ -345,7 +418,8 @@ resource "aws_db_instance" "read_replica" {
   monitoring_interval                   = var.monitoring_interval
   monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
 
-  deletion_protection = var.deletion_protection
+  parameter_group_name = local.read_replica_parameter_group_name
+  deletion_protection  = var.deletion_protection
 
   tags = {
     Name          = "${var.db_name}-replica-${count.index + 1}"
@@ -369,7 +443,6 @@ resource "aws_db_instance" "read_replica" {
       engine_version,
       # Same rationale as the primary above for the rest.
       enabled_cloudwatch_logs_exports,
-      parameter_group_name,
       max_allocated_storage,
       tags,
       # A same-region replica inherits encryption from the source and never sets
