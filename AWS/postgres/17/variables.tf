@@ -196,7 +196,7 @@ variable "disk_iops" {
 variable "storage_throughput" {
   type        = number
   default     = 0
-  description = "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return to baseline, set 500 with disk_iops 12000."
+  description = "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return throughput to baseline, set 500 and keep disk_iops at the instance's current IOPS (12000 at the gp3 baseline)."
 
   validation {
     condition     = var.storage_throughput == 0 || (var.storage_throughput >= 500 && var.storage_throughput <= 4000)
