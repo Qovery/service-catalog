@@ -196,7 +196,7 @@ variable "disk_iops" {
 variable "storage_throughput" {
   type        = number
   default     = 0
-  description = "Provisioned storage throughput in MiB/s, 500-4000. gp3 with allocated_storage ≥400 GiB only: below that AWS fixes it at 125 MiB/s, so leave 0. Max 0.25 × disk_iops (3000 when disk_iops is 0). 0 = AWS baseline on a new instance; an existing one keeps its current value, so set 500 to return to baseline."
+  description = "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return to baseline, set 500 with disk_iops 12000."
 
   validation {
     condition     = var.storage_throughput == 0 || (var.storage_throughput >= 500 && var.storage_throughput <= 4000)
@@ -215,9 +215,15 @@ variable "storage_throughput" {
   }
 
   validation {
-    # AWS caps gp3 throughput at 0.25 MiB/s per IOPS; disk_iops 0 means the 12000 IOPS baseline.
-    condition     = var.storage_throughput <= 0.25 * (var.disk_iops > 0 ? var.disk_iops : 12000)
-    error_message = "storage_throughput must not exceed 0.25 x disk_iops (3000 MiB/s when disk_iops is 0, the 12000 IOPS baseline); raise disk_iops for more."
+    # CreateDBInstance rejects a gp3 throughput without IOPS, and gp3 at 400 GiB and up starts at 12000 IOPS.
+    condition     = var.storage_throughput == 0 || var.disk_iops >= 12000
+    error_message = "storage_throughput needs disk_iops set to 12000 or more (on an existing instance, its current IOPS)."
+  }
+
+  validation {
+    # AWS caps gp3 throughput at 0.25 MiB/s per IOPS.
+    condition     = var.storage_throughput == 0 || var.storage_throughput <= 0.25 * var.disk_iops
+    error_message = "storage_throughput must not exceed 0.25 x disk_iops; raise disk_iops for more."
   }
 }
 
