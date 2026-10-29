@@ -55,12 +55,13 @@ as the credential without ever being applied.
 
 ### Instance & storage
 
-| Name                | Type   | Default       | Description                                                    |
-| ------------------- | ------ | ------------- | -------------------------------------------------------------- |
-| `port`              | number | `5432`        | Database port                                                  |
-| `storage_type`      | string | `gp3`         | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                   |
-| `storage_encrypted` | bool   | `true`        | Encrypt storage at rest                                        |
-| `disk_iops`         | number | `0`           | Provisioned IOPS (io1/io2 or gp3 ≥400 GiB). `0` = AWS default. |
+| Name                 | Type   | Default | Description                                                                                                                                                                                                                                     |
+| -------------------- | ------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `port`               | number | `5432`  | Database port                                                                                                                                                                                                                                   |
+| `storage_type`       | string | `gp3`   | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                                                                                                                                                                                                    |
+| `storage_encrypted`  | bool   | `true`  | Encrypt storage at rest                                                                                                                                                                                                                         |
+| `disk_iops`          | number | `0`     | Provisioned IOPS (io1/io2 or gp3 ≥400 GiB). `0` = AWS default.                                                                                                                                                                                  |
+| `storage_throughput` | number | `0`     | `0` = AWS baseline on a new instance; an existing one keeps its value. Otherwise MiB/s, 500–4000 (gp3 ≥400 GiB only; AWS fixes 125 MiB/s below). Needs `disk_iops` ≥12000 too (AWS rejects a throughput without IOPS); max 0.25 × `disk_iops`. Throughput back to baseline: `500`, keeping `disk_iops` at the instance's current IOPS (`12000` at the gp3 baseline). |
 
 ### Network
 

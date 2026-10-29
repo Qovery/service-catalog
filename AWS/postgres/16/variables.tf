@@ -193,6 +193,45 @@ variable "disk_iops" {
   }
 }
 
+variable "storage_throughput" {
+  type        = number
+  default     = 0
+  description = "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return throughput to baseline, set 500 and keep disk_iops at the instance's current IOPS (12000 at the gp3 baseline)."
+
+  validation {
+    condition     = var.storage_throughput == 0 || (var.storage_throughput >= 500 && var.storage_throughput <= 4000)
+    error_message = "storage_throughput must be 0 or between 500 and 4000 MiB/s."
+  }
+
+  validation {
+    condition     = floor(var.storage_throughput) == var.storage_throughput
+    error_message = "storage_throughput must be a whole number."
+  }
+
+  validation {
+    condition     = var.storage_throughput == 0 || var.storage_type == "gp3"
+    error_message = "storage_throughput can only be set when storage_type is gp3."
+  }
+
+  validation {
+    # Below 400 GiB gp3 is one volume at a fixed 3000 IOPS / 125 MiB/s; AWS rejects a throughput.
+    condition     = var.storage_throughput == 0 || var.allocated_storage >= 400
+    error_message = "storage_throughput can only be set when allocated_storage is at least 400 GiB; leave it 0 below that."
+  }
+
+  validation {
+    # CreateDBInstance rejects a gp3 throughput without IOPS, and gp3 at 400 GiB and up starts at 12000 IOPS.
+    condition     = var.storage_throughput == 0 || var.disk_iops >= 12000
+    error_message = "storage_throughput needs disk_iops set to 12000 or more (on an existing instance, its current IOPS)."
+  }
+
+  validation {
+    # AWS caps gp3 throughput at 0.25 MiB/s per IOPS.
+    condition     = var.storage_throughput == 0 || var.storage_throughput <= 0.25 * var.disk_iops
+    error_message = "storage_throughput must not exceed 0.25 x disk_iops; raise disk_iops for more."
+  }
+}
+
 variable "multi_az" {
   type        = bool
   default     = true
