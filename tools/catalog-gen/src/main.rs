@@ -337,6 +337,9 @@ struct VarDecl {
     min_length: Option<u64>,
     #[serde(rename = "maxLength")]
     max_length: Option<u64>,
+    // Editor format of a string variable (e.g. "json"): the console picks its editor, q-core checks
+    // the value's syntax.
+    format: Option<String>,
     // Defaults to false when omitted. Authors must mark sensitive variables explicitly so the
     // console renders them as secret inputs.
     sensitive: Option<bool>,
@@ -659,7 +662,37 @@ fn validate_var_constraints(path: &str, var: &VarDecl, errors: &mut Vec<String>)
             ));
         }
     }
+
+    if let Some(format) = &var.format {
+        if !is_string_typed {
+            errors.push(format!(
+                "{}: '{}' format can only be used with type: string",
+                path, var.name
+            ));
+        }
+        if !VARIABLE_FORMATS.contains(&format.as_str()) {
+            errors.push(format!(
+                "{}: '{}' format '{}' must be one of {:?}",
+                path, var.name, format, VARIABLE_FORMATS
+            ));
+        }
+        // q-core rejects a default that does not parse at deploy time; catch the common case here.
+        // Its stricter checks (duplicate keys, nesting depth, size) are left to q-core.
+        if format == "json" {
+            if let Some(default) = var.default.as_deref().filter(|d| !d.trim().is_empty()) {
+                if serde_json::from_str::<serde_json::Value>(default).is_err() {
+                    errors.push(format!(
+                        "{}: '{}' default is not valid JSON",
+                        path, var.name
+                    ));
+                }
+            }
+        }
+    }
 }
+
+/// Editor formats q-core understands on a string variable.
+const VARIABLE_FORMATS: &[&str] = &["json"];
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -1989,7 +2022,10 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{looks_sensitive, validate_ports, validate_sensitive_naming, ValidatePort, VarDecl};
+    use super::{
+        looks_sensitive, validate_ports, validate_sensitive_naming, validate_var_constraints,
+        ValidatePort, VarDecl,
+    };
 
     #[test]
     fn secret_bearing_names_are_flagged() {
@@ -2061,6 +2097,40 @@ mod tests {
             &mut errors,
         );
         assert_eq!(errors.len(), 1, "only bool is exempt, got {errors:?}");
+    }
+
+    fn constraint_errors(yaml: &str) -> Vec<String> {
+        let mut errors = Vec::new();
+        validate_var_constraints("AWS/postgres/17/qbm.yml", &var(yaml), &mut errors);
+        errors
+    }
+
+    #[test]
+    fn json_format_is_accepted_on_string_variables() {
+        for yaml in [
+            "name: db_parameters\ntype: string\nformat: json",
+            "name: db_parameters\nformat: json",
+            "name: db_parameters\ntype: string\nformat: json\ndefault: '{\"log_connections\":\"1\"}'",
+        ] {
+            let errors = constraint_errors(yaml);
+            assert!(errors.is_empty(), "{yaml} should pass, got {errors:?}");
+        }
+    }
+
+    #[test]
+    fn format_rejects_other_types_unknown_formats_and_malformed_json_defaults() {
+        for yaml in [
+            "name: storage\ntype: number\nformat: json",
+            "name: db_parameters\ntype: string\nformat: yaml",
+            "name: db_parameters\ntype: string\nformat: json\ndefault: '{\"log_connections\":'",
+        ] {
+            let errors = constraint_errors(yaml);
+            assert_eq!(
+                errors.len(),
+                1,
+                "{yaml}: expected one error, got {errors:?}"
+            );
+        }
     }
 
     fn ports(yaml: &str) -> Vec<ValidatePort> {

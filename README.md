@@ -233,6 +233,7 @@ variables:
     pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$" # strings only — regex
     minLength: 1 # strings only
     maxLength: 63 # strings only
+    format: "json" # strings only — optional; Console JSON editor, malformed JSON rejected at submit
     min: 20 # numbers only
     max: 65536 # numbers only
     allowedValues: ["db.t3.micro", "db.t3.small"] # optional;
@@ -243,6 +244,9 @@ CI enforces:
 - `sensitive` in `qbm.yml` must match `variables.tf` `sensitive = true`.
 - Variable names matching `password|secret|token|api_key|access_key|private_key|credential` must
   be marked `sensitive: true` (or rename them).
+- `format` is only allowed on string variables, `json` is the only value, and a `json` default
+  must parse as JSON. The value still reaches Terraform as a string: declare the variable
+  `type = string` and `jsondecode` it, with a `validation` block for the expected shape.
 
 ### `spec.contextVariables`
 
