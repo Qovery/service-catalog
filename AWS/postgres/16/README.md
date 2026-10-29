@@ -135,6 +135,51 @@ create/destroy cycles of the same name do not collide.
 | `iam_database_authentication_enabled` | bool   | `false` | Enable IAM DB authentication                       |
 | `dedicated_log_volume`                | bool   | `false` | Provision a dedicated EBS volume for database logs |
 
+### Parameters
+
+| Name            | Type   | Default | Description |
+| --------------- | ------ | ------- | ----------- |
+| `db_parameters` | string |         | Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need `apply_method` `pending-reboot` and take effect at the next reboot. |
+
+Each value is either the parameter value, or an object carrying `apply_method` too. RDS applies a
+dynamic parameter with `immediate` (the default here) and refuses it for a static one, which needs
+`pending-reboot`:
+
+```json
+{
+  "log_connections": "1",
+  "max_wal_size": "16384",
+  "checkpoint_timeout": "1800",
+  "idle_in_transaction_session_timeout": "600000",
+  "shared_preload_libraries": { "value": "pg_stat_statements,auto_explain", "apply_method": "pending-reboot" },
+  "auto_explain.log_min_duration": "5000"
+}
+```
+
+- **Write values the way RDS stores them** — plain integers in the parameter's own unit (`max_wal_size` in MB, `checkpoint_timeout` in seconds). Anything else is
+  normalised by AWS and shows up as a change on every deploy. JSON `true`/`false` are sent as
+  `1`/`0`.
+- **Overriding `shared_preload_libraries` replaces the RDS default**, `pg_stat_statements`. Keep it
+  in the list, or Performance Insights' SQL statistics stop.
+- **The blueprint never reboots the instance to apply parameters.** A new instance starts on the group. On an existing
+  one, attaching the group for the first time, and every change to a `pending-reboot` parameter,
+  waits for a reboot: the instance shows `pending-reboot` in the AWS console until you reboot it
+  there. Changes to dynamic parameters apply without one.
+- The group is named `<identifier>-params-<suffix>` and its family follows the engine major
+  (`postgres16`). With `db_parameters` set, a major upgrade creates a group of the new family with
+  the same parameters and moves the instance onto it along with the engine. RDS upgrades the read
+  replicas as part of the primary's upgrade, so they move onto the new group in the same deploy, and
+  only then is the old group deleted: it is never sent a parameter its version may not know.
+- **A major upgrade with `db_parameters` set, or being cleared, needs `apply_changes_now = true`**,
+  and the deploy fails before changing anything otherwise. Deferred to the maintenance window, the
+  upgrade would keep the old group attached, and it could not be deleted. Either apply the upgrade
+  now, or upgrade first and set `db_parameters` afterwards.
+- Clearing `db_parameters` moves the instance and replicas back to `default.postgres16` and deletes
+  the group; dynamic parameters revert straight away, static ones at the next reboot. Left unset, the
+  blueprint does not touch the parameter group, so a group attached by other means stays in place.
+  The blueprint recognises its own group by name, `<identifier>-params-` followed by 26 hex
+  characters: do not give a group of your own a name of that shape.
+
 ## Outputs
 
 | Name                       | Sensitive | Description                                                |
@@ -186,6 +231,9 @@ Read this before repointing a deployment at this version.
 - Terraform moves from 1.9.7 to 1.13.3, and `1.9.7` is no longer an accepted override. State written by
   1.13.3 cannot be read by 1.9.7, so a deployment cannot be repointed at an earlier blueprint version
   once it has applied.
+- `parameter_group_name` is no longer ignored. Left unset (`db_parameters` empty), nothing changes:
+  Terraform sends no value and a group attached in the AWS console stays. Setting `db_parameters`
+  replaces that group with the blueprint's, so copy any parameters you still need into it first.
 - On an **adopted** instance with read replicas, the replicas are now given the primary's security
   groups explicitly, even with `read_replica_allowed_cidrs` unset. If they currently carry other
   groups (typically the VPC default group), the first apply swaps them in place: no replacement,
@@ -212,7 +260,6 @@ A few attributes remain ignored:
 
 - `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
 - `enabled_cloudwatch_logs_exports` — list type, not yet supported by the qbm.yml schema.
-- `parameter_group_name` — AWS may auto-replace it during minor upgrades; override via the AWS console if needed.
 - `max_allocated_storage` — will turn into a managed input when the storage autoscale feature is added.
 
 ## Required AWS IAM permissions
@@ -232,6 +279,11 @@ The credentials used to deploy this blueprint must allow the actions below. The 
         "rds:ModifyDBInstance",
         "rds:DescribeDBInstances",
         "rds:DescribeDBParameters",
+        "rds:CreateDBParameterGroup",
+        "rds:ModifyDBParameterGroup",
+        "rds:DeleteDBParameterGroup",
+        "rds:DescribeDBParameterGroups",
+        "rds:ResetDBParameterGroup",
         "rds:DescribeDBSubnetGroups",
         "rds:DescribeDBSecurityGroups",
         "rds:AddTagsToResource",
