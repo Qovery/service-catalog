@@ -12,7 +12,7 @@ When the blueprint creates the instance, the RDS identifier is derived from `db_
 | ------------- | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `db_name`     | string |           | PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed. |
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
-| `allocated_storage` | number |           | Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, 16384 for gp2). Default suggestion: `20`.                           |
+| `allocated_storage` | number |           | Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, 16384 for gp2). A value below the instance's current disk size is a no-op: RDS cannot shrink storage. Default suggestion: `20`. |
 
 Available instance classes: every RDS instance class Qovery offers for native managed PostgreSQL and MySQL — the `db.t3`, `db.t4g`, `db.m5`–`db.m8g`, `db.r5`–`db.r8g` (including `db.r5b`), `db.x2g`, `db.x2idn` and `db.x2iedn` families, with their Graviton (`g`), Intel (`i`), local-storage (`d`) and network-optimized (`n`) variants. `db.c6gd` is left out because RDS offers it only for Multi-AZ DB clusters. The full list is in `qbm.yml`.
 
@@ -58,10 +58,28 @@ as the credential without ever being applied.
 | Name                 | Type   | Default | Description                                                                                                                                                                                                                                     |
 | -------------------- | ------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `port`               | number | `5432`  | Database port                                                                                                                                                                                                                                   |
+| `max_allocated_storage` | number |      | Leave empty to keep the current storage autoscaling setting: off on a new database, the primary's on a new read replica. `0` turns autoscaling off. Otherwise the ceiling in GiB RDS may grow the disk to: at least 10% above `allocated_storage` (AWS recommends 26%), at most 65536 (16384 for gp2). Takes effect immediately, whatever `apply_changes_now` says. |
 | `storage_type`       | string | `gp3`   | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                                                                                                                                                                                                    |
 | `storage_encrypted`  | bool   | `true`  | Encrypt storage at rest                                                                                                                                                                                                                         |
 | `disk_iops`          | number | `0`     | Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default. |
 | `storage_throughput` | number | `0`     | 0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with `allocated_storage` ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs `disk_iops` set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × `disk_iops`. To return throughput to baseline, set 500 and keep `disk_iops` at the instance's current IOPS (12000 at the gp3 baseline). |
+
+**Storage autoscaling.** With `max_allocated_storage` set, RDS grows the disk on its own when free
+space stays at or below 10% for 5 minutes, up to that ceiling. Left empty, the blueprint keeps
+whatever the instance has, including a ceiling set in the AWS console.
+
+- **The ceiling must be at least 10% above the current disk**, not only above `allocated_storage`,
+  and on each read replica above that replica's own disk. Once autoscaling has grown a disk, the
+  deploy fails before changing anything if the ceiling is too close to it, and names the minimum.
+  An unchanged ceiling is not checked, except when `allocated_storage` raises the disk or a new
+  replica is about to be created with it. A replacement that keeps the identifier is not caught:
+  if its disk sits within 10% of the ceiling, AWS refuses it at apply, so raise the ceiling first.
+- **It applies immediately**, without a reboot, whatever `apply_changes_now` says.
+- **A disk never shrinks.** The blueprint asks for the larger of `allocated_storage` and the live
+  disk size, so a grown disk does not show as a change, and setting `0` after a growth turns
+  autoscaling off at the current size.
+- With io1/io2 storage, AWS also requires the IOPS-to-ceiling ratio to stay within a range, and
+  rejects a ceiling outside it when the deploy applies.
 
 ### Network
 
@@ -84,7 +102,7 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | `read_replica_allowed_cidrs`       | string |         | Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (e.g. Metabase Cloud IPs; 10.0.0.0/24, not 10.0.0.5/24): replicas then accept only these and the VPC on the database `port`. Needs `read_replica_count` > 0; public addresses also need `read_replica_publicly_accessible` = true. |
 | `read_replica_multi_az`            | bool   | `false` | Enable Multi-AZ for replicas.                                                           |
 
-Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC. To let such a tool in without opening the primary, set `read_replica_publicly_accessible = true` and list its egress IPs in `read_replica_allowed_cidrs` (e.g. the Metabase Cloud IPs for your region): the blueprint creates a dedicated security group allowing those CIDRs plus the VPC's own CIDRs on the database port, and attaches it to the replicas **instead of** the primary's groups. Replacing rather than adding is deliberate: on a Qovery-managed network the cluster workers group also carries the cluster-wide `database.postgresql.allowed_cidrs` rule (`0.0.0.0/0` by default), which would otherwise leave a public replica reachable from anywhere. Clients inside the VPC keep access through the VPC CIDR rule. With the variable unset, replicas carry the primary's security groups, including on an adopted instance.
+Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. `max_allocated_storage` and `cloudwatch_logs_export_enabled` apply to every replica too: left unset, an existing replica keeps its own autoscaling ceiling and log exports, and a new one starts from the primary's. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC. To let such a tool in without opening the primary, set `read_replica_publicly_accessible = true` and list its egress IPs in `read_replica_allowed_cidrs` (e.g. the Metabase Cloud IPs for your region): the blueprint creates a dedicated security group allowing those CIDRs plus the VPC's own CIDRs on the database port, and attaches it to the replicas **instead of** the primary's groups. Replacing rather than adding is deliberate: on a Qovery-managed network the cluster workers group also carries the cluster-wide `database.postgresql.allowed_cidrs` rule (`0.0.0.0/0` by default), which would otherwise leave a public replica reachable from anywhere. Clients inside the VPC keep access through the VPC CIDR rule. With the variable unset, replicas carry the primary's security groups, including on an adopted instance.
 
 ### Maintenance & upgrades
 
@@ -124,7 +142,21 @@ create/destroy cycles of the same name do not collide.
 | `performance_insights_retention_period` | number | `7`                 | Performance Insights retention in days. Only used when `performance_insights_enabled` is true. Valid: 7, 731, or a multiple of 31. |
 | `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval in seconds (0 disables). Allowed values: 0, 1, 5, 10, 15, 30, 60. |
 | `monitoring_role_arn`                   | string |                     | IAM role ARN for enhanced monitoring. Required when `monitoring_interval > 0`. |
+| `cloudwatch_logs_export_enabled`        | bool   | `false`             | Off keeps the current CloudWatch log exports: none on a new database, the primary's on a new read replica. On also exports the PostgreSQL log to CloudWatch Logs, on the primary and every read replica, immediately. Turning it back off does not stop an export. |
 | `ca_cert_identifier`                    | string | `rds-ca-rsa2048-g1` | CA certificate identifier                                                      |
+
+**CloudWatch log export.** `cloudwatch_logs_export_enabled = true` adds the `postgresql` log to
+what the instance already exports; RDS publishes it to the log group
+`/aws/rds/instance/<identifier>/postgresql`. `false` does not remove anything: the instance keeps
+the exports it has, so an export set in the AWS console (`upgrade`, for instance) survives every
+deploy.
+
+- **To stop the export, disable it in the AWS console** and keep the input `false`. With `true`,
+  the next deploy turns it back on.
+- **The log group is not managed by the blueprint.** RDS creates it; the blueprint neither sets its
+  retention (CloudWatch defaults to never expire) nor deletes it with the instance.
+- **What gets logged follows the parameter group.** The RDS default logs errors, failed logins and
+  deadlocks; set `log_min_duration_statement` or `auto_explain` through `db_parameters` for more.
 
 ### Misc
 
@@ -238,6 +270,12 @@ Read this before repointing a deployment at this version.
   groups explicitly, even with `read_replica_allowed_cidrs` unset. If they currently carry other
   groups (typically the VPC default group), the first apply swaps them in place: no replacement,
   no reboot. An instance this blueprint created is unaffected; its replicas already had these groups.
+- `max_allocated_storage` and `enabled_cloudwatch_logs_exports` are no longer ignored, and nothing
+  changes until you set the new inputs: repointing leaves `max_allocated_storage` empty and
+  `cloudwatch_logs_export_enabled` false, and both keep what the primary and each replica have,
+  including autoscaling and exports set in the AWS console. `allocated_storage` now follows the live
+  disk when that is larger, so a disk grown by autoscaling no longer shows as a change. Qovery can
+  turn the log export on but not off; disable it in the AWS console.
 
 ## Lifecycle ignore_changes
 
@@ -256,11 +294,19 @@ region's default minor, which upgrades an older minor and is refused on a newer 
 variable, an existing instance keeps its live version (read through the `aws_db_instance` data
 source) and only a new instance gets the bare major.
 
-A few attributes remain ignored:
+`enabled_cloudwatch_logs_exports` and `max_allocated_storage` are managed, on the primary and on
+the read replicas, but an unset input keeps the live value instead of clearing it: the blueprint
+reads each instance through the `aws_db_instance` data source on every plan, so an empty
+`max_allocated_storage` keeps the live ceiling and `cloudwatch_logs_export_enabled = false` keeps
+the live exports. A replacement that changes the identifier (a `db_name` change on an instance this
+blueprint created) finds no live instance and starts from the inputs alone. One that keeps it (an
+adopted instance, whose identifier is `import_identifier`, or a `storage_encrypted` toggle) reads
+the old instance, so the new one inherits its disk size, autoscaling ceiling and log exports.
+
+Two attributes remain ignored on the primary:
 
 - `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
-- `enabled_cloudwatch_logs_exports` — list type, not yet supported by the qbm.yml schema.
-- `max_allocated_storage` — will turn into a managed input when the storage autoscale feature is added.
+- `tags` — an adopted instance keeps its AWS tags: the native path tags managed RDS with `cluster_id`, which the YACE CloudWatch exporter filters DB metrics on.
 
 ## Required AWS IAM permissions
 

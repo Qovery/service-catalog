@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "1.7.1"
+  version: "1.8.0"
   description: "AWS RDS PostgreSQL 18 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -325,8 +325,14 @@ spec:
       type: "number"
       required: true
       default: "20"
-      description: "GiB. Min 20; max 65536 (gp2: 16384)."
+      description: "GiB, min 20, max 65536 (gp2: 16384). A value below the current disk is a no-op: RDS never shrinks storage."
       min: 20
+      max: 65536
+    - name: "max_allocated_storage"
+      type: "number"
+      required: false
+      description: "Leave empty to keep the current autoscaling ceiling; 0 turns it off. Otherwise GiB, at least 10% above the disk, max 65536 (gp2: 16384)."
+      min: 0
       max: 65536
     - name: "storage_type"
       type: "string"
@@ -480,6 +486,11 @@ spec:
       type: "string"
       required: false
       description: "For enhanced monitoring. Required when monitoring_interval > 0."
+    - name: "cloudwatch_logs_export_enabled"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Off keeps the current CloudWatch log exports. On also exports the PostgreSQL log, replicas included; turning it off again does not stop it."
     - name: "option_group_name"
       type: "string"
       required: false
