@@ -350,6 +350,13 @@ spec:
       description: "Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default."
       min: 0
       max: 256000
+    - name: "storage_throughput"
+      type: "number"
+      required: false
+      default: "0"
+      description: "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return throughput to baseline, set 500 and keep disk_iops at the instance's current IOPS (12000 at the gp3 baseline)."
+      min: 0
+      max: 4000
     - name: "multi_az"
       type: "bool"
       required: false

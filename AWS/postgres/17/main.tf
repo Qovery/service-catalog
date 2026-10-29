@@ -207,6 +207,8 @@ resource "aws_db_instance" "this" {
   storage_encrypted = var.storage_encrypted
   # gp2 doesn't support provisioned IOPS — AWS rejects iops unless storage is io1/io2/gp3.
   iops = var.disk_iops == 0 || !contains(["io1", "io2", "gp3"], var.storage_type) ? null : var.disk_iops
+  # gp3 only, and below 400 GiB AWS fixes throughput at 125 MiB/s and rejects the argument.
+  storage_throughput = var.storage_throughput == 0 || var.storage_type != "gp3" || var.allocated_storage < 400 ? null : var.storage_throughput
 
   db_name  = var.db_name
   username = local.db_username
