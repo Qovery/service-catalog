@@ -58,15 +58,16 @@ as the credential without ever being applied.
 | Name                 | Type   | Default | Description                                                                                                                                                                                                                                     |
 | -------------------- | ------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `port`               | number | `5432`  | Database port                                                                                                                                                                                                                                   |
-| `max_allocated_storage` | number |      | Leave empty to keep the current storage autoscaling setting: off on a new database, the primary's on a new read replica. `0` turns autoscaling off. Otherwise the ceiling in GiB RDS may grow the disk to: at least 10% above `allocated_storage` (AWS recommends 26%), at most 65536 (16384 for gp2). Takes effect immediately, whatever `apply_changes_now` says. |
+| `max_allocated_storage` | number |      | Leave empty to keep the current storage autoscaling setting: off on a new database, the primary's on a new read replica. `0` turns autoscaling off. Otherwise the ceiling in GiB RDS may grow the disk to: at least 10% above the current disk (the larger of `allocated_storage` and the live size; on a replica, its own disk; AWS recommends 26%), at most 65536 (16384 for gp2). Takes effect immediately, whatever `apply_changes_now` says. |
 | `storage_type`       | string | `gp3`   | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                                                                                                                                                                                                    |
 | `storage_encrypted`  | bool   | `true`  | Encrypt storage at rest                                                                                                                                                                                                                         |
 | `disk_iops`          | number | `0`     | Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default. |
 | `storage_throughput` | number | `0`     | 0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with `allocated_storage` ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs `disk_iops` set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × `disk_iops`. To return throughput to baseline, set 500 and keep `disk_iops` at the instance's current IOPS (12000 at the gp3 baseline). |
 
 **Storage autoscaling.** With `max_allocated_storage` set, RDS grows the disk on its own when free
-space stays at or below 10% for 5 minutes, up to that ceiling. Left empty, the blueprint keeps
-whatever the instance has, including a ceiling set in the AWS console.
+space stays at or below 10% for 5 minutes, up to that ceiling. It waits until the previous
+storage change has finished optimizing, and grows a disk at most four times in 24 hours. Left
+empty, the blueprint keeps whatever the instance has, including a ceiling set in the AWS console.
 
 - **The ceiling must be at least 10% above the current disk**, not only above `allocated_storage`,
   and on each read replica above that replica's own disk. Once autoscaling has grown a disk, the
@@ -74,7 +75,8 @@ whatever the instance has, including a ceiling set in the AWS console.
   An unchanged ceiling is not checked, except when `allocated_storage` raises the disk or a new
   replica is about to be created with it. A replacement that keeps the identifier is not caught:
   if its disk sits within 10% of the ceiling, AWS refuses it at apply, so raise the ceiling first.
-- **It applies immediately**, without a reboot, whatever `apply_changes_now` says.
+- **It applies immediately**, without a reboot, whatever `apply_changes_now` says: RDS ignores the
+  apply-immediately flag for a ceiling change.
 - **A disk never shrinks.** The blueprint asks for the larger of `allocated_storage` and the live
   disk size, so a grown disk does not show as a change, and setting `0` after a growth turns
   autoscaling off at the current size.
@@ -306,7 +308,7 @@ the old instance, so the new one inherits its disk size, autoscaling ceiling and
 Two attributes remain ignored on the primary:
 
 - `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
-- `tags` — an adopted instance keeps its AWS tags: the native path tags managed RDS with `cluster_id`, which the YACE CloudWatch exporter filters DB metrics on.
+- `tags` — ignored on the primary and every read replica, so tag changes from the blueprint never reach an existing database. The reason is adoption: the native path tags managed RDS with `cluster_id`, which the YACE CloudWatch exporter filters DB metrics on.
 
 ## Required AWS IAM permissions
 

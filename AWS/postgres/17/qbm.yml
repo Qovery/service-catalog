@@ -331,7 +331,7 @@ spec:
     - name: "max_allocated_storage"
       type: "number"
       required: false
-      description: "Leave empty to keep the current autoscaling ceiling; 0 turns it off. Otherwise GiB, at least 10% above the disk, max 65536 (gp2: 16384)."
+      description: "Leave empty to keep the current autoscaling ceiling; 0 turns it off. Otherwise GiB, at least 10% above the current disk, max 65536 (gp2: 16384)."
       min: 0
       max: 65536
     - name: "storage_type"

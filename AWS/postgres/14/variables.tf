@@ -158,7 +158,7 @@ variable "allocated_storage" {
 variable "max_allocated_storage" {
   type        = number
   default     = null
-  description = "Leave empty to keep the current autoscaling ceiling; 0 turns it off. Otherwise GiB, at least 10% above the disk, max 65536 (gp2: 16384)."
+  description = "Leave empty to keep the current autoscaling ceiling; 0 turns it off. Otherwise GiB, at least 10% above the current disk, max 65536 (gp2: 16384)."
 
   validation {
     condition     = coalesce(var.max_allocated_storage, 0) >= 0 && floor(coalesce(var.max_allocated_storage, 0)) == coalesce(var.max_allocated_storage, 0)
