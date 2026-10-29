@@ -1,7 +1,7 @@
 variable "cloudflare_api_token" {
   type        = string
   sensitive   = true
-  description = "Cloudflare API token with Zone edit permission (and account-level zone create permission)"
+  description = "Needs Zone edit, plus account-level zone create permission"
 
   validation {
     condition     = length(var.cloudflare_api_token) > 0
@@ -32,7 +32,7 @@ variable "zone_name" {
 variable "zone_type" {
   type        = string
   default     = "full"
-  description = "Zone setup type: full (Cloudflare hosts the DNS) or partial (CNAME/partner setup)"
+  description = "Zone setup type"
 
   validation {
     condition     = contains(["full", "partial"], var.zone_type)
@@ -44,7 +44,7 @@ variable "zone_type" {
 variable "record_name" {
   type        = string
   default     = ""
-  description = "Optional DNS record name (e.g. www, @, or a full host). Empty = create no record."
+  description = "Empty = create no record. Else www, @, or a full host."
 }
 
 variable "record_type" {

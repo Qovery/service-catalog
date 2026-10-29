@@ -5,7 +5,7 @@ metadata:
   name: "aiven-kafka"
   displayName: "Aiven for Apache Kafka"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Managed Apache Kafka on Aiven (single aiven_kafka service with SASL credentials) via the Aiven Terraform provider"
   icon: "app://qovery-console/aiven"
   serviceFamily: "aiven-kafka"
@@ -47,7 +47,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Aiven API token (personal or application token)"
+      description: "Personal or application token"
     - name: "project"
       type: "string"
       required: true
@@ -55,18 +55,18 @@ spec:
     - name: "service_name"
       type: "string"
       required: true
-      description: "Aiven service name (immutable; lowercase letters, digits, hyphens; max 64)"
+      description: "Immutable. Lowercase letters, digits, hyphens; must start with a letter; max 64 chars."
       pattern: "^[a-z][a-z0-9-]{0,63}$"
     - name: "cloud_name"
       type: "string"
       required: false
       default: "aws-eu-west-1"
-      description: "Aiven cloud/region, formatted <provider>-<region> (e.g. aws-eu-west-1)"
+      description: "Format <provider>-<region>, e.g. aws-eu-west-1"
     - name: "plan"
       type: "string"
       required: false
       default: "startup-2"
-      description: "Aiven service plan / sizing tier (e.g. startup-2, business-4, premium-8)"
+      description: "Sizing tier, e.g. startup-2, business-4, premium-8"
     - name: "kafka_version"
       type: "string"
       required: false

@@ -5,7 +5,7 @@ metadata:
   name: "helm-newrelic"
   displayName: "New Relic"
   primaryCategory: "Observability"
-  version: "1.0.3"
+  version: "1.0.4"
   description: "New Relic Kubernetes monitoring (infrastructure agent, kube-state-metrics, events, optional logs) via the official nri-bundle Helm chart"
   icon: "app://qovery-console/newrelic"
   serviceFamily: "newrelic"
@@ -34,7 +34,7 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: true
-      description: "Cluster name reported to New Relic (letters, digits, hyphens, underscores; max 64)"
+      description: "Reported to New Relic. Letters, digits, hyphens, underscores; max 64 chars."
       pattern: "^[a-zA-Z0-9_-]{1,64}$"
     - name: "low_data_mode"
       type: "string"
@@ -64,5 +64,5 @@ spec:
       type: "string"
       required: false
       default: "128Mi"
-      description: "Memory request/limit for kube-state-metrics (valid Kubernetes quantity)"
+      description: "Request and limit of kube-state-metrics, as a Kubernetes quantity"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"

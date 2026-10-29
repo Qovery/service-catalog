@@ -12,14 +12,14 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). By d
 
 | Name           | Type   | Description                                              |
 | -------------- | ------ | -------------------------------------------------------- |
-| `cluster_name` | string | MSK Serverless cluster name (`^[a-zA-Z0-9._-]{1,64}$`)   |
+| `cluster_name` | string | MSK Serverless cluster name (letters, digits, dots, hyphens, underscores; max 64) |
 
 ### Network overrides
 
 | Name                 | Type   | Default | Description                                                              |
 | -------------------- | ------ | ------- | ------------------------------------------------------------------------ |
-| `subnet_ids`         | string |         | Leave empty — the cluster VPC subnets. Set only on a user-provided VPC.    |
-| `security_group_ids` | string |         | Leave empty — the cluster workers security group. Set only on a user-provided VPC. |
+| `subnet_ids`         | string |         | Leave empty — discovered from the Qovery cluster's VPC subnets. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
+| `security_group_ids` | string |         | Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
 
 ## Outputs
 

@@ -5,7 +5,7 @@ metadata:
   name: "mongodb-atlas-cluster"
   displayName: "MongoDB Atlas Cluster"
   primaryCategory: "Databases & Caches"
-  version: "1.1.2"
+  version: "1.1.3"
   description: "Provision a MongoDB Atlas dedicated cluster (advanced_cluster) with a database user and IP access list, via the MongoDB Atlas Terraform provider"
   icon: "app://qovery-console/mongodb"
   serviceFamily: "mongodb-atlas"
@@ -46,12 +46,12 @@ spec:
     - name: "atlas_public_key"
       type: "string"
       required: true
-      description: "MongoDB Atlas programmatic API key - public key"
+      description: "Public half of the Atlas programmatic API key"
     - name: "atlas_private_key"
       type: "string"
       required: true
       sensitive: true
-      description: "MongoDB Atlas programmatic API key - private key"
+      description: "Private half of the Atlas programmatic API key"
     - name: "project_id"
       type: "string"
       required: true
@@ -59,7 +59,7 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: true
-      description: "Cluster name (letters, digits, hyphens; max 64 chars)"
+      description: "Letters, digits, hyphens; max 64 chars."
       pattern: "^[a-zA-Z0-9-]{1,64}$"
     - name: "provider_name"
       type: "string"
@@ -93,7 +93,7 @@ spec:
     - name: "db_username"
       type: "string"
       required: false
-      description: "Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin. Atlas keys users by (username, auth database) per project, so a second database in the same Atlas project needs a distinct username."
+      description: "Leave empty to use qoveryadmin (SCRAM, readWriteAnyDatabase). A second database in the same Atlas project needs a distinct username."
     - name: "db_password"
       type: "string"
       required: false

@@ -5,7 +5,7 @@ metadata:
   name: "helm-rabbitmq"
   displayName: "RabbitMQ"
   primaryCategory: "Messaging & Streaming"
-  version: "2.0.3"
+  version: "2.0.4"
   description: "RabbitMQ message broker via the community groundhog2k Helm chart (official docker.io/rabbitmq image)"
   icon: "app://qovery-console/rabbitmq"
   serviceFamily: "rabbitmq"
@@ -28,14 +28,14 @@ spec:
       type: "number"
       required: false
       default: "1"
-      description: "Number of RabbitMQ replicas"
+      description: "RabbitMQ pods, 1–10"
       min: 1
       max: 10
     - name: "username"
       type: "string"
       required: false
       default: "user"
-      description: "RabbitMQ default username. Use letters, digits, hyphens, underscores, and dots only."
+      description: "Letters, digits, dots, hyphens, underscores; max 64 chars."
       pattern: "^[a-zA-Z0-9._-]+$"
       minLength: 1
       maxLength: 64
@@ -43,14 +43,14 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "RabbitMQ authentication password (min 10 chars recommended)."
+      description: "10–128 chars."
       minLength: 10
       maxLength: 128
     - name: "memory_limit"
       type: "string"
       required: false
       default: "512Mi"
-      description: "Memory limit for RabbitMQ pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
+      description: "Kubernetes quantity, e.g. 512Mi or 1Gi"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
 
   outputs:

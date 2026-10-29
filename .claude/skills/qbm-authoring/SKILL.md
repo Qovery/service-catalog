@@ -252,11 +252,30 @@ Where the text actually surfaces:
 | any type with `allowedValues` | dropdown | **no** — the description is dropped entirely |
 
 So for an `allowedValues` variable the description exists for the README and the release notes only.
-Do not spend a sentence there explaining which values are allowed: the dropdown is the list.
+Keep it to a short phrase (`"EBS storage type"`), and do not spend a sentence on which values are
+allowed: the dropdown is the list.
 
-Two more constraints on length: the release-note generator truncates every description at 80
-characters (`truncate_description`), and the field is read in a form, mid-task, by someone deciding
-whether they have to type anything. Both push the same way — the decisive information goes first.
+**The field label is the variable name.** The Console labels every field with
+`formatFieldLabel(field.name)` — underscores become spaces, first letter capitalised — so `db_name`
+already reads "Db name" right above the hint. A description that opens by naming the field
+(`"PostgreSQL database name. …"`) spends the first words of the hint on what the label just said.
+
+### Length — two lines, no line breaks
+
+A description is **at most two sentences and at most 160 characters**. Aim for sentences of about
+80 characters, one line each. The release-note generator cuts there too (`truncate_description`
+keeps 77 characters plus `...`), so put the decisive part first: it may be all the release notes
+show.
+
+**Never put a line break in a description.** "Two lines" means two sentences, not `\n`:
+
+- The Console hint is a plain `<p>` with no `whitespace-pre-line`, so a `\n` renders as a space.
+- `catalog-gen` writes each description into a markdown table row of the release notes; a raw `\n`
+  ends the row and breaks the table.
+
+Detail that does not fit belongs in the `README.md` variable row or the README prose around it — not
+in the hint. The hint answers "do I have to type something, and what makes it valid?"; the README
+answers "how does this behave in every case?".
 
 ### What a description is for
 
@@ -265,6 +284,9 @@ One or two sentences, in this order, and nothing else:
 1. **The decision the reader has to make** — what the value controls, or (for an optional variable)
    what happens if they leave it alone.
 2. **Only the constraints that would make their input fail**, stated once.
+
+When the label already says what the value controls, skip straight to the constraints:
+`db_name` → `"Letters, digits, underscores; must start with a letter; max 63 chars. No hyphens."`
 
 ### Lead with what unset does
 
@@ -275,8 +297,7 @@ Put that answer first.
 input:
 
 ```yaml
-description: "Leave empty — derived from the Qovery cluster's workers security group. Set it
-  (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+description: "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 ```
 
 Not `"Optional comma-separated security group ids override. Empty = the Qovery cluster workers
@@ -284,15 +305,14 @@ security group."` — same facts, but it opens by implying the value is wanted a
 at the end, so the field reads as required. That wording had people supplying security group ids by
 hand on clusters where the lookup already worked.
 
-**When the *provider* picks the default, keep the plain form** — `"… Empty = AWS default."`,
+**When the *provider* picks the default, keep the plain form** — `"Empty = AWS default."`,
 `"Unset = create no record"`. "Leave empty" would overclaim: nothing on the Qovery side is deriving
 anything, and empty may not be the right choice for that blueprint.
 
-**When Qovery generates the value, say so and say what it generates:**
+**When Qovery generates the value, say so:**
 
 ```yaml
-description: 'Leave empty and Qovery generates a 32-character alphanumeric password. To set your
-  own: 8–128 chars, must not contain /, @, ", or spaces.'
+description: 'Leave empty and Qovery generates one (adopted instance: its current password). 8–128 chars, no /, @, ", or spaces; changing it rotates it.'
 ```
 
 The distinction is who fills the gap, not whether the variable is optional. Both kinds are optional.
@@ -303,40 +323,43 @@ Include a constraint only when a wrong value would be **rejected or would silent
 the reader could not have guessed it:
 
 - **Yes** — character classes and forbidden characters (`letters, digits, underscores; must start
-  with a letter`, `hyphens are not allowed`), length limits, reserved names the provider refuses
-  (`admin`, `rdsadmin`, anything starting with `pg_`), value shapes (`format
-  ddd:hh24:mi-ddd:hh24:mi`), cross-variable requirements (`Required when monitoring_interval > 0`,
-  `Requires backup_retention_period > 0`), and the fact that a knob only applies in some
-  configuration (`Only meaningful with io1/io2 (always) or gp3 (≥400 GiB)`).
-- **No** — anything the form already shows (the `allowedValues` dropdown), the variable's own type,
-  restating the name, or the resource attribute it maps to.
+  with a letter`, `no hyphens`), length limits, reserved names the provider refuses (`admin`,
+  `rdsadmin`, `pg_*`), value shapes (`format ddd:hh24:mi-ddd:hh24:mi`), cross-variable requirements
+  (`Required when monitoring_interval > 0`, `Requires backup_retention_period > 0`), and the fact
+  that a knob only applies in some configuration (`Only for io1/io2, or gp3 at ≥400 GiB`).
+- **No** — anything the form already shows (the label, the `allowedValues` dropdown), the
+  variable's own type, or the resource attribute it maps to.
 
 Whatever you state must **agree with the machine-readable constraints on the same variable**. A
 description saying "max 63 chars" next to `maxLength: 128` is worse than no description: the user
-trusts the prose and the API rejects the value.
+trusts the prose and the API rejects the value. The same goes for softening a hard rule:
+`"Min 10 chars recommended."` next to `minLength: 10` tells the user 9 chars is allowed — write
+`"10–128 chars."`.
 
 ### Anti-patterns
 
 | Anti-pattern | Example | Fix |
 | --- | --- | --- |
-| Restating the name | `bucket_name: "The name of the bucket"` | Say what makes a *valid* one, or drop the field to the constraints only. |
-| Saying the same thing twice | `"Database port. The port used by the database (RDS reserves ports below 1150)."` | One clause: `"Database port (RDS reserves ports below 1150)"`. |
+| Restating the name | `bucket_name: "Globally unique bucket name. …"` | The label says it. Start with what makes a *valid* one: `"Globally unique, auto-lowercased: 3–63 letters, digits or hyphens, …"`. |
+| Saying the same thing twice | `"Database port. The port used by the database (RDS reserves ports below 1150)."` | One clause: `"Min 1150 (RDS reserves lower ports)."` |
 | Opening with "Optional." | `"Optional. Instance class for read replicas…"` | The form already shows it is optional. Open with what unset does: `"Empty = same as the primary."` |
-| Contradicting a constraint | prose `"max 63 chars"` with `maxLength: 128` | Make the prose follow the constraint, or fix the constraint. |
+| Contradicting a constraint | prose `"max 63 chars"` with `maxLength: 128`; `"min 10 recommended"` with `minLength: 10` | Make the prose follow the constraint, or fix the constraint. |
 | Listing `allowedValues` in prose | `"EBS storage type: gp2, gp3, io1, io2"` | The dropdown is the list, and the description is not even rendered. Write `"EBS storage type"`. |
-| Describing implementation | `"Passed to aws_db_instance.allocated_storage"` | Describe the effect: `"Allocated storage in GiB"`. |
-| Selling the feature | `"Improve performance with powerful read replicas!"` | State the mechanism and the cost: `"Number of same-region read replicas (0 disables; max 15). Requires backup_retention_period > 0."` |
+| Describing implementation | `"Passed to aws_db_instance.allocated_storage"` | Describe the effect: `"GiB. Min 20; max 65536 (gp2: 16384)."` |
+| Selling the feature | `"Improve performance with powerful read replicas!"` | State the mechanism and the cost: `"Same-region read replicas (0 disables; max 15). Requires backup_retention_period > 0."` |
 | Burying the escape hatch | `"…override. Empty = the cluster's security group."` | Lead with `"Leave empty — derived from …"`. |
+| Writing the README into the hint | a 500-character `db_parameters` covering every case, with a JSON example | Two sentences: what empty does, the format. Every other case goes in the README row. |
+| Line breaks | `"Leave empty.\nOtherwise …"` | Two sentences on one line. The Console shows `\n` as a space and the release-notes table breaks on it. |
 
 ### Worked examples
 
 ```yaml
-# Required, with provider rules the user cannot guess. Constraints stated once, mirrored by
-# pattern/minLength/maxLength.
+# Required, with provider rules the user cannot guess. The label already says "Db name", so the
+# description is the constraints only, mirrored by pattern/minLength/maxLength.
 - name: "db_name"
   type: "string"
   required: true
-  description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
+  description: "Letters, digits, underscores; must start with a letter; max 63 chars. No hyphens."
   pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
   minLength: 1
   maxLength: 63
@@ -345,13 +368,13 @@ trusts the prose and the API rejects the value.
 - name: "db_subnet_group_name"
   type: "string"
   required: false
-  description: "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description: "Leave empty — derived from the cluster's DB subnet group. Set it only on a user-provided VPC."
 
-# Optional, provider-defaulted. Plain form, no "leave empty".
+# Optional, provider-defaulted. Plain form, no "leave empty", no "Optional".
 - name: "option_group_name"
   type: "string"
   required: false
-  description: "Optional option group name. Empty = AWS default."
+  description: "Empty = AWS default."
 
 # allowedValues: the dropdown is the documentation. One short phrase.
 - name: "storage_type"
@@ -366,16 +389,31 @@ trusts the prose and the API rejects the value.
   type: "number"
   required: false
   default: "0"
-  description: "Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default."
+  description: "Only for io1/io2, or gp3 at ≥400 GiB. 0 lets AWS choose."
   min: 0
   max: 256000
+
+# Many cases. The hint keeps the two that decide the input; the README row keeps the rest
+# (throughput to baseline, the 125 MiB/s floor below 400 GiB, existing-instance IOPS).
+- name: "storage_throughput"
+  type: "number"
+  required: false
+  default: "0"
+  description: "0 = AWS baseline (an existing instance keeps its value). Else 500–4000 MiB/s, gp3 ≥400 GiB only, ≤0.25 × disk_iops, with disk_iops ≥12000 set."
+  min: 0
+  max: 4000
 ```
 
-### The same sentence lives in three places
+### The same facts live in three places
 
-`qbm.yml` `description`, the `variables.tf` `description`, and the `README.md` variable row must
-state the same facts. Wording may compress — the `variables.tf` line can be shorter, since its
-reader is looking at the `validation` blocks right below it — but they must not disagree.
+`qbm.yml` and `variables.tf` state the **same facts within the same limit** (≤160 characters, two
+sentences). `variables.tf` may be terser, since its reader sees the `validation` blocks below it.
+When you rewrite one, copy the text to the other: two wordings drift. The `README.md` variable row carries
+the **full detail**: every fact the two-sentence version had to leave out. All three must agree;
+the README may say more, never something different.
+
+Output descriptions (`spec.outputs`) follow the same limits, and since the release notes show them
+next to the output name, one line under 80 characters is the target.
 
 ## `contextVariables` — declare what you consume
 

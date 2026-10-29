@@ -14,7 +14,7 @@ A Confluent Cloud **API key/secret** (Cloud-level) as sensitive `confluent_cloud
 
 | Name                         | Type   | Sensitive | Description                          |
 | ---------------------------- | ------ | --------- | ------------------------------------ |
-| `confluent_cloud_api_key`    | string | yes       | Cloud API key (provider auth)        |
+| `confluent_cloud_api_key`    | string | yes       | Confluent Cloud API key (Cloud-level, used by the provider) |
 | `confluent_cloud_api_secret` | string | yes       | Cloud API secret                     |
 | `cluster_name`               | string |           | Kafka cluster display name           |
 

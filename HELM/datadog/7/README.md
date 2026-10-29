@@ -19,7 +19,7 @@ A **Datadog API key** supplied as the sensitive `datadog_api_key` variable, plus
 
 | Name              | Type   | Default           | Description                                                       |
 | ----------------- | ------ | ----------------- | ----------------------------------------------------------------- |
-| `cluster_name`    | string | Qovery cluster name | Cluster name tag on all telemetry, max 80 chars. Empty = the Qovery cluster's name, slugified |
+| `cluster_name`    | string | Qovery cluster name | Cluster name tag applied to all Datadog telemetry. Leave empty to use the Qovery cluster's own name, lowercased and hyphenated. Otherwise: lowercase letters, digits, hyphens and underscores, optionally dot-separated, starting and ending alphanumeric (e.g. prod-eu) |
 | `enable_logs`     | string | `true`            | Collect container logs from all pods (`true`/`false`)             |
 | `enable_apm`      | string | `false`           | Enable the APM trace-agent port (`true`/`false`)                  |
 | `agent_memory`    | string | `512Mi`           | Memory request/limit for the node agent container                 |

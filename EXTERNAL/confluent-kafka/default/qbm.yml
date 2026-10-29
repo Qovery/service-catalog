@@ -5,7 +5,7 @@ metadata:
   name: "confluent-kafka"
   displayName: "Confluent Cloud for Apache Kafka"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Confluent Cloud Kafka cluster (Basic) with an environment, service account, and client API key, via the Confluent Terraform provider"
   icon: "app://qovery-console/confluent"
   serviceFamily: "confluent-kafka"
@@ -44,7 +44,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Confluent Cloud API key (Cloud-level, used by the provider)"
+      description: "Cloud-level key Terraform uses"
     - name: "confluent_cloud_api_secret"
       type: "string"
       required: true
@@ -58,7 +58,7 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: true
-      description: "Kafka cluster display name (max 64 chars)"
+      description: "Display name, max 64 chars"
     - name: "availability"
       type: "string"
       required: false

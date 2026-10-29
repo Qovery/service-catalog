@@ -5,7 +5,7 @@ metadata:
   name: "helm-redis"
   displayName: "Redis"
   primaryCategory: "Databases & Caches"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Redis cache via the community groundhog2k Helm chart (official docker.io/redis image)"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -28,13 +28,13 @@ spec:
       type: "string"
       required: false
       default: "512Mi"
-      description: "Memory limit for Redis pods. Must be a valid Kubernetes quantity (e.g. 512Mi, 1Gi)."
+      description: "Kubernetes quantity, e.g. 512Mi or 1Gi"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "password"
       type: "string"
       required: true
       sensitive: true
-      description: "Redis authentication password (min 10 chars recommended)."
+      description: "10–128 chars."
       minLength: 10
       maxLength: 128
 

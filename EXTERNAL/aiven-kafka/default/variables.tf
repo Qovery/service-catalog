@@ -1,7 +1,7 @@
 variable "aiven_api_token" {
   type        = string
   sensitive   = true
-  description = "Aiven API token (personal or application token)"
+  description = "Personal or application token"
 
   validation {
     condition     = length(var.aiven_api_token) > 0
@@ -21,7 +21,7 @@ variable "project" {
 
 variable "service_name" {
   type        = string
-  description = "Aiven service name (immutable; lowercase letters, digits, hyphens)"
+  description = "Immutable. Lowercase letters, digits, hyphens; must start with a letter; max 64 chars."
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9-]{0,63}$", var.service_name))
@@ -32,13 +32,13 @@ variable "service_name" {
 variable "cloud_name" {
   type        = string
   default     = "aws-eu-west-1"
-  description = "Aiven cloud/region, formatted <provider>-<region> (e.g. aws-eu-west-1, google-europe-west1)"
+  description = "Format <provider>-<region>, e.g. aws-eu-west-1"
 }
 
 variable "plan" {
   type        = string
   default     = "startup-2"
-  description = "Aiven service plan / sizing tier (e.g. startup-2, business-4, premium-8)"
+  description = "Sizing tier, e.g. startup-2, business-4, premium-8"
 }
 
 variable "kafka_version" {

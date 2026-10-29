@@ -25,9 +25,9 @@ empty variable value.
 
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'. |
-| `db_password` | string | yes | _generated_ | Omit when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance, this must carry that instance's current master password, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
-| `manage_db_password` | bool |  | `false` | Adopted instances only, and one-way: once true, leave it true. Changing `db_password` then rotates the live instance's master password. An instance this blueprint created always owns its password. |
+| `db_username` | string |  | `qoveryadmin` | Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'. |
+| `db_password` | string | yes | _generated_ | Leave empty when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance this must carry the current master password of that instance, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. Changing it rotates the master password on the live instance (adopted instances: only once `manage_db_password` is true). |
+| `manage_db_password` | bool |  | `false` | Adopted instances only, and one-way: once true, leave it true. Switching it on applies `db_password` to the instance, so confirm that value is the one the instance already has. Changing `db_password` then rotates it. An instance this blueprint created always owns its password. |
 
 Changing `db_password` rotates the live instance's master password: the value is sent as a
 write-only argument, triggered by a version derived from the password itself, so a change
@@ -60,8 +60,8 @@ as the credential without ever being applied.
 | `port`               | number | `5432`  | Database port                                                                                                                                                                                                                                   |
 | `storage_type`       | string | `gp3`   | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                                                                                                                                                                                                    |
 | `storage_encrypted`  | bool   | `true`  | Encrypt storage at rest                                                                                                                                                                                                                         |
-| `disk_iops`          | number | `0`     | Provisioned IOPS (io1/io2 or gp3 ≥400 GiB). `0` = AWS default.                                                                                                                                                                                  |
-| `storage_throughput` | number | `0`     | `0` = AWS baseline on a new instance; an existing one keeps its value. Otherwise MiB/s, 500–4000 (gp3 ≥400 GiB only; AWS fixes 125 MiB/s below). Needs `disk_iops` ≥12000 too (AWS rejects a throughput without IOPS); max 0.25 × `disk_iops`. Throughput back to baseline: `500`, keeping `disk_iops` at the instance's current IOPS (`12000` at the gp3 baseline). |
+| `disk_iops`          | number | `0`     | Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default. |
+| `storage_throughput` | number | `0`     | 0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with `allocated_storage` ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs `disk_iops` set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × `disk_iops`. To return throughput to baseline, set 500 and keep `disk_iops` at the instance's current IOPS (12000 at the gp3 baseline). |
 
 ### Network
 
@@ -69,8 +69,8 @@ as the credential without ever being applied.
 | ---------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------- |
 | `multi_az`             | bool   | `true`  | Enable Multi-AZ deployment                                                                               |
 | `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                                                               |
-| `db_subnet_group_name` | string |         | Leave empty — the Qovery cluster DB subnet group. Set only on a user-provided VPC.                       |
-| `security_group_ids`   | string |         | Leave empty — the Qovery cluster workers security group. Set only on a user-provided VPC.                |
+| `db_subnet_group_name` | string |         | Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing. |
+| `security_group_ids`   | string |         | Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
 
 By default the instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve; set `db_subnet_group_name` and `security_group_ids` explicitly in that case.
 
@@ -78,10 +78,10 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 
 | Name                               | Type   | Default | Description                                                                            |
 | ---------------------------------- | ------ | ------- | -------------------------------------------------------------------------------------- |
-| `read_replica_count`               | number | `0`     | Number of same-region read replicas (0 disables; max 15). Requires backups enabled.    |
-| `read_replica_instance_class`      | string |         | Instance class for replicas. Unset = same as the primary.                              |
+| `read_replica_count`               | number | `0`     | Number of same-region read replicas (0 disables; max 15). Point analytics tools (Metabase, BI dashboards) at the replica endpoints to offload reads. Requires `backup_retention_period` > 0. |
+| `read_replica_instance_class`      | string |         | Instance class for read replicas. Empty = same as the primary. Analytics workloads often want a larger class here. |
 | `read_replica_publicly_accessible` | bool   | `false` | Expose replicas to the public internet.                                                |
-| `read_replica_allowed_cidrs`       | string |         | Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (`10.0.0.0/24`, not `10.0.0.5/24`): replicas then accept only these and the VPC on the database port. Needs `read_replica_count > 0`; public addresses also need `read_replica_publicly_accessible`. |
+| `read_replica_allowed_cidrs`       | string |         | Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (e.g. Metabase Cloud IPs; 10.0.0.0/24, not 10.0.0.5/24): replicas then accept only these and the VPC on the database `port`. Needs `read_replica_count` > 0; public addresses also need `read_replica_publicly_accessible` = true. |
 | `read_replica_multi_az`            | bool   | `false` | Enable Multi-AZ for replicas.                                                           |
 
 Read replicas are asynchronous read-only copies of the primary — point analytics/BI tools (Metabase, Superset, dashboards, ad-hoc reporting) at their endpoints to keep heavy read traffic off the primary. They inherit the primary's engine version, storage size, storage type, and encryption, and share its database name, master username, and password; connect with the same credentials at the replica endpoint. Because replication is asynchronous, replicas are eventually consistent (fine for analytics, not for read-after-write). Creating replicas requires automated backups on the primary (`backup_retention_period > 0`, the default). Replica endpoints are exposed via the `read_replica_endpoints` output. Analytics tools running inside the cluster can reach them over the cluster network out of the box; set `read_replica_publicly_accessible = true` only for tools that live outside the VPC. To let such a tool in without opening the primary, set `read_replica_publicly_accessible = true` and list its egress IPs in `read_replica_allowed_cidrs` (e.g. the Metabase Cloud IPs for your region): the blueprint creates a dedicated security group allowing those CIDRs plus the VPC's own CIDRs on the database port, and attaches it to the replicas **instead of** the primary's groups. Replacing rather than adding is deliberate: on a Qovery-managed network the cluster workers group also carries the cluster-wide `database.postgresql.allowed_cidrs` rule (`0.0.0.0/0` by default), which would otherwise leave a public replica reachable from anywhere. Clients inside the VPC keep access through the VPC CIDR rule. With the variable unset, replicas carry the primary's security groups, including on an adopted instance.
@@ -102,7 +102,7 @@ Read replicas are asynchronous read-only copies of the primary — point analyti
 | `preferred_backup_window`  | string | `00:00-01:00` | Daily backup window (UTC), `hh24:mi-hh24:mi` |
 | `backup_retention_period`  | number | `14`          | Days to retain backups (0–35). `0` disables. |
 | `skip_final_snapshot`      | bool   | `false`       | Skip final snapshot on deletion              |
-| `delete_automated_backups` | bool   | `false`       | Delete automated backups on deletion         |
+| `delete_automated_backups` | bool   | `false`       | Delete automated backups when the instance is deleted. Default keeps them for `backup_retention_period` days; set true for throwaway instances |
 | `copy_tags_to_snapshot`    | bool   | `true`        | Propagate instance tags to snapshots         |
 
 Deleting the service keeps a final snapshot and the automated backups by default, and both keep
@@ -121,8 +121,8 @@ create/destroy cycles of the same name do not collide.
 | Name                                    | Type   | Default             | Description                                                                    |
 | --------------------------------------- | ------ | ------------------- | ------------------------------------------------------------------------------ |
 | `performance_insights_enabled`          | bool   | `true`              | Enable RDS Performance Insights                                                |
-| `performance_insights_retention_period` | number | `7`                 | PI retention in days (only when enabled). 7, a multiple of 31 up to 713, or 731.|
-| `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval seconds. `0` disables. 0/1/5/10/15/30/60.         |
+| `performance_insights_retention_period` | number | `7`                 | Performance Insights retention in days. Only used when `performance_insights_enabled` is true. Valid: 7, 731, or a multiple of 31. |
+| `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval in seconds (0 disables). Allowed values: 0, 1, 5, 10, 15, 30, 60. |
 | `monitoring_role_arn`                   | string |                     | IAM role ARN for enhanced monitoring. Required when `monitoring_interval > 0`. |
 | `ca_cert_identifier`                    | string | `rds-ca-rsa2048-g1` | CA certificate identifier                                                      |
 
@@ -130,7 +130,7 @@ create/destroy cycles of the same name do not collide.
 
 | Name                                  | Type   | Default | Description                                        |
 | ------------------------------------- | ------ | ------- | -------------------------------------------------- |
-| `option_group_name`                   | string |         | Optional option group. Unset = AWS default.        |
+| `option_group_name`                   | string |         | Optional option group name. Empty = AWS default. |
 | `deletion_protection`                 | bool   | `false` | Prevent deletion via TF/API                        |
 | `iam_database_authentication_enabled` | bool   | `false` | Enable IAM DB authentication                       |
 | `dedicated_log_volume`                | bool   | `false` | Provision a dedicated EBS volume for database logs |
@@ -139,7 +139,7 @@ create/destroy cycles of the same name do not collide.
 
 | Name            | Type   | Default | Description |
 | --------------- | ------ | ------- | ----------- |
-| `db_parameters` | string |         | Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need `apply_method` `pending-reboot` and take effect at the next reboot. |
+| `db_parameters` | string |         | Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters, e.g. {"log_connections":"1","shared_preload_libraries":{"value":"pg_stat_statements,auto_explain","apply_method":"pending-reboot"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot. |
 
 Each value is either the parameter value, or an object carrying `apply_method` too. RDS applies a
 dynamic parameter with `immediate` (the default here) and refuses it for a static one, which needs

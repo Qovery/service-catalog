@@ -50,7 +50,7 @@ empty variable value.
 
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: rdb_admin, postgres, or any name starting with 'pg_'. |
+| `db_username` | string |  | `qoveryadmin` | Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: rdb_admin, postgres, or any name starting with 'pg_'. |
 | `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character password. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
 
 ### Engine & sizing
@@ -66,8 +66,8 @@ empty variable value.
 | Name                  | Type   | Default     | Description                                                                                    |
 | --------------------- | ------ | ----------- | ---------------------------------------------------------------------------------------------- |
 | `activate_backups`    | bool   | `true`      | Enable automated backups.                                                                      |
-| `publicly_accessible` | bool   | `false`     | Expose a public endpoint that accepts `acl_allowed_cidr`. When false, a new database is reachable only from the cluster's private network. An existing public endpoint is not removed (see Upgrading to 1.5.0). |
-| `acl_allowed_cidr`    | string | `0.0.0.0/0` | Single CIDR allowed to reach the instance. Required and narrower than `0.0.0.0/0` when `publicly_accessible`. Use the Scaleway console for multi-CIDR allowlists. |
+| `publicly_accessible` | bool   | `false`     | Open the database to traffic from `acl_allowed_cidr` through a public endpoint. When false, a new database has no public endpoint and is reachable only from the cluster's private network. Turning it off on an existing database keeps its public endpoint: delete it in the Scaleway console (see [Upgrading to 1.5.0](#upgrading-to-150)). |
+| `acl_allowed_cidr`    | string | `0.0.0.0/0` | Single CIDR allowed to reach the instance. Only used when `publicly_accessible` is true; must not be 0.0.0.0/0 when public. Use the console for multi-CIDR allowlists. |
 
 ## Outputs
 

@@ -15,7 +15,7 @@ A **Temporal Cloud API key** supplied as the sensitive `temporal_cloud_api_key` 
 | Name                     | Type   | Sensitive | Description                                              |
 | ------------------------ | ------ | --------- | -------------------------------------------------------- |
 | `temporal_cloud_api_key` | string | yes       | Temporal Cloud API key                                   |
-| `namespace_name`         | string |           | Namespace name (`^[a-z0-9-]{2,64}$`)                     |
+| `namespace_name`         | string |           | Namespace name (2-64 chars: lowercase letters, digits, hyphens). Temporal appends the account suffix. |
 
 ### Optional
 

@@ -5,7 +5,7 @@ metadata:
   name: "scaleway-managed-postgresql"
   displayName: "Scaleway Managed PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "1.5.1"
+  version: "1.5.2"
   description: "Scaleway Managed Database PostgreSQL instance with configurable node type, storage, backups, and network ACL"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -49,21 +49,21 @@ spec:
     - name: "instance_name"
       type: "string"
       required: true
-      description: "Instance name. Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
+      description: "Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
       pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$"
       minLength: 1
       maxLength: 100
     - name: "db_name"
       type: "string"
       required: true
-      description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
+      description: "Letters, digits, underscores; must start with a letter; max 63 chars. No hyphens."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
     - name: "db_username"
       type: "string"
       required: false
-      description: "Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: rdb_admin, postgres, or any name starting with 'pg_'."
+      description: "Leave empty to use qoveryadmin. Letters, digits, underscores, starting with a letter, max 63; not rdb_admin, postgres or pg_*."
       pattern: "^([a-zA-Z][a-zA-Z0-9_]{0,62})?$"
       maxLength: 63
     - name: "db_password"
@@ -109,7 +109,7 @@ spec:
       type: "number"
       required: true
       default: "5"
-      description: "Volume size in GB (min 5, max 10000)"
+      description: "GB, 5–10000"
       min: 5
       max: 10000
     - name: "is_ha_cluster"
@@ -126,19 +126,19 @@ spec:
       type: "bool"
       required: false
       default: "false"
-      description: "Open the database to traffic from acl_allowed_cidr through a public endpoint. When false, a new database has no public endpoint and is reachable only from the cluster's private network. Turning it off on an existing database keeps its public endpoint: delete it in the Scaleway console (see the README)."
+      description: "Expose a public endpoint open to acl_allowed_cidr. Turning it off later keeps the endpoint: delete it in the Scaleway console."
     - name: "acl_allowed_cidr"
       type: "string"
       required: false
       default: "0.0.0.0/0"
-      description: "Single CIDR allowed to reach the instance. Only used when publicly_accessible is true; must not be 0.0.0.0/0 when public. Use the console for multi-CIDR allowlists."
+      description: "Single CIDR, only used when publicly_accessible is true, and then not 0.0.0.0/0. Use the Scaleway console for multi-CIDR allowlists."
       pattern: "^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])/(3[0-2]|[12]?[0-9])$"
 
   outputs:
     - name: "endpoint_ip"
-      description: "Database endpoint IP: the public endpoint when publicly_accessible, else the private network endpoint"
+      description: "Public endpoint IP when publicly_accessible, else the private network one"
     - name: "endpoint_port"
-      description: "Database endpoint port: the public endpoint when publicly_accessible, else the private network endpoint"
+      description: "Public endpoint port when publicly_accessible, else the private network one"
     - name: "private_endpoint_ip"
       description: "Database IP on the cluster's private network"
     - name: "private_endpoint_port"

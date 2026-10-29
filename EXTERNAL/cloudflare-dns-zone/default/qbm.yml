@@ -5,7 +5,7 @@ metadata:
   name: "cloudflare-dns-zone"
   displayName: "Cloudflare DNS Zone"
   primaryCategory: "Networking & Edge"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Manage a Cloudflare DNS zone for a domain you already own (with an optional DNS record) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
   serviceFamily: "cloudflare-dns-zone"
@@ -46,7 +46,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Cloudflare API token with Zone edit permission (and account-level zone create permission)"
+      description: "Needs Zone edit, plus account-level zone create permission"
     - name: "account_id"
       type: "string"
       required: true
@@ -59,14 +59,14 @@ spec:
       type: "string"
       required: false
       default: "full"
-      description: "Zone setup type: full (Cloudflare hosts DNS) or partial (CNAME/partner setup)"
+      description: "Zone setup type"
       allowedValues:
         - "full"
         - "partial"
     - name: "record_name"
       type: "string"
       required: false
-      description: "Optional DNS record name (e.g. www, @, or a full host). Empty = create no record."
+      description: "Empty = create no record. Else www, @, or a full host."
     - name: "record_type"
       type: "string"
       required: false

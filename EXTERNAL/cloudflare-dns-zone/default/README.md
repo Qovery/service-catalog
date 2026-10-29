@@ -14,7 +14,7 @@ A **Cloudflare API token** supplied as the sensitive `cloudflare_api_token` vari
 
 | Name                   | Type   | Sensitive | Description                                         |
 | ---------------------- | ------ | --------- | --------------------------------------------------- |
-| `cloudflare_api_token` | string | yes       | Cloudflare API token with Zone edit permission      |
+| `cloudflare_api_token` | string | yes       | Cloudflare API token with Zone edit permission (and account-level zone create permission) |
 | `account_id`           | string |           | Cloudflare account ID that will own the zone        |
 | `zone_name`            | string |           | Domain to manage (e.g. `example.com`)               |
 
@@ -22,8 +22,8 @@ A **Cloudflare API token** supplied as the sensitive `cloudflare_api_token` vari
 
 | Name             | Type   | Default | Description                                                       |
 | ---------------- | ------ | ------- | ----------------------------------------------------------------- |
-| `zone_type`      | string | `full`  | `full` (Cloudflare hosts DNS) or `partial` (CNAME/partner setup)  |
-| `record_name`    | string |         | Optional DNS record name (`www`, `@`, or a host). Unset = none.   |
+| `zone_type`      | string | `full`  | Zone setup type: full (Cloudflare hosts DNS) or partial (CNAME/partner setup) |
+| `record_name`    | string |         | Optional DNS record name (e.g. www, @, or a full host). Empty = create no record. |
 | `record_type`    | string | `A`     | `A`, `AAAA`, `CNAME`, `TXT`, `MX`, `NS`                            |
 | `record_content` | string |         | Record value. Required when `record_name` is set.                 |
 | `record_ttl`     | number | `1`     | TTL seconds (`1` = automatic; must be `1` when proxied)           |

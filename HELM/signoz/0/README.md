@@ -26,25 +26,25 @@ The password must be 12 to 72 ASCII characters (bcrypt's limit) and contain an u
 | Name             | Type   | Sensitive | Description |
 | ---------------- | ------ | --------- | ----------- |
 | `admin_email`    | string |           | Email of the SigNoz admin (root user). Changing it and redeploying updates the admin's email. |
-| `admin_password` | string | yes       | 12 to 72 ASCII characters with an uppercase letter, a lowercase letter, a digit and a symbol from the list above; no spaces, single quotes or semicolons. Changing it and redeploying resets it. |
+| `admin_password` | string | yes       | SigNoz admin password: 12 to 72 characters with an uppercase letter, a lowercase letter, a digit and one of ~!@#$%^&*()_+`-={}\|[]\:"<>?,./ ASCII only; no spaces, single quotes or semicolons. Changing it and redeploying resets it. |
 
 ### Optional
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `org_name` | string | `SigNoz` | Name of the organization SigNoz creates on first start. Set once: changing it later has no effect; rename it in SigNoz settings. |
+| `org_name` | string | `SigNoz` | Name of the organization SigNoz creates on first start. Set once: changing it later has no effect (rename the organization in SigNoz settings). |
 | `external_url` | string | — | Unset = links in alert notifications point to `http://localhost:8080`. Set the URL users reach SigNoz on so alert links work. |
 | `usage_reporting` | string | `false` | Send anonymous usage statistics to the SigNoz team (`true`/`false`). |
-| `prometheus_federation` | string | `true` | Copy metrics from the cluster's Prometheus into SigNoz (`true`/`false`). |
-| `prometheus_address` | string | `prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `prometheus-operated.qovery.svc.cluster.local:9090`. `host:port`, no scheme. |
+| `prometheus_federation` | string | `true` | Copy metrics from the cluster's Prometheus into SigNoz, so PromQL panels and alerts in SigNoz can use them. Only data from the install onwards. |
+| `prometheus_address` | string | `prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway clusters: the Prometheus Qovery installs with cluster metrics. On GKE and AKS use prometheus-operated.qovery.svc.cluster.local:9090. host:port, no scheme. |
 | `federation_match` | string | `{job=~"kubelet\|kube-state-metrics\|node-exporter"}` | Prometheus series selector of what to copy. Every series is stored again in ClickHouse; widen it with care. |
 | `federation_interval` | string | `60s` | How often metrics are copied, in `s` or `m`. At least `15s`. |
-| `clickhouse_storage_size` | string | `50Gi` | Volume holding every trace, log and metric. Can only grow after creation, on a storage class that allows expansion. |
-| `storage_class` | string | — | Unset = the cluster's default storage class, for every SigNoz volume. Choose it at creation: changing it later fails the deploy. |
+| `clickhouse_storage_size` | string | `50Gi` | Volume holding every trace, log and metric. Valid Kubernetes quantity. It can only grow after creation, on a storage class that allows expansion. |
+| `storage_class` | string | — | Unset = the cluster's default storage class, for every SigNoz volume. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy. |
 | `clickhouse_cpu` | string | `500m` | CPU request for ClickHouse. |
 | `clickhouse_memory` | string | `4Gi` | Memory limit for ClickHouse; requests are a quarter of it. `Gi` or `Mi`. |
-| `collector_memory` | string | `4Gi` | Memory limit for the OpenTelemetry collector. Federation of the default selector needs about 2Gi on a mid-size cluster. `Gi` or `Mi`. |
-| `signoz_memory` | string | `1Gi` | Memory limit for the SigNoz UI and query server. `Gi` or `Mi`. |
+| `collector_memory` | string | `4Gi` | Memory limit for the OpenTelemetry collector. Federation of the default selector needs about 2Gi on a mid-size cluster. Valid Kubernetes quantity. |
+| `signoz_memory` | string | `1Gi` | Memory limit for the SigNoz UI and query server. Valid Kubernetes quantity. |
 
 ## Outputs
 

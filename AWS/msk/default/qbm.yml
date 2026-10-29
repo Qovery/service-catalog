@@ -5,7 +5,7 @@ metadata:
   name: "aws-msk"
   displayName: "Amazon MSK"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.7"
+  version: "1.0.8"
   description: "Amazon MSK Serverless (managed Kafka) with SASL/IAM auth, attached to the Qovery cluster network"
   icon: "app://qovery-console/amazon-msk"
   serviceFamily: "msk"
@@ -48,16 +48,16 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: true
-      description: "MSK Serverless cluster name (letters, digits, dots, hyphens, underscores; max 64)"
+      description: "Letters, digits, dots, hyphens, underscores; max 64 chars."
       pattern: "^[a-zA-Z0-9._-]{1,64}$"
     - name: "subnet_ids"
       type: "string"
       required: false
-      description: "Leave empty — discovered from the Qovery cluster's VPC subnets. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — discovered from the cluster's VPC subnets. Set it (comma-separated ids) only on a user-provided VPC."
     - name: "security_group_ids"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 
   outputs:
     - name: "cluster_arn"

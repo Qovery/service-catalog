@@ -1,7 +1,7 @@
 variable "cloudflare_api_token" {
   type        = string
   sensitive   = true
-  description = "Cloudflare API token with Workers Scripts edit permission (and Workers Routes edit if using a route)"
+  description = "Needs Workers Scripts edit, plus Workers Routes edit when using a route"
 
   validation {
     condition     = length(var.cloudflare_api_token) > 0
@@ -21,7 +21,7 @@ variable "account_id" {
 
 variable "script_name" {
   type        = string
-  description = "Worker script name (lowercase letters, digits, hyphens, underscores)"
+  description = "Lowercase letters, digits, hyphens, underscores"
 
   validation {
     condition     = can(regex("^[a-z0-9_-]+$", var.script_name))
@@ -44,7 +44,7 @@ variable "main_module" {
 variable "compatibility_date" {
   type        = string
   default     = "2024-09-23"
-  description = "Cloudflare Workers runtime compatibility date (YYYY-MM-DD)"
+  description = "Workers runtime compatibility date, YYYY-MM-DD"
 
   validation {
     condition     = can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.compatibility_date))

@@ -15,8 +15,8 @@ A Redpanda Cloud **service account**: `redpanda_client_id` + sensitive `redpanda
 | `redpanda_client_id`     | string |           | —         | Service-account client ID (required)                   |
 | `redpanda_client_secret` | string | yes       | —         | Service-account client secret (required)               |
 | `resource_group_name`    | string |           | `qovery`  | Resource group to create                               |
-| `cluster_name`           | string |           | —         | Serverless cluster name (required)                     |
-| `serverless_region`      | string |           | —         | Redpanda serverless region (required, e.g. `us-east-1`)|
+| `cluster_name`           | string |           | —         | Serverless cluster name (max 60 chars) |
+| `serverless_region`      | string |           | —         | Redpanda serverless region (e.g. us-east-1, eu-central-1). Must be a region Redpanda Serverless supports. |
 
 ## Outputs
 

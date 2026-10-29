@@ -36,7 +36,7 @@ variable "engine_version" {
 # User-provided variables
 variable "db_name" {
   type        = string
-  description = "MySQL database name (letters, digits, underscores; must start with a letter; max 64 chars)"
+  description = "Letters, digits, underscores; must start with a letter; max 64 chars. No hyphens."
 
   validation {
     condition     = length(var.db_name) >= 1 && length(var.db_name) <= 64
@@ -53,7 +53,7 @@ variable "db_name" {
 variable "db_username" {
   type        = string
   default     = ""
-  description = "Master username (letters, digits, underscores; must start with a letter; max 32 chars). Empty uses qoveryadmin, the login used by native managed databases."
+  description = "Leave empty to use qoveryadmin. Letters, digits, underscores, starting with a letter, max 32; not admin, rdsadmin or mysql."
 
   validation {
     condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 32)
@@ -84,7 +84,7 @@ variable "db_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Master password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character alphanumeric password."
+  description = "Leave empty and Qovery generates one (adopted: its current password). 8–128 chars, no /, @, \", spaces; edits rotate it (adopted: needs manage_db_password)."
 
   validation {
     condition     = var.db_password == "" || (length(var.db_password) >= 8 && length(var.db_password) <= 128)
@@ -108,14 +108,14 @@ variable "db_password" {
 variable "manage_db_password" {
   type        = bool
   default     = false
-  description = "Adopted instances only, and one-way: once true, leave it true. Switching it on applies db_password to the instance, so confirm that value is the one the instance already has. Changing db_password then rotates it. Ignored for an instance this blueprint created: it always owns the password."
+  description = "Adopted instances only, one-way: once on, keep it on. Turning it on applies db_password, so it must match the instance's current one."
 }
 
 
 variable "port" {
   type        = number
   default     = 3306
-  description = "Database port"
+  description = "Min 1150 (RDS reserves lower ports)."
 
   validation {
     # RDS reserves ports below 1150.
@@ -133,7 +133,7 @@ variable "instance_class" {
 variable "allocated_storage" {
   type        = number
   default     = 20
-  description = "Allocated storage in GiB (minimum 20 for gp3)"
+  description = "GiB. Min 20; max 65536 (gp2: 16384)."
 
   validation {
     condition     = var.allocated_storage >= 20
@@ -167,7 +167,7 @@ variable "storage_encrypted" {
 variable "disk_iops" {
   type        = number
   default     = 0
-  description = "Provisioned IOPS. 0 lets AWS choose the default."
+  description = "Only for io1/io2, or gp3 at ≥400 GiB. 0 lets AWS choose."
 
   validation {
     condition     = var.disk_iops >= 0 && var.disk_iops <= 256000
@@ -202,13 +202,13 @@ variable "publicly_accessible" {
 variable "db_subnet_group_name" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's DB subnet group. Set it only on a user-provided VPC."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 }
 
 variable "apply_changes_now" {
@@ -232,13 +232,13 @@ variable "auto_minor_version_upgrade" {
 variable "preferred_maintenance_window" {
   type        = string
   default     = "Tue:02:00-Tue:04:00"
-  description = "Maintenance window (UTC) — ddd:hh24:mi-ddd:hh24:mi"
+  description = "UTC, format ddd:hh24:mi-ddd:hh24:mi."
 }
 
 variable "preferred_backup_window" {
   type        = string
   default     = "00:00-01:00"
-  description = "Daily backup window (UTC) — hh24:mi-hh24:mi"
+  description = "Daily, UTC, format hh24:mi-hh24:mi."
 }
 
 variable "backup_retention_period" {
@@ -255,13 +255,13 @@ variable "backup_retention_period" {
 variable "skip_final_snapshot" {
   type        = bool
   default     = false
-  description = "Skip the final snapshot on deletion"
+  description = "Off keeps a final snapshot on deletion, billed until deleted. Turn on for throwaway instances."
 }
 
 variable "delete_automated_backups" {
   type        = bool
   default     = false
-  description = "Delete automated backups on instance deletion"
+  description = "Delete automated backups with the instance. Off keeps them backup_retention_period days; turn on for throwaway ones."
 }
 
 variable "copy_tags_to_snapshot" {
@@ -279,7 +279,7 @@ variable "performance_insights_enabled" {
 variable "performance_insights_retention_period" {
   type        = number
   default     = 7
-  description = "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 31, or a multiple of 31 up to 731."
+  description = "Retention in days. Only used when performance_insights_enabled is true."
 
   validation {
     # AWS only accepts 7, 731, or a multiple of 31 — a plain range check lets invalid values (e.g. 30) reach apply.
@@ -308,7 +308,7 @@ variable "monitoring_interval" {
 variable "monitoring_role_arn" {
   type        = string
   default     = ""
-  description = "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+  description = "For enhanced monitoring. Required when monitoring_interval > 0."
 
   validation {
     condition     = var.monitoring_interval == 0 || var.monitoring_role_arn != ""
@@ -319,7 +319,7 @@ variable "monitoring_role_arn" {
 variable "option_group_name" {
   type        = string
   default     = ""
-  description = "Optional option group name. Empty = AWS default."
+  description = "Empty = AWS default."
 }
 
 variable "deletion_protection" {

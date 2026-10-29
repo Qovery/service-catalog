@@ -5,7 +5,7 @@ metadata:
   name: "cloudflare-workers"
   displayName: "Cloudflare Workers"
   primaryCategory: "Compute & Runtime"
-  version: "1.0.7"
+  version: "1.0.8"
   description: "Deploy a Cloudflare Worker script (with an optional route) via the Cloudflare Terraform provider"
   icon: "app://qovery-console/cloudflare"
   serviceFamily: "cloudflare-workers"
@@ -49,7 +49,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Cloudflare API token with Workers Scripts edit permission (and Workers Routes edit if using a route)"
+      description: "Needs Workers Scripts edit, plus Workers Routes edit when using a route"
     - name: "account_id"
       type: "string"
       required: true
@@ -57,7 +57,7 @@ spec:
     - name: "script_name"
       type: "string"
       required: true
-      description: "Worker script name (lowercase letters, digits, hyphens, underscores)"
+      description: "Lowercase letters, digits, hyphens, underscores"
       pattern: "^[a-z0-9_-]+$"
     - name: "script_content"
       type: "string"
@@ -72,7 +72,7 @@ spec:
       type: "string"
       required: false
       default: "2024-09-23"
-      description: "Cloudflare Workers runtime compatibility date (YYYY-MM-DD)"
+      description: "Workers runtime compatibility date, YYYY-MM-DD"
       pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
     - name: "route_zone_id"
       type: "string"

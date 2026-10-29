@@ -5,7 +5,7 @@ metadata:
   name: "scaleway-object-storage"
   displayName: "Scaleway Object Storage"
   primaryCategory: "Storage"
-  version: "1.1.8"
+  version: "1.1.9"
   description: "Scaleway Object Storage bucket"
   icon: "app://qovery-console/scaleway"
   serviceFamily: "object-storage"
@@ -47,7 +47,7 @@ spec:
     - name: "bucket_name"
       type: "string"
       required: true
-      description: "Globally unique bucket name. Auto-lowercased. 3–63 chars, letters/digits/hyphens only, must start and end with a letter or digit. Underscores are not allowed."
+      description: "Globally unique, auto-lowercased: 3–63 letters, digits or hyphens, starting and ending with a letter or digit. No underscores."
       pattern: "^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]$"
       minLength: 3
       maxLength: 63

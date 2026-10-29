@@ -5,7 +5,7 @@ metadata:
   name: "redpanda-kafka"
   displayName: "Redpanda Cloud"
   primaryCategory: "Messaging & Streaming"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Redpanda Cloud serverless Kafka-compatible cluster via the official Redpanda Terraform provider"
   icon: "app://qovery-console/redpanda"
   serviceFamily: "redpanda-kafka"
@@ -60,11 +60,11 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: true
-      description: "Serverless cluster name (max 60 chars)"
+      description: "Max 60 chars"
     - name: "serverless_region"
       type: "string"
       required: true
-      description: "Redpanda serverless region (e.g. us-east-1, eu-central-1). Must be a region Redpanda Serverless supports."
+      description: "e.g. us-east-1, eu-central-1; must be one Redpanda Serverless supports."
 
   outputs:
     - name: "cluster_id"

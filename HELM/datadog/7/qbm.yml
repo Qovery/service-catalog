@@ -5,7 +5,7 @@ metadata:
   name: "helm-datadog"
   displayName: "Datadog"
   primaryCategory: "Observability"
-  version: "3.0.3"
+  version: "3.0.4"
   description: "Datadog Agent (metrics, logs, optional APM) on Kubernetes via the official Datadog Helm chart"
   icon: "app://qovery-console/datadog"
   serviceFamily: "datadog"
@@ -35,7 +35,7 @@ spec:
       type: "string"
       required: true
       sensitive: true
-      description: "Datadog API key (Organization Settings → API Keys)"
+      description: "From Organization Settings → API Keys"
     - name: "datadog_site"
       type: "string"
       required: true
@@ -51,7 +51,7 @@ spec:
     - name: "cluster_name"
       type: "string"
       required: false
-      description: "Cluster name tag applied to all Datadog telemetry. Leave empty to use the Qovery cluster's own name, lowercased and hyphenated. Otherwise: lowercase letters, digits, hyphens and underscores, optionally dot-separated, starting and ending alphanumeric (e.g. prod-eu)"
+      description: "Leave empty to use the Qovery cluster name, lowercased and hyphenated. Else lowercase letters, digits, - and _, dot-separated, alphanumeric at both ends."
       maxLength: 80
       # Mirrors the chart's own check-cluster-name check (80 chars, FQDN-like tokens of
       # [a-z0-9_-]) so nothing Datadog accepts is rejected here. Wrapped optional because an
@@ -79,13 +79,13 @@ spec:
       type: "string"
       required: false
       default: "512Mi"
-      description: "Memory request/limit for the node agent container (valid Kubernetes quantity)"
+      description: "Request and limit of the node agent container, as a Kubernetes quantity"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
     - name: "cluster_agent_memory"
       type: "string"
       required: false
       default: "512Mi"
-      description: "Memory request/limit for the cluster agent container (valid Kubernetes quantity)"
+      description: "Request and limit of the cluster agent container, as a Kubernetes quantity"
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K|m)?$"
 
   outputs:

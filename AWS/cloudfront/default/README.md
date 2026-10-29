@@ -14,7 +14,7 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The 
 
 | Name                 | Type   | Description                                                                                          |
 | -------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| `origin_domain_name` | string | Origin hostname CloudFront pulls from (ALB, app host, or S3 website endpoint). Bare host, no scheme. |
+| `origin_domain_name` | string | Origin hostname CloudFront pulls from (e.g. an ALB, app host, or S3 website endpoint). Bare hostname, no scheme or path. |
 
 ### Distribution
 

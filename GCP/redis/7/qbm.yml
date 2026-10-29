@@ -5,7 +5,7 @@ metadata:
   name: "gcp-memorystore-redis"
   displayName: "Google Cloud Memorystore for Redis"
   primaryCategory: "Databases & Caches"
-  version: "1.0.7"
+  version: "1.0.8"
   description: "GCP Memorystore for Redis 7 instance with configurable tier, memory size, auth, TLS, persistence, maintenance window, and optional read replicas"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -49,7 +49,7 @@ spec:
     - name: "redis_name"
       type: "string"
       required: true
-      description: "Memorystore instance ID. Lowercase letters, digits, hyphens; must start with a letter and not end with a hyphen; max 40 chars."
+      description: "Lowercase letters, digits, hyphens; must start with a letter, not end with a hyphen; max 40 chars."
       pattern: "^[a-z]([-a-z0-9]{0,38}[a-z0-9])?$"
       minLength: 1
       maxLength: 40
@@ -57,7 +57,7 @@ spec:
       type: "string"
       required: true
       default: "BASIC"
-      description: "Service tier. BASIC is a single node with no failover. STANDARD_HA adds cross-zone replication and automatic failover."
+      description: "BASIC: single node; STANDARD_HA: cross-zone replica and failover"
       allowedValues:
         - "BASIC"
         - "STANDARD_HA"
@@ -65,7 +65,7 @@ spec:
       type: "number"
       required: true
       default: "1"
-      description: "Instance memory size in GiB"
+      description: "In GiB"
       min: 1
       max: 300
     - name: "redis_version"
@@ -85,26 +85,26 @@ spec:
       type: "string"
       required: false
       default: "DISABLED"
-      description: "In-transit (TLS) encryption. Defaults to DISABLED, meaning cache traffic and (if auth_enabled) the AUTH string travel unencrypted over the VPC. SERVER_AUTHENTICATION requires clients to trust the CA certificate published via the redis_server_ca_certs output."
+      description: "In-transit TLS; DISABLED sends traffic and AUTH in clear inside the VPC"
       allowedValues:
         - "DISABLED"
         - "SERVER_AUTHENTICATION"
     - name: "authorized_network"
       type: "string"
       required: false
-      description: "VPC network self-link the instance connects to. Empty = the project's default network. Set this to your Qovery cluster's VPC self-link so pods in the cluster can reach the instance."
+      description: "Empty = the project's default network. Set the Qovery cluster's VPC self-link so cluster pods can reach the instance."
     - name: "connect_mode"
       type: "string"
       required: false
       default: "DIRECT_PEERING"
-      description: "How the instance connects to authorized_network. PRIVATE_SERVICE_ACCESS requires a pre-existing private services access connection on that network."
+      description: "How the instance connects to authorized_network"
       allowedValues:
         - "DIRECT_PEERING"
         - "PRIVATE_SERVICE_ACCESS"
     - name: "reserved_ip_range"
       type: "string"
       required: false
-      description: "CIDR /29 (DIRECT_PEERING) or named allocated range (PRIVATE_SERVICE_ACCESS) reserved for the instance. Empty = GCP picks an unused range automatically."
+      description: "Empty = GCP picks a free range. Else a /29 CIDR (DIRECT_PEERING) or a named allocated range (PRIVATE_SERVICE_ACCESS)."
     - name: "maxmemory_policy"
       type: "string"
       required: false
@@ -140,7 +140,7 @@ spec:
     - name: "maintenance_day"
       type: "string"
       required: false
-      description: "Day of week for the scheduled maintenance window. Empty disables a fixed window (GCP may perform maintenance at any time)."
+      description: "Maintenance window day; empty lets GCP maintain at any time"
       allowedValues:
         - ""
         - "MONDAY"
@@ -154,20 +154,20 @@ spec:
       type: "number"
       required: false
       default: "2"
-      description: "Maintenance window start hour, UTC 24h (0-23). Only used when maintenance_day is set."
+      description: "UTC hour, 0–23. Only used when maintenance_day is set."
       min: 0
       max: 23
     - name: "replica_count"
       type: "number"
       required: false
       default: "0"
-      description: "Number of exposed cross-zone read replicas (0-5). Only supported when tier is STANDARD_HA; read traffic can be pointed at the redis_read_endpoint output. STANDARD_HA always allocates a standby node for failover regardless of this value; 0 just means that node isn't exposed as a readable replica."
+      description: "Readable cross-zone replicas, 0–5; STANDARD_HA only, where 0 still keeps a non-readable failover standby."
       min: 0
       max: 5
     - name: "gcp_project_id"
       type: "string"
       required: false
-      description: "Leave empty — inferred from the credentials used to deploy (cluster credentials or the env-mode service account). Set it only to target a different GCP project."
+      description: "Leave empty — inferred from the deploy credentials. Set it only to target a different GCP project."
 
   outputs:
     - name: "redis_id"
@@ -182,7 +182,7 @@ spec:
       description: "AUTH string for authenticating (set only when auth_enabled is true)"
       sensitive: true
     - name: "redis_server_ca_certs"
-      description: "Server CA certificates (PEM) for TLS verification when transit_encryption_mode is SERVER_AUTHENTICATION"
+      description: "PEM CA certificates for TLS when transit_encryption_mode is SERVER_AUTHENTICATION"
     - name: "redis_read_endpoint"
       description: "Read replica endpoint hostname (empty when replica_count is 0)"
     - name: "redis_read_endpoint_port"

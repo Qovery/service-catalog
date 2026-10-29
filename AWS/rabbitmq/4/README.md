@@ -37,8 +37,8 @@ remove it.
 
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `admin_username` | string | | `qoveryadmin` | 2-100 chars: letters, digits, `-` `.` `_` `~`; `guest` is refused at deploy. |
-| `admin_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters. |
+| `admin_username` | string | | `qoveryadmin` | Admin username, set at creation only. 2-100 chars: letters, digits, - . _ ~; guest is refused at deploy. |
+| `admin_password` | string | yes | _generated_ | Leave empty and Qovery generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters (checked at deploy). Set at creation only. |
 
 Both are set **at creation only**. Amazon MQ cannot update RabbitMQ users and never returns them,
 so the blueprint ignores later edits to the `user` block, and the `rabbitmq_username`,
@@ -51,9 +51,9 @@ current values, and the outputs follow.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `publicly_accessible` | bool | `false` | Expose the broker to the internet. Changing it replaces the broker. |
-| `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty and the broker gets the blueprint's security group, opening 5671, 443 and 16001-16003 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups. Set at creation only: switching later needs a new broker. |
+| `publicly_accessible` | bool | `false` | Expose the broker to the internet. A public broker has no security group: anyone with the credentials can connect. Changing it replaces the broker. |
+| `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated ids, one per AZ) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
+| `security_group_ids` | string | | Leave empty and the broker gets the blueprint's security group, opening 5671, 443 and 16001-16003 to `allowed_cidrs`. Set it (comma-separated ids) to use your own groups instead. Set at creation only: switching later needs a new broker. |
 | `allowed_cidrs` | string | | Leave empty to allow the whole VPC: every pod in the cluster, and anything else in a shared VPC. Set comma-separated IPv4 CIDRs to narrow or widen access. Only affects the blueprint's security group. |
 
 A single-instance broker takes the first subnet (one per availability zone, sorted by zone name);

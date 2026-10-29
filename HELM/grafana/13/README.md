@@ -30,11 +30,11 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `admin_user` | string | `admin` | Grafana admin login, set once at creation: changing it later has no effect. Letters, digits, dots, hyphens, underscores and @. |
-| `root_url` | string | — | Unset = links use the address Grafana is reached on. Set it (e.g. `https://grafana.example.com`) behind a custom domain or path prefix. |
+| `admin_user` | string | `admin` | Grafana admin login, set once at creation: changing it later has no effect (rename the user in Grafana). Letters, digits, dots, hyphens, underscores and @. |
+| `root_url` | string | — | Unset = links and redirects use the address Grafana is reached on. Set it (e.g. https://grafana.example.com) when Grafana sits behind a custom domain or a path prefix. |
 | `anonymous_access` | string | `false` | Let anyone who reaches Grafana browse dashboards without logging in, as Viewer (`true`/`false`). |
-| `metrics_url` | string | `http://thanos-query.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://thanos-query.qovery.svc.cluster.local:9090`. Any Prometheus-compatible URL works. |
-| `prometheus_url` | string | `http://prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://prometheus-operated.qovery.svc.cluster.local:9090`. |
+| `metrics_url` | string | `http://thanos-query.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway clusters: it is the Thanos query endpoint Qovery installs with cluster metrics. On GKE and AKS use http://thanos-query.qovery.svc.cluster.local:9090. Any Prometheus-compatible URL works. |
+| `prometheus_url` | string | `http://prometheus-operated.prometheus.svc.cluster.local:9090` | Leave the default on AWS and Scaleway clusters: it is the in-cluster Prometheus (recent data only, no Thanos history). On GKE and AKS use http://prometheus-operated.qovery.svc.cluster.local:9090. |
 | `loki_url` | string | `http://loki.logging.svc.cluster.local:3100` | Leave the default. Set it only to read logs from another Loki. |
 | `alertmanager_url` | string | `http://alertmanager-operated.prometheus.svc.cluster.local:9093` | Leave the default on AWS and Scaleway. On GKE and AKS use `http://alertmanager-operated.qovery.svc.cluster.local:9093`. |
 | `default_datasource` | string | `thanos` | Datasource new panels and Explore open on (`thanos`/`prometheus`). |
@@ -43,18 +43,18 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 | `enable_alertmanager_datasource` | string | `true` | Add the Alertmanager datasource. |
 | `scrape_interval` | string | `30s` | Scrape interval of the cluster's Prometheus, used as the minimum query step. Whole units, combinable: `30s`, `1m`, `1m30s`. |
 | `loki_max_lines` | number | `5000` | Maximum log lines a Loki query returns (100–50000). |
-| `kubernetes_dashboards` | string | `true` | Preload the Kubernetes, Node Exporter and Loki logs dashboards. |
+| `kubernetes_dashboards` | string | `true` | Preload the Kubernetes (cluster, namespaces, nodes, pods), Node Exporter and Loki logs dashboards, downloaded from grafana.com when the pod starts |
 | `dashboards_folder` | string | `Kubernetes` | Folder for the preloaded and extra dashboards. Letters, digits, spaces, hyphens, underscores, max 40 chars. Renaming it moves the dashboards. |
-| `extra_dashboards` | string | — | Unset = none. Otherwise grafana.com dashboards as `id:revision`, comma-separated (e.g. `7249:1,14584:2`). They use the default datasource. |
-| `plugins` | string | — | Unset = none. Otherwise plugin ids, comma-separated, installed from grafana.com at pod start. |
+| `extra_dashboards` | string | — | Unset = no extra dashboard. Otherwise grafana.com dashboards as id:revision, comma-separated (e.g. 7249:1,14584:2). They use the default datasource. |
+| `plugins` | string | — | Unset = no extra plugin. Otherwise plugin ids, comma-separated (e.g. grafana-piechart-panel,grafana-clock-panel), installed from grafana.com at pod start. |
 | `default_theme` | string | `system` | UI theme for users who have not picked one (`system`/`dark`/`light`). |
-| `default_timezone` | string | `browser` | Dashboard timezone for users who have not picked one: `browser`, `utc` or an IANA name (`Europe/Paris`). |
+| `default_timezone` | string | `browser` | Timezone dashboards display, for users who have not picked one: browser, utc, or an IANA name such as Europe/Paris or UTC. |
 | `log_level` | string | `info` | Grafana server log level (`debug`/`info`/`warn`/`error`). |
 | `persistence` | string | `true` | Keep Grafana's database on a volume. `false` = users, saved dashboards and alert rules are lost on every restart; switching an existing service to `false` deletes the volume. |
-| `storage_size` | string | `10Gi` | Size of the data volume. It can only grow after creation, on a storage class that allows expansion. |
-| `storage_class` | string | — | Unset = the cluster's default storage class. Choose it at creation: a volume cannot change class, so changing it later fails the deploy. |
-| `cpu_request` | string | `100m` | CPU request for the Grafana container. |
-| `memory` | string | `512Mi` | Memory request and limit for the Grafana container. |
+| `storage_size` | string | `10Gi` | Size of the data volume. Valid Kubernetes quantity (e.g. 10Gi). It can only grow after creation, on a storage class that allows expansion. |
+| `storage_class` | string | — | Unset = the cluster's default storage class. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy. |
+| `cpu_request` | string | `100m` | CPU request for the Grafana container. Valid Kubernetes quantity (e.g. 100m, 1). |
+| `memory` | string | `512Mi` | Memory request and limit for the Grafana container. Valid Kubernetes quantity (e.g. 512Mi, 1Gi). |
 
 ## Outputs
 

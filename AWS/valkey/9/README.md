@@ -12,7 +12,7 @@ The `rediss://` scheme is correct here and not a leftover: Valkey speaks the Red
 
 | Name | Type | Sensitive | Description |
 | ---- | ---- | --------- | ----------- |
-| `valkey_name` | string | | Replication group name. Letters, digits, hyphens; must start with a letter; max 40 chars. Underscores are not allowed. |
+| `valkey_name` | string | | Replication group name. Must start with a letter, end with a letter or digit, and use single hyphens between them; max 40 chars. Underscores are not allowed. |
 | `instance_class` | string | | ElastiCache node type. Default suggestion: `cache.t3.micro`. |
 
 Available node types: `cache.t3.micro`, `cache.t3.small`, `cache.t3.medium`, `cache.t4g.micro`, `cache.r6g.large`, `cache.r6g.xlarge` — the same set the Redis blueprint offers.
@@ -31,7 +31,7 @@ In the Console, leaving the field blank omits it. Through the API or Terraform, 
 | ---- | ---- | ------- | ----------- |
 | `engine_version` | string | `9.0` | Valkey engine version: `9.0`, `9.1` |
 | `port` | number | `6379` | Valkey port |
-| `instances_number` | number | `1` | Node groups (shards). Above 1 enables cluster mode. |
+| `instances_number` | number | `1` | Node groups (shards). 1 = a single node with no replica. Above 1 enables cluster mode with one replica per shard, and forces failover and Multi-AZ. Pick it at creation — ElastiCache cannot turn cluster mode on later. |
 | `parameter_group_name` | string | | Leave empty — derived from the topology. |
 
 `instances_number = 1` creates a single node with no replica. Above 1, the group switches to cluster mode: `N` shards, one replica each (so `2N` nodes), with automatic failover and Multi-AZ enabled because AWS requires both there, and the `default.valkey9.cluster.on` parameter group instead of `default.valkey9`. Clients then need a cluster-aware Valkey library and the `valkey_configuration_endpoint_address` output.
@@ -50,8 +50,8 @@ Encryption in transit is always on and is not a variable: ElastiCache only accep
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `subnet_group_name` | string | | Leave empty — the Qovery cluster ElastiCache subnet group. Set only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty — the Qovery cluster workers security group. Set only on a user-provided VPC. |
+| `subnet_group_name` | string | | Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing. |
+| `security_group_ids` | string | | Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
 
 By default the group is attached to the Qovery cluster network: the ElastiCache subnet group created at cluster bootstrap (named `elasticache-<cluster vpc id>`) and the cluster workers security group, so pods in the cluster can reach Valkey out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve and the bootstrap subnet group may not exist; set both variables explicitly in that case.
 
