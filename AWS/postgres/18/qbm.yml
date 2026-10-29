@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "1.7.0"
+  version: "1.8.0"
   description: "AWS RDS PostgreSQL 18 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -325,8 +325,14 @@ spec:
       type: "number"
       required: true
       default: "20"
-      description: "Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384)"
+      description: "Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384). A value below the instance's current disk size is a no-op: RDS cannot shrink storage."
       min: 20
+      max: 65536
+    - name: "max_allocated_storage"
+      type: "number"
+      required: false
+      description: "Leave empty to keep the current storage autoscaling setting: off on a new database, the primary's on a new read replica. 0 turns autoscaling off. Otherwise the ceiling in GiB RDS may grow the disk to: at least 10% above allocated_storage (AWS recommends 26%), at most 65536 (16384 for gp2). Takes effect immediately, whatever apply_changes_now says."
+      min: 0
       max: 65536
     - name: "storage_type"
       type: "string"
@@ -480,6 +486,11 @@ spec:
       type: "string"
       required: false
       description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+    - name: "cloudwatch_logs_export_enabled"
+      type: "bool"
+      required: false
+      default: "false"
+      description: "Off keeps the current CloudWatch log exports as they are: none on a new database, the primary's on a new read replica. On also exports the PostgreSQL log to CloudWatch Logs (/aws/rds/instance/<identifier>/postgresql), on the primary and on every read replica, immediately. Turning it back off does not stop an export: disable it in the AWS console. Content follows the parameter group's logging settings; the default group logs errors, failed logins and deadlocks."
     - name: "option_group_name"
       type: "string"
       required: false

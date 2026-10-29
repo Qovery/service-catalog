@@ -134,7 +134,7 @@ variable "instance_class" {
 variable "allocated_storage" {
   type        = number
   default     = 20
-  description = "Allocated storage in GiB (minimum 20 for gp3)"
+  description = "Allocated storage in GiB (minimum 20 for gp3). Never below the instance's current disk size: RDS cannot shrink storage, so a lower value is a no-op."
 
   validation {
     condition     = var.allocated_storage >= 20
@@ -150,6 +150,30 @@ variable "allocated_storage" {
     # gp2 caps at 16384 GiB; io1/io2/gp3 go to 65536.
     condition     = var.storage_type != "gp2" || var.allocated_storage <= 16384
     error_message = "allocated_storage must not exceed 16384 GiB for gp2 storage."
+  }
+}
+
+# No default in qbm.yml: q-core writes a manifest default onto every service it repoints, which
+# would turn off autoscaling set in the AWS console. Null keeps the live value instead.
+variable "max_allocated_storage" {
+  type        = number
+  default     = null
+  description = "Leave empty to keep the current storage autoscaling setting: off on a new database, the primary's on a new read replica. 0 turns autoscaling off. Otherwise the ceiling in GiB RDS may grow the disk to: at least 10% above allocated_storage (AWS recommends 26%), at most 65536 (16384 for gp2). Takes effect immediately, whatever apply_changes_now says."
+
+  validation {
+    condition     = coalesce(var.max_allocated_storage, 0) >= 0 && floor(coalesce(var.max_allocated_storage, 0)) == coalesce(var.max_allocated_storage, 0)
+    error_message = "max_allocated_storage must be a whole number, 0 or more."
+  }
+
+  validation {
+    # AWS rejects a ceiling less than 10% above the current storage; integer form avoids float rounding.
+    condition     = coalesce(var.max_allocated_storage, 0) == 0 || coalesce(var.max_allocated_storage, 0) * 10 >= var.allocated_storage * 11
+    error_message = "max_allocated_storage must be 0 (off) or at least 10% above allocated_storage (22 for 20 GiB)."
+  }
+
+  validation {
+    condition     = coalesce(var.max_allocated_storage, 0) <= (var.storage_type == "gp2" ? 16384 : 65536)
+    error_message = "max_allocated_storage must not exceed 65536 GiB, or 16384 GiB for gp2 storage."
   }
 }
 
@@ -360,6 +384,14 @@ variable "monitoring_role_arn" {
     condition     = var.monitoring_interval == 0 || var.monitoring_role_arn != ""
     error_message = "monitoring_role_arn is required when monitoring_interval > 0."
   }
+}
+
+# A bool has no "unset": the console sends false for one left untouched, so false has to keep
+# what the instance has rather than remove exports set in the AWS console.
+variable "cloudwatch_logs_export_enabled" {
+  type        = bool
+  default     = false
+  description = "Off keeps the current CloudWatch log exports as they are: none on a new database, the primary's on a new read replica. On also exports the PostgreSQL log to CloudWatch Logs (/aws/rds/instance/<identifier>/postgresql), on the primary and on every read replica, immediately. Turning it back off does not stop an export: disable it in the AWS console. Content follows the parameter group's logging settings; the default group logs errors, failed logins and deadlocks."
 }
 
 variable "option_group_name" {

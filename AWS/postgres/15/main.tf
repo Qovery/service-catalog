@@ -31,7 +31,9 @@ import {
   id       = each.value
 }
 
-# Live instance: its version, when the deployment engine supplies none, and its parameter group.
+# Live instance: its version, when the deployment engine supplies none, its parameter group, its disk
+# size, and the autoscaling ceiling and log exports that unset inputs keep. Read on every plan; gating
+# it on an input would let a deploy turn off autoscaling or exports set in the AWS console.
 # Covers created and adopted instances alike. Looked up through the list data source first: it returns
 # nothing for an instance that does not exist yet (or is already gone), where the single-instance one fails.
 data "aws_db_instances" "live" {
@@ -44,6 +46,25 @@ data "aws_db_instances" "live" {
 data "aws_db_instance" "live" {
   count                  = length(data.aws_db_instances.live.instance_identifiers)
   db_instance_identifier = local.db_identifier
+}
+
+locals {
+  # RDS never shrinks a disk, and autoscaling or the 10% round-up of a manual increase leave it above
+  # the input. Asking for less would fail, and would block turning autoscaling off after a growth.
+  live_allocated_storage = try(one(data.aws_db_instance.live).allocated_storage, 0)
+  allocated_storage      = max(var.allocated_storage, local.live_allocated_storage)
+
+  # Unset keeps the live ceiling (none on a new instance); 0 turns autoscaling off.
+  live_max_allocated_storage = try(one(data.aws_db_instance.live).max_allocated_storage, null)
+  max_allocated_storage      = var.max_allocated_storage != null ? var.max_allocated_storage : local.live_max_allocated_storage
+
+  # Only ever adds the postgresql log: false leaves the live exports as they are.
+  live_cloudwatch_logs_exports = try(toset(one(data.aws_db_instance.live).enabled_cloudwatch_logs_exports), null)
+  enabled_cloudwatch_logs_exports = (
+    var.cloudwatch_logs_export_enabled
+    ? setunion(coalesce(local.live_cloudwatch_logs_exports, toset([])), ["postgresql"])
+    : local.live_cloudwatch_logs_exports
+  )
 }
 
 # Custom parameter group, created only when db_parameters is set. The family follows the engine
@@ -202,9 +223,10 @@ resource "aws_db_instance" "this" {
   instance_class = var.instance_class
   port           = var.port
 
-  allocated_storage = var.allocated_storage
-  storage_type      = var.storage_type
-  storage_encrypted = var.storage_encrypted
+  allocated_storage     = local.allocated_storage
+  max_allocated_storage = local.max_allocated_storage
+  storage_type          = var.storage_type
+  storage_encrypted     = var.storage_encrypted
   # gp2 doesn't support provisioned IOPS — AWS rejects iops unless storage is io1/io2/gp3.
   iops = var.disk_iops == 0 || !contains(["io1", "io2", "gp3"], var.storage_type) ? null : var.disk_iops
   # gp3 only, and below 400 GiB AWS fixes throughput at 125 MiB/s and rejects the argument.
@@ -243,6 +265,7 @@ resource "aws_db_instance" "this" {
   performance_insights_retention_period = var.performance_insights_enabled ? var.performance_insights_retention_period : null
   monitoring_interval                   = var.monitoring_interval
   monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
+  enabled_cloudwatch_logs_exports       = local.enabled_cloudwatch_logs_exports
 
   # Misc
   parameter_group_name                = local.parameter_group_name
@@ -273,14 +296,21 @@ resource "aws_db_instance" "this" {
       error_message = "A major version upgrade with db_parameters set (or being cleared) needs apply_changes_now = true: RDS keeps the old parameter group attached until the upgrade runs, so it cannot be deleted before then."
     }
 
+    # AWS wants the ceiling at least 10% above the disk, which autoscaling may have grown past
+    # allocated_storage. Only an unchanged ceiling on a disk the input does not raise is never sent.
+    precondition {
+      condition = (
+        coalesce(local.max_allocated_storage, 0) == 0
+        || (local.max_allocated_storage == local.live_max_allocated_storage && var.allocated_storage <= local.live_allocated_storage)
+        || coalesce(local.max_allocated_storage, 0) * 10 >= local.allocated_storage * 11
+      )
+      error_message = "The storage autoscaling ceiling (max_allocated_storage, or the instance's current one when unset) is ${coalesce(local.max_allocated_storage, 0)} GiB, less than 10% above the ${local.allocated_storage} GiB disk: raise max_allocated_storage to ${ceil(local.allocated_storage * 11 / 10)} or more, or set it to 0 to turn autoscaling off."
+    }
+
     ignore_changes = [
       # Neutralises legacy state: instances created before password_wo carry a value here, and
       # password is no longer in the configuration, so without this the stale value reads as a removal.
       password,
-      # No list type in qbm.yml — defer to a manifest schema extension
-      enabled_cloudwatch_logs_exports,
-      # Will turn into a managed input when the storage autoscale feature is added
-      max_allocated_storage,
       # Preserve existing AWS tags on adoption: the native path tags managed RDS with cluster_id
       # (used by the YACE CloudWatch exporter for DB metrics); overwriting them would break metrics.
       tags,
@@ -377,19 +407,65 @@ locals {
     ? [aws_security_group.read_replica_ingress[0].id]
     : local.read_replica_base_security_group_ids
   )
+
+  # Primary slug capped so the "-replica-N" suffix keeps the total within the 63-char RDS limit;
+  # the cut can land on a hyphen, which would double against the suffix.
+  read_replica_identifiers = [for i in range(var.read_replica_count) : "${replace(substr(local.db_name_slug, 0, 50), "/-$/", "")}-replica-${i + 1}"]
+}
+
+# Each replica's own autoscaling ceiling and log exports, kept while the inputs are unset, as on the
+# primary. Keyed on identifiers built from inputs only, never on aws_db_instance.this, so the keys
+# stay known at plan.
+data "aws_db_instances" "replica_live" {
+  count = var.read_replica_count > 0 ? 1 : 0
+
+  filter {
+    name   = "db-instance-id"
+    values = local.read_replica_identifiers
+  }
+}
+
+data "aws_db_instance" "replica_live" {
+  for_each               = toset(flatten(data.aws_db_instances.replica_live[*].instance_identifiers))
+  db_instance_identifier = each.value
+}
+
+locals {
+  # A replica not created yet starts from the primary's values.
+  read_replica_max_allocated_storage = [
+    for id in local.read_replica_identifiers :
+    var.max_allocated_storage != null ? var.max_allocated_storage
+    : try(data.aws_db_instance.replica_live[id].max_allocated_storage, local.max_allocated_storage)
+  ]
+  # Each instance autoscales on its own, so a replica's disk can outgrow the primary's.
+  read_replica_allocated_storage = [
+    for id in local.read_replica_identifiers :
+    try(data.aws_db_instance.replica_live[id].allocated_storage, local.allocated_storage)
+  ]
+  read_replica_live_max_allocated_storage = [
+    for id in local.read_replica_identifiers :
+    try(data.aws_db_instance.replica_live[id].max_allocated_storage, null)
+  ]
+  read_replica_live_cloudwatch_logs_exports = [
+    for id in local.read_replica_identifiers :
+    try(toset(data.aws_db_instance.replica_live[id].enabled_cloudwatch_logs_exports), local.enabled_cloudwatch_logs_exports)
+  ]
+  read_replica_cloudwatch_logs_exports = [
+    for live in local.read_replica_live_cloudwatch_logs_exports :
+    var.cloudwatch_logs_export_enabled ? setunion(coalesce(live, toset([])), ["postgresql"]) : live
+  ]
 }
 
 # Same-region read replicas. Each is an asynchronous read-only copy of the primary; point
 # analytics / BI tools at their endpoints to offload heavy reads. Replicas inherit engine
 # version, storage size, storage type, and encryption from the source — those attributes
-# cannot be set on a same-region replica, so they are intentionally absent here. A replica
+# cannot be set on a same-region replica, so they are intentionally absent here. Storage
+# autoscaling and log exports are per instance, so each replica sets its own below. A replica
 # also has no db_name / username / password of its own (it shares the primary's).
 resource "aws_db_instance" "read_replica" {
   count = var.read_replica_count
 
-  # Identifier: primary slug capped so the "-replica-N" suffix keeps the total within the
-  # 63-char RDS limit; the cut can land on a hyphen, which would double against the suffix.
-  identifier          = "${replace(substr(local.db_name_slug, 0, 50), "/-$/", "")}-replica-${count.index + 1}"
+  identifier          = local.read_replica_identifiers[count.index]
   replicate_source_db = aws_db_instance.this.identifier
 
   # The allow-list group replaces the replica's groups, so its rules must exist before it is
@@ -421,6 +497,11 @@ resource "aws_db_instance" "read_replica" {
   performance_insights_retention_period = var.performance_insights_enabled ? var.performance_insights_retention_period : null
   monitoring_interval                   = var.monitoring_interval
   monitoring_role_arn                   = var.monitoring_interval > 0 ? var.monitoring_role_arn : null
+  enabled_cloudwatch_logs_exports       = local.read_replica_cloudwatch_logs_exports[count.index]
+
+  # Without it a replica keeps its first disk while the primary grows, and fills up. Its own
+  # allocated_storage stays unset, so turning autoscaling off sends its live size.
+  max_allocated_storage = local.read_replica_max_allocated_storage[count.index]
 
   # A major upgrade of the primary waits for its in-Region replicas to be upgraded too, and RDS moves
   # them to the new family's default group, so they never hold the old group at deletion. Setting
@@ -448,13 +529,22 @@ resource "aws_db_instance" "read_replica" {
   }
 
   lifecycle {
+    # The primary's 10% rule against this replica's own disk. A new replica is created with the
+    # primary's disk, then given its ceiling, which AWS refuses after the replica exists.
+    precondition {
+      condition = (
+        coalesce(local.read_replica_max_allocated_storage[count.index], 0) == 0
+        || local.read_replica_max_allocated_storage[count.index] == local.read_replica_live_max_allocated_storage[count.index]
+        || coalesce(local.read_replica_max_allocated_storage[count.index], 0) * 10 >= local.read_replica_allocated_storage[count.index] * 11
+      )
+      error_message = "The storage autoscaling ceiling of read replica ${local.read_replica_identifiers[count.index]} is ${coalesce(local.read_replica_max_allocated_storage[count.index], 0)} GiB, less than 10% above its ${local.read_replica_allocated_storage[count.index]} GiB disk: raise max_allocated_storage to ${ceil(local.read_replica_allocated_storage[count.index] * 11 / 10)} or more, or set it to 0 to turn autoscaling off."
+    }
+
     ignore_changes = [
       # A same-region replica runs the source's version and RDS upgrades it along with the
       # primary, so its version changes outside this configuration.
       engine_version,
-      # Same rationale as the primary above for the rest.
-      enabled_cloudwatch_logs_exports,
-      max_allocated_storage,
+      # Same rationale as the primary's tags.
       tags,
       # A same-region replica inherits encryption from the source and never sets
       # storage_encrypted here, but the provider stores it as true in state and then reads
