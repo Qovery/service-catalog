@@ -27,7 +27,7 @@ variable "resource_group_name" {
 
 variable "cluster_name" {
   type        = string
-  description = "Serverless cluster name"
+  description = "Max 60 chars"
 
   validation {
     condition     = length(var.cluster_name) > 0 && length(var.cluster_name) <= 60
@@ -37,7 +37,7 @@ variable "cluster_name" {
 
 variable "serverless_region" {
   type        = string
-  description = "Redpanda serverless region (e.g. us-east-1, eu-central-1). Must be a region Redpanda Serverless supports."
+  description = "e.g. us-east-1, eu-central-1; must be one Redpanda Serverless supports."
 
   validation {
     condition     = length(var.serverless_region) > 0

@@ -22,7 +22,7 @@ variable "qovery_cluster_long_id" {
 # User-provided variables
 variable "cluster_name" {
   type        = string
-  description = "MSK Serverless cluster name (letters, digits, hyphens, underscores; max 64)"
+  description = "Letters, digits, dots, hyphens, underscores; max 64 chars."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9._-]{1,64}$", var.cluster_name))
@@ -33,11 +33,11 @@ variable "cluster_name" {
 variable "subnet_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — discovered from the Qovery cluster's VPC subnets. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — discovered from the cluster's VPC subnets. Set it (comma-separated ids) only on a user-provided VPC."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 }

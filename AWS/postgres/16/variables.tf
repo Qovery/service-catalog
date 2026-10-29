@@ -36,7 +36,7 @@ variable "engine_version" {
 # User-provided variables
 variable "db_name" {
   type        = string
-  description = "PostgreSQL database name (letters, digits, underscores; must start with a letter; max 63 chars)"
+  description = "Letters, digits, underscores; must start with a letter; max 63 chars. No hyphens."
 
   validation {
     condition     = length(var.db_name) >= 1 && length(var.db_name) <= 63
@@ -54,7 +54,7 @@ variable "db_name" {
 variable "db_username" {
   type        = string
   default     = ""
-  description = "Master username (letters, digits, underscores; must start with a letter; max 63 chars). Empty uses qoveryadmin, the login used by native managed databases."
+  description = "Leave empty to use qoveryadmin. Letters, digits, underscores, starting with a letter, max 63; not admin, rdsadmin, rdsrepladmin, rdstopmgr or pg_*."
 
   validation {
     condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 63)
@@ -85,7 +85,7 @@ variable "db_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Master password (8–128 chars; must not contain /, @, \", or spaces). Empty generates a 32-character alphanumeric password."
+  description = "Leave empty and Qovery generates one (adopted: its current password). 8–128 chars, no /, @, \", spaces; edits rotate it (adopted: needs manage_db_password)."
 
   validation {
     condition     = var.db_password == "" || (length(var.db_password) >= 8 && length(var.db_password) <= 128)
@@ -109,14 +109,14 @@ variable "db_password" {
 variable "manage_db_password" {
   type        = bool
   default     = false
-  description = "Adopted instances only, and one-way: once true, leave it true. Switching it on applies db_password to the instance, so confirm that value is the one the instance already has. Changing db_password then rotates it. Ignored for an instance this blueprint created: it always owns the password."
+  description = "Adopted instances only, one-way: once on, keep it on. Turning it on applies db_password, so it must match the instance's current one."
 }
 
 
 variable "port" {
   type        = number
   default     = 5432
-  description = "Database port"
+  description = "Min 1150 (RDS reserves lower ports)."
 
   validation {
     # RDS reserves ports below 1150.
@@ -134,7 +134,7 @@ variable "instance_class" {
 variable "allocated_storage" {
   type        = number
   default     = 20
-  description = "Allocated storage in GiB (minimum 20 for gp3)"
+  description = "GiB. Min 20; max 65536 (gp2: 16384)."
 
   validation {
     condition     = var.allocated_storage >= 20
@@ -173,7 +173,7 @@ variable "storage_encrypted" {
 variable "disk_iops" {
   type        = number
   default     = 0
-  description = "Provisioned IOPS. 0 lets AWS choose the default."
+  description = "Only for io1/io2, or gp3 at ≥400 GiB. 0 lets AWS choose."
 
   validation {
     condition     = var.disk_iops >= 0 && var.disk_iops <= 256000
@@ -196,7 +196,7 @@ variable "disk_iops" {
 variable "storage_throughput" {
   type        = number
   default     = 0
-  description = "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return throughput to baseline, set 500 and keep disk_iops at the instance's current IOPS (12000 at the gp3 baseline)."
+  description = "0 = AWS baseline (an existing instance keeps its value). Else 500–4000 MiB/s, gp3 ≥400 GiB only, ≤0.25 × disk_iops, with disk_iops ≥12000 set."
 
   validation {
     condition     = var.storage_throughput == 0 || (var.storage_throughput >= 500 && var.storage_throughput <= 4000)
@@ -247,13 +247,13 @@ variable "publicly_accessible" {
 variable "db_subnet_group_name" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's DB subnet group. Set it only on a user-provided VPC."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 }
 
 variable "apply_changes_now" {
@@ -277,13 +277,13 @@ variable "auto_minor_version_upgrade" {
 variable "preferred_maintenance_window" {
   type        = string
   default     = "Tue:02:00-Tue:04:00"
-  description = "Maintenance window (UTC) — ddd:hh24:mi-ddd:hh24:mi"
+  description = "UTC, format ddd:hh24:mi-ddd:hh24:mi."
 }
 
 variable "preferred_backup_window" {
   type        = string
   default     = "00:00-01:00"
-  description = "Daily backup window (UTC) — hh24:mi-hh24:mi"
+  description = "Daily, UTC, format hh24:mi-hh24:mi."
 }
 
 variable "backup_retention_period" {
@@ -300,13 +300,13 @@ variable "backup_retention_period" {
 variable "skip_final_snapshot" {
   type        = bool
   default     = false
-  description = "Skip the final snapshot on deletion"
+  description = "Off keeps a final snapshot on deletion, billed until deleted. Turn on for throwaway instances."
 }
 
 variable "delete_automated_backups" {
   type        = bool
   default     = false
-  description = "Delete automated backups on instance deletion"
+  description = "Delete automated backups with the instance. Off keeps them backup_retention_period days; turn on for throwaway ones."
 }
 
 variable "copy_tags_to_snapshot" {
@@ -324,7 +324,7 @@ variable "performance_insights_enabled" {
 variable "performance_insights_retention_period" {
   type        = number
   default     = 7
-  description = "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 31, or a multiple of 31 up to 731."
+  description = "Retention in days. Only used when performance_insights_enabled is true."
 
   validation {
     # AWS only accepts 7, 731, or a multiple of 31 — a plain range check lets invalid values (e.g. 30) reach apply.
@@ -353,7 +353,7 @@ variable "monitoring_interval" {
 variable "monitoring_role_arn" {
   type        = string
   default     = ""
-  description = "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+  description = "For enhanced monitoring. Required when monitoring_interval > 0."
 
   # TF 1.9+ supports cross-variable validation
   validation {
@@ -365,7 +365,7 @@ variable "monitoring_role_arn" {
 variable "option_group_name" {
   type        = string
   default     = ""
-  description = "Optional option group name. Empty = AWS default."
+  description = "Empty = AWS default."
 }
 
 # A JSON string, not a map: qbm.yml has no map type. A value is either the parameter value or
@@ -373,7 +373,7 @@ variable "option_group_name" {
 variable "db_parameters" {
   type        = string
   default     = ""
-  description = "Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters, e.g. {\"log_connections\":\"1\",\"shared_preload_libraries\":{\"value\":\"pg_stat_statements,auto_explain\",\"apply_method\":\"pending-reboot\"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot."
+  description = "Empty = keep the current group (one this blueprint made is deleted). Else JSON, e.g. {\"log_connections\":\"1\"}; static params need apply_method pending-reboot."
 
   validation {
     condition     = var.db_parameters == "" || can(keys(jsondecode(var.db_parameters)))
@@ -417,7 +417,7 @@ variable "dedicated_log_volume" {
 variable "read_replica_count" {
   type        = number
   default     = 0
-  description = "Number of same-region read replicas to create (0 disables). RDS PostgreSQL allows up to 15."
+  description = "Same-region read replicas (0 disables; max 15), e.g. for analytics tools. Requires backup_retention_period > 0."
 
   validation {
     condition     = var.read_replica_count >= 0 && var.read_replica_count <= 15 && floor(var.read_replica_count) == var.read_replica_count
@@ -434,7 +434,7 @@ variable "read_replica_count" {
 variable "read_replica_instance_class" {
   type        = string
   default     = ""
-  description = "Instance class for read replicas. Empty = same as the primary (instance_class). Analytics workloads often want a larger class here."
+  description = "Empty = same as the primary. Analytics workloads often want a larger class."
 }
 
 variable "read_replica_publicly_accessible" {
@@ -446,7 +446,7 @@ variable "read_replica_publicly_accessible" {
 variable "read_replica_allowed_cidrs" {
   type        = string
   default     = ""
-  description = "Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (e.g. Metabase Cloud IPs; 10.0.0.0/24, not 10.0.0.5/24): replicas then accept only these and the VPC on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
+  description = "Empty = the primary's security groups. Else up to 50 network CIDRs (10.0.0.0/24, not 10.0.0.5/24); public ones need read_replica_publicly_accessible."
 
   validation {
     # Network address only: EC2 stores 10.0.0.5/24 as 10.0.0.0/24, which would diff on every plan

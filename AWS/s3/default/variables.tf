@@ -30,7 +30,7 @@ variable "qovery_cluster_long_id" {
 # -----------------------------------------------------------------------------
 
 variable "bucket_name" {
-  description = "S3 bucket name (must be globally unique, 3–63 chars, letters/digits/hyphens only — automatically lowercased)"
+  description = "Globally unique, auto-lowercased: 3–63 letters, digits or hyphens, starting and ending with a letter or digit. No underscores."
   type        = string
 
   validation {

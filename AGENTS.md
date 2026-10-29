@@ -178,8 +178,7 @@ they have to fill it in. Put that answer first.
 input:
 
 ```yaml
-description: "Leave empty — derived from the Qovery cluster's workers security group. Set it
-  (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+description: "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 ```
 
 Not `"Optional comma-separated security group ids override. Empty = the Qovery cluster workers
@@ -193,7 +192,11 @@ anything, and empty may not be the right choice for that blueprint.
 
 The distinction is who fills the gap, not whether the variable is optional. Both kinds are optional.
 
-Applies to all three places the sentence lives: `qbm.yml`, `variables.tf` and the `README.md` row.
+**Two sentences, 160 characters, no line breaks.** The Console labels the field with the variable
+name, so do not restate it — start with what unset does or what makes a value valid. A `\n` renders
+as a space in the Console hint and breaks the release-notes table. Whatever does not fit goes in the
+`README.md` row, which carries the full detail; `qbm.yml` and `variables.tf` state the same facts
+within the same limit. See the `qbm-authoring` skill for the full rules.
 
 ## Keep `README.md` in sync with `qbm.yml`
 

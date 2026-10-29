@@ -22,7 +22,7 @@ variable "qovery_cluster_long_id" {
 # User-provided variables
 variable "broker_name" {
   type        = string
-  description = "Broker name, unique in the AWS account and region (letters, digits, hyphens, underscores; max 50 chars)"
+  description = "Unique in the AWS account and region. Letters, digits, hyphens, underscores; max 50 chars."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9_-]{1,50}$", var.broker_name))
@@ -33,7 +33,7 @@ variable "broker_name" {
 variable "engine_version" {
   type        = string
   default     = "4.3"
-  description = "RabbitMQ version (major.minor). Patch versions are applied by Amazon MQ."
+  description = "RabbitMQ version (Amazon MQ applies patches)"
 
   validation {
     condition     = contains(["4.2", "4.3"], var.engine_version)
@@ -44,7 +44,7 @@ variable "engine_version" {
 variable "host_instance_type" {
   type        = string
   default     = "mq.m7g.medium"
-  description = "Broker instance type. RabbitMQ 4 runs on mq.m7g only; mq.m7g.medium is sized for evaluation."
+  description = "Broker instance type; mq.m7g.large or above for production"
 
   validation {
     condition     = can(regex("^mq\\.m7g\\.(medium|large|xlarge|2xlarge|4xlarge|8xlarge|12xlarge|16xlarge)$", var.host_instance_type))
@@ -55,7 +55,7 @@ variable "host_instance_type" {
 variable "deployment_mode" {
   type        = string
   default     = "SINGLE_INSTANCE"
-  description = "SINGLE_INSTANCE (one node) or CLUSTER_MULTI_AZ (three nodes across availability zones). Changing it replaces the broker."
+  description = "Single node or three-node cluster; changing it replaces the broker"
 
   validation {
     condition     = contains(["SINGLE_INSTANCE", "CLUSTER_MULTI_AZ"], var.deployment_mode)
@@ -66,7 +66,7 @@ variable "deployment_mode" {
 variable "admin_username" {
   type        = string
   default     = "qoveryadmin"
-  description = "Admin username, set at creation only (2-100 chars: letters, digits, - . _ ~; guest is refused at deploy)."
+  description = "Set at creation only. 2–100 chars: letters, digits, - . _ ~; guest is refused."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9._~-]{2,100}$", var.admin_username))
@@ -83,7 +83,7 @@ variable "admin_password" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Admin password, set at creation only. Empty generates a 32-character password (letters, digits, - _ . !). To set your own: 12-250 chars, no comma, colon or equals sign, at least 4 distinct characters (checked at deploy)."
+  description = "Leave empty and Qovery generates one. 12–250 chars, no comma, colon or equals sign, at least 4 distinct characters; set at creation only."
 
   validation {
     condition     = var.admin_password == "" || (length(var.admin_password) >= 12 && length(var.admin_password) <= 250)
@@ -104,25 +104,25 @@ variable "admin_password" {
 variable "publicly_accessible" {
   type        = bool
   default     = false
-  description = "Expose the broker to the internet. A public broker gets no security group, so any client with the credentials can connect. Changing it replaces the broker."
+  description = "A public broker has no security group: anyone with the credentials can connect. Changing it replaces the broker."
 }
 
 variable "subnet_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's DB subnet group. Set it (comma-separated ids, one per AZ) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's DB subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty and the broker gets the blueprint's security group, opening 5671, 443 and 16001-16003 to allowed_cidrs. Set it (comma-separated ids) to use your own groups instead. Set at creation only: switching later needs a new broker."
+  description = "Leave empty for the blueprint's group (opens 5671, 443, 16001-16003 to allowed_cidrs). Else comma-separated ids; set at creation only."
 }
 
 variable "allowed_cidrs" {
   type        = string
   default     = ""
-  description = "Leave empty to allow the whole VPC: every pod in the cluster, and anything else in a shared VPC. Set comma-separated IPv4 CIDRs to narrow or widen access. Only affects the blueprint's security group."
+  description = "Leave empty to allow the whole VPC (every cluster pod). Else comma-separated IPv4 CIDRs; only affects the blueprint's security group."
 
   validation {
     # cidrhost also accepts IPv6, which the IPv4-only cidr_blocks would reject at apply.
@@ -151,7 +151,7 @@ variable "maintenance_day_of_week" {
 variable "maintenance_time_of_day" {
   type        = string
   default     = "03:00"
-  description = "Maintenance window start time, hh:mm (24h)"
+  description = "Start time, hh:mm in 24-hour format"
 
   validation {
     condition     = can(regex("^([01][0-9]|2[0-3]):[0-5][0-9]$", var.maintenance_time_of_day))
@@ -162,7 +162,7 @@ variable "maintenance_time_of_day" {
 variable "maintenance_time_zone" {
   type        = string
   default     = "UTC"
-  description = "Maintenance window time zone, e.g. UTC, Europe/Paris"
+  description = "IANA name, e.g. UTC or Europe/Paris"
 }
 
 variable "general_logs" {
@@ -174,7 +174,7 @@ variable "general_logs" {
 variable "kms_key_id" {
   type        = string
   default     = ""
-  description = "Empty = encrypted with an AWS-owned key. Set a KMS key ARN to use your own key. Changing it replaces the broker."
+  description = "Empty = an AWS-owned key. Set a KMS key ARN to use yours; changing it replaces the broker."
 }
 
 variable "consumer_timeout_ms" {
@@ -202,5 +202,5 @@ variable "heartbeat_seconds" {
 variable "extra_configuration" {
   type        = string
   default     = ""
-  description = "Extra rabbitmq.conf lines, separated by ';' (e.g. management.restrictions.operator_policy_changes.disabled = false). Amazon MQ rejects keys it does not allow at apply."
+  description = "Extra rabbitmq.conf lines, separated by ';'. Amazon MQ rejects keys it does not allow at apply."
 }

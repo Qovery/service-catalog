@@ -12,9 +12,9 @@ Authentication is a **Cloudflare API token** supplied as the sensitive `cloudfla
 
 | Name                   | Type   | Sensitive | Description                                                        |
 | ---------------------- | ------ | --------- | ------------------------------------------------------------------ |
-| `cloudflare_api_token` | string | yes       | Cloudflare API token with Workers Scripts edit permission          |
+| `cloudflare_api_token` | string | yes       | Cloudflare API token with Workers Scripts edit permission (and Workers Routes edit if using a route) |
 | `account_id`           | string |           | Cloudflare account ID that owns the Worker                         |
-| `script_name`          | string |           | Worker script name (`^[a-z0-9_-]+$`)                               |
+| `script_name`          | string |           | Worker script name (lowercase letters, digits, hyphens, underscores) |
 
 ### Optional
 

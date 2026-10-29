@@ -32,7 +32,7 @@ variable "organization" {
 
 variable "database_name" {
   type        = string
-  description = "Database name. Created implicitly with the first branch (destroying the last branch destroys the database)."
+  description = "Letters, digits, hyphens, underscores; max 64 chars. Destroying the last branch destroys the database."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9_-]{1,64}$", var.database_name))

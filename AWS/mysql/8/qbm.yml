@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-mysql"
   displayName: "Amazon RDS for MySQL"
   primaryCategory: "Databases & Caches"
-  version: "3.5.0"
+  version: "3.5.1"
   description: "AWS RDS MySQL 8.4 instance with configurable size, storage, backups, maintenance, monitoring, and network"
   icon: "app://qovery-console/mysql"
   serviceFamily: "mysql"
@@ -49,33 +49,33 @@ spec:
     - name: "db_name"
       type: "string"
       required: true
-      description: "MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed."
+      description: "Letters, digits, underscores; must start with a letter; max 64 chars. No hyphens."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,63}$"
       minLength: 1
       maxLength: 64
     - name: "db_username"
       type: "string"
       required: false
-      description: "Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: admin, rdsadmin, mysql."
+      description: "Leave empty to use qoveryadmin. Letters, digits, underscores, starting with a letter, max 32; not admin, rdsadmin or mysql."
       pattern: "^([a-zA-Z][a-zA-Z0-9_]{0,31})?$"
       maxLength: 32
     - name: "db_password"
       type: "string"
       required: false
       sensitive: true
-      description: 'Leave empty when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance this must carry the current master password of that instance, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. Changing it rotates the master password on the live instance (adopted instances: only once manage_db_password is true).'
+      description: 'Leave empty and Qovery generates one (adopted: its current password). 8–128 chars, no /, @, ", spaces; edits rotate it (adopted: needs manage_db_password).'
       pattern: '^([^/@" ]+)?$'
       maxLength: 128
     - name: "manage_db_password"
       type: "bool"
       required: false
       default: "false"
-      description: "Adopted instances only, and one-way: once true, leave it true. Switching it on applies db_password to the instance, so confirm that value is the one the instance already has. Changing db_password then rotates it. An instance this blueprint created always owns its password."
+      description: "Adopted instances only, one-way: once on, keep it on. Turning it on applies db_password, so it must match the instance's current one."
     - name: "port"
       type: "number"
       required: false
       default: "3306"
-      description: "Database port (RDS reserves ports below 1150)"
+      description: "Min 1150 (RDS reserves lower ports)."
       min: 1150
       max: 65535
     - name: "instance_class"
@@ -325,7 +325,7 @@ spec:
       type: "number"
       required: true
       default: "20"
-      description: "Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384)"
+      description: "GiB. Min 20; max 65536 (gp2: 16384)."
       min: 20
       max: 65536
     - name: "storage_type"
@@ -347,7 +347,7 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default."
+      description: "Only for io1/io2, or gp3 at ≥400 GiB. 0 lets AWS choose."
       min: 0
       max: 256000
     - name: "multi_az"
@@ -363,11 +363,11 @@ spec:
     - name: "db_subnet_group_name"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's DB subnet group. Set it only on a user-provided VPC."
     - name: "security_group_ids"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
     - name: "apply_changes_now"
       type: "bool"
       required: false
@@ -387,12 +387,12 @@ spec:
       type: "string"
       required: false
       default: "Tue:02:00-Tue:04:00"
-      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+      description: "UTC, format ddd:hh24:mi-ddd:hh24:mi."
     - name: "preferred_backup_window"
       type: "string"
       required: false
       default: "00:00-01:00"
-      description: "Daily backup window (UTC), format hh24:mi-hh24:mi"
+      description: "Daily, UTC, format hh24:mi-hh24:mi."
     - name: "backup_retention_period"
       type: "number"
       required: false
@@ -404,12 +404,12 @@ spec:
       type: "bool"
       required: false
       default: "false"
-      description: "Skip the final snapshot on deletion. Default keeps one, billed until deleted; set true for throwaway instances"
+      description: "Off keeps a final snapshot on deletion, billed until deleted. Turn on for throwaway instances."
     - name: "delete_automated_backups"
       type: "bool"
       required: false
       default: "false"
-      description: "Delete automated backups when the instance is deleted. Default keeps them for backup_retention_period days; set true for throwaway instances"
+      description: "Delete automated backups with the instance. Off keeps them backup_retention_period days; turn on for throwaway ones."
     - name: "copy_tags_to_snapshot"
       type: "bool"
       required: false
@@ -424,7 +424,7 @@ spec:
       type: "number"
       required: false
       default: "7"
-      description: "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 731, or a multiple of 31."
+      description: "Retention in days. Only used when performance_insights_enabled is true."
       allowedValues:
         - "7"
         - "31"
@@ -460,7 +460,7 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Enhanced monitoring interval in seconds (0 disables). Allowed values: 0, 1, 5, 10, 15, 30, 60."
+      description: "Enhanced monitoring interval in seconds (0 disables)"
       allowedValues:
         - "0"
         - "1"
@@ -472,11 +472,11 @@ spec:
     - name: "monitoring_role_arn"
       type: "string"
       required: false
-      description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+      description: "For enhanced monitoring. Required when monitoring_interval > 0."
     - name: "option_group_name"
       type: "string"
       required: false
-      description: "Optional option group name. Empty = AWS default."
+      description: "Empty = AWS default."
     - name: "deletion_protection"
       type: "bool"
       required: false

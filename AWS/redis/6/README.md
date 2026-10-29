@@ -10,7 +10,7 @@ The replication group id is `redis_name` lowercased (AWS requirement). Applicati
 
 | Name | Type | Sensitive | Description |
 | ---- | ---- | --------- | ----------- |
-| `redis_name` | string | | Replication group name. Letters, digits, hyphens; must start with a letter; max 40 chars. Underscores are not allowed. |
+| `redis_name` | string | | Replication group name. Must start with a letter, end with a letter or digit, and use single hyphens between them; max 40 chars. Underscores are not allowed. |
 | `instance_class` | string | | ElastiCache node type. Default suggestion: `cache.t3.micro`. |
 
 Available node types: every ElastiCache node type Qovery offers for native managed Redis (the `cache.t3`, `t4g`, `m4`–`m7g`, `r4`–`r7g` and `c7gn` families; `r6gd` is left out because it needs data tiering). The full list is in `qbm.yml`.
@@ -29,7 +29,7 @@ In the Console, leaving the field blank omits it. Through the API or Terraform, 
 | ---- | ---- | ------- | ----------- |
 | `engine_version` | string | `6.2` | Redis engine version: `6.0`, `6.2`. `6.0` does not run the `c7gn`, `m7g` and `r7g` node families. |
 | `port` | number | `6379` | Redis port |
-| `instances_number` | number | `1` | Node groups (shards). Above 1 enables cluster mode. |
+| `instances_number` | number | `1` | Node groups (shards). 1 = a single node with no replica. Above 1 enables cluster mode with one replica per shard, and forces failover and Multi-AZ. Pick it at creation — ElastiCache cannot turn cluster mode on later. |
 | `parameter_group_name` | string | | Leave empty — derived from the topology. |
 
 `instances_number = 1` creates a single node with no replica. Above 1, the group switches to cluster mode: `N` shards, one replica each (so `2N` nodes), with automatic failover and Multi-AZ enabled because AWS requires both there, and the `default.redis6.x.cluster.on` parameter group instead of `default.redis6.x`. Clients then need a cluster-aware Redis library and the `redis_configuration_endpoint_address` output.
@@ -48,8 +48,8 @@ Encryption in transit is always on and is not a variable: ElastiCache only accep
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `subnet_group_name` | string | | Leave empty — the Qovery cluster ElastiCache subnet group. Set only on a user-provided VPC. |
-| `security_group_ids` | string | | Leave empty — the Qovery cluster workers security group. Set only on a user-provided VPC. |
+| `subnet_group_name` | string | | Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing. |
+| `security_group_ids` | string | | Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
 
 By default the group is attached to the Qovery cluster network: the ElastiCache subnet group created at cluster bootstrap (named `elasticache-<cluster vpc id>`) and the cluster workers security group, so pods in the cluster can reach Redis out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve and the bootstrap subnet group may not exist; set both variables explicitly in that case.
 

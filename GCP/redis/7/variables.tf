@@ -22,7 +22,7 @@ variable "qovery_cluster_id" {
 # User-provided variables
 variable "redis_name" {
   type        = string
-  description = "Memorystore instance ID (lowercase letters, digits, hyphens; must start with a letter and not end with a hyphen; max 40 chars)"
+  description = "Lowercase letters, digits, hyphens; must start with a letter, not end with a hyphen; max 40 chars."
 
   validation {
     condition     = length(var.redis_name) >= 1 && length(var.redis_name) <= 40
@@ -38,7 +38,7 @@ variable "redis_name" {
 variable "tier" {
   type        = string
   default     = "BASIC"
-  description = "Service tier: BASIC (single node) or STANDARD_HA (cross-zone replication, automatic failover)"
+  description = "BASIC: single node; STANDARD_HA: cross-zone replica and failover"
 
   validation {
     condition     = contains(["BASIC", "STANDARD_HA"], var.tier)
@@ -49,7 +49,7 @@ variable "tier" {
 variable "memory_size_gb" {
   type        = number
   default     = 1
-  description = "Instance memory size in GiB"
+  description = "In GiB"
 
   validation {
     condition     = var.memory_size_gb >= 1 && var.memory_size_gb <= 300
@@ -84,7 +84,7 @@ variable "auth_enabled" {
 variable "transit_encryption_mode" {
   type        = string
   default     = "DISABLED"
-  description = "In-transit (TLS) encryption mode. DISABLED (the default) sends cache traffic, and (when auth_enabled is true) the AUTH string, unencrypted over the VPC."
+  description = "In-transit TLS; DISABLED sends traffic and AUTH in clear inside the VPC"
 
   validation {
     condition     = contains(["DISABLED", "SERVER_AUTHENTICATION"], var.transit_encryption_mode)
@@ -95,7 +95,7 @@ variable "transit_encryption_mode" {
 variable "authorized_network" {
   type        = string
   default     = ""
-  description = "VPC network self-link to connect to. Empty = the project's default network."
+  description = "Empty = the project's default network. Set the Qovery cluster's VPC self-link so cluster pods can reach the instance."
 }
 
 variable "connect_mode" {
@@ -112,7 +112,7 @@ variable "connect_mode" {
 variable "reserved_ip_range" {
   type        = string
   default     = ""
-  description = "CIDR /29 or named allocated range reserved for the instance. Empty = GCP picks one automatically."
+  description = "Empty = GCP picks a free range. Else a /29 CIDR (DIRECT_PEERING) or a named allocated range (PRIVATE_SERVICE_ACCESS)."
 }
 
 variable "maxmemory_policy" {
@@ -154,7 +154,7 @@ variable "rdb_snapshot_period" {
 variable "maintenance_day" {
   type        = string
   default     = ""
-  description = "Day of week for the scheduled maintenance window. Empty disables a fixed window."
+  description = "Maintenance window day; empty lets GCP maintain at any time"
 
   validation {
     condition     = contains(["", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"], var.maintenance_day)
@@ -165,7 +165,7 @@ variable "maintenance_day" {
 variable "maintenance_start_hour" {
   type        = number
   default     = 2
-  description = "Maintenance window start hour, UTC 24h. Only used when maintenance_day is set."
+  description = "UTC hour, 0–23. Only used when maintenance_day is set."
 
   validation {
     condition     = var.maintenance_start_hour >= 0 && var.maintenance_start_hour <= 23
@@ -182,7 +182,7 @@ variable "maintenance_start_hour" {
 variable "replica_count" {
   type        = number
   default     = 0
-  description = "Number of exposed cross-zone read replicas (0-5). Only supported when tier is STANDARD_HA. STANDARD_HA always allocates a standby node for failover regardless of this value; 0 just means that node isn't exposed as a readable replica."
+  description = "Readable cross-zone replicas, 0–5; STANDARD_HA only, where 0 still keeps a non-readable failover standby."
 
   validation {
     condition     = var.replica_count >= 0 && var.replica_count <= 5

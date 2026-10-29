@@ -30,24 +30,24 @@ Drop the last three by setting `create_service_account = false` and managing acc
 
 | Name                      | Type   | Sensitive | Description                                                         |
 | ------------------------- | ------ | --------- | -------------------------------------------------------------------- |
-| `gcp_service_account_key` | string | yes       | JSON key Terraform authenticates as                                  |
+| `gcp_service_account_key` | string | yes       | JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when `create_service_account` is true, and Project IAM Admin when `grant_job_user` is true. |
 | `gcp_project_id`          | string |           | Project the dataset is created in                                    |
-| `dataset_id`              | string |           | Dataset id — letters, digits, underscores (`^[a-zA-Z0-9_]+$`, ≤1024) |
+| `dataset_id`              | string |           | BigQuery dataset id, up to 1024 chars of letters, digits and underscores (BigQuery rejects hyphens) |
 
 ### Optional
 
 | Name                              | Type   | Default                     | Description                                                                                     |
 | --------------------------------- | ------ | --------------------------- | ------------------------------------------------------------------------------------------------ |
-| `location`                        | string | `US`                        | Multi-region (`US`, `EU`) or region (`europe-west1`). Immutable — changing it recreates the dataset |
+| `location`                        | string | `US`                        | Dataset `location`: a multi-region (US, EU) or a region (europe-west1, us-central1). Immutable — changing it recreates the dataset and destroys its tables. |
 | `friendly_name`                   | string |                             | Display name. Empty = show the dataset id                                                        |
-| `dataset_description`             | string |                             | Dataset description. Empty = none                                                                |
-| `default_table_expiration_ms`     | number | `0`                         | Default table lifetime in ms. `0` = never expire; BigQuery rejects anything below `3600000`       |
-| `default_partition_expiration_ms` | number | `0`                         | Default partition lifetime in ms. `0` = never expire                                             |
+| `dataset_description`             | string |                             | Free-text description attached to the dataset. Empty = no description. |
+| `default_table_expiration_ms`     | number | `0`                         | Lifetime in milliseconds of a table created without its own expiration. 0 = tables never expire. BigQuery rejects anything below 3600000 (1 hour). |
+| `default_partition_expiration_ms` | number | `0`                         | Lifetime in milliseconds of a partition created without its own expiration. 0 = partitions never expire. BigQuery rejects anything below 3600000 (1 hour). |
 | `delete_contents_on_destroy`      | bool   | `false`                     | Allow destroying a dataset that still holds tables                                               |
 | `create_service_account`          | bool   | `true`                      | Create the application service account and key                                                   |
-| `service_account_id`              | string |                             | Leave empty — derived as `qovery-bq-<dataset>`. Set it only on a collision                        |
+| `service_account_id`              | string |                             | Leave empty — derived from the dataset id as qovery-bq-<dataset>. Set it only when that derived id collides with an existing service account in the project. |
 | `service_account_role`            | string | `roles/bigquery.dataEditor` | `dataViewer`, `dataEditor` or `dataOwner`, granted on the dataset                                |
-| `grant_job_user`                  | bool   | `true`                      | Also grant `roles/bigquery.jobUser` on the project, without which the account cannot run a query  |
+| `grant_job_user`                  | bool   | `true`                      | Also grant the created service account roles/bigquery.jobUser on the project. Without it the account can read and write table data but cannot run a query — job creation is a project-level right that no dataset role carries. |
 
 ## Outputs
 

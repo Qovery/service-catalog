@@ -33,7 +33,7 @@ variable "import_identifier" {
 # User-provided variables
 variable "redis_name" {
   type        = string
-  description = "Replication group name (letters, digits, single hyphens; must start with a letter, end alphanumeric; max 40 chars). Lowercased before it reaches AWS."
+  description = "Letters, digits, single hyphens; must start with a letter and end with a letter or digit; max 40 chars. No underscores."
 
   validation {
     condition     = length(var.redis_name) >= 1 && length(var.redis_name) <= 40
@@ -125,7 +125,7 @@ variable "parameter_group_name" {
 variable "instances_number" {
   type        = number
   default     = 1
-  description = "Node groups (shards). 1 = a single node group with no replica. Above 1 enables cluster mode with one replica per shard, plus the failover and Multi-AZ that AWS requires there. Create-time choice: ElastiCache cannot turn cluster mode on for an existing group."
+  description = "Shards: 1 = single node; more enables cluster mode (a replica per shard, Multi-AZ). Pick at creation: cluster mode cannot be turned on later."
 
   validation {
     # One replica per node group, so N shards means 2N nodes; the default AWS quota is 90 nodes
@@ -144,13 +144,13 @@ variable "at_rest_encryption_enabled" {
 variable "subnet_group_name" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's ElastiCache subnet group. Set it only on a user-provided VPC."
 }
 
 variable "security_group_ids" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+  description = "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 }
 
 variable "apply_changes_now" {
@@ -168,13 +168,13 @@ variable "auto_minor_version_upgrade" {
 variable "preferred_maintenance_window" {
   type        = string
   default     = "Tue:02:00-Tue:04:00"
-  description = "Maintenance window (UTC) — ddd:hh24:mi-ddd:hh24:mi"
+  description = "UTC, format ddd:hh24:mi-ddd:hh24:mi."
 }
 
 variable "preferred_backup_window" {
   type        = string
   default     = "00:00-01:00"
-  description = "Daily snapshot window (UTC) — hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
+  description = "Daily, UTC, format hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
 }
 
 variable "backup_retention_period" {
@@ -197,5 +197,5 @@ variable "skip_final_snapshot" {
 variable "snapshot_name" {
   type        = string
   default     = ""
-  description = "Existing ElastiCache snapshot to seed the new group from. Empty = start empty. Read only at creation."
+  description = "Unset = start empty. Else an existing ElastiCache snapshot to seed from; read at creation only."
 }

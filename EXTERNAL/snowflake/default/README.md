@@ -34,11 +34,11 @@ retiring single-factor password sign-in, so it is the one credential shape guara
 
 | Name                          | Type   | Sensitive | Description                                                    |
 | ----------------------------- | ------ | --------- | ---------------------------------------------------------------- |
-| `snowflake_organization_name` | string |           | ORGNAME half of the account identifier                          |
+| `snowflake_organization_name` | string |           | Snowflake organization name — the first half of the account identifier (the ORGNAME in ORGNAME-ACCOUNTNAME) |
 | `snowflake_account_name`      | string |           | ACCOUNTNAME half — not the legacy account locator               |
 | `snowflake_user`              | string |           | User Terraform authenticates as                                 |
 | `snowflake_private_key`       | string | yes       | PEM PKCS#8 private key for that user                            |
-| `database_name`               | string |           | Database to create (`^[A-Za-z_][A-Za-z0-9_$]*$`, max 246 chars, upper-cased) |
+| `database_name`               | string |           | Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier. Capped at 246 chars because the derived warehouse, role and user names append up to 9 more. |
 
 ### Optional
 
@@ -48,14 +48,14 @@ retiring single-factor password sign-in, so it is the one credential shape guara
 | `snowflake_role`                   | string | `ACCOUNTADMIN`                           | Role Terraform runs as                                                       |
 | `schema_name`                      | string | `APP`                                    | Schema created in the database (same pattern, max 255 chars)                 |
 | `warehouse_name`                   | string |                                          | Leave empty — derived as `<database_name>_WH`. Same identifier rules if set   |
-| `warehouse_size`                   | string | `XSMALL`                                 | `XSMALL` … `X4LARGE`; each step doubles credit burn per second                |
+| `warehouse_size`                   | string | `XSMALL`                                 | Compute size of the created warehouse. Each step up doubles the credit burn per second of runtime. |
 | `auto_suspend_seconds`             | number | `60`                                     | Idle seconds before suspend (60–3600). The main cost control                  |
 | `data_retention_time_in_days`      | number | `1`                                      | Time Travel window (0–90). Above 1 needs Enterprise Edition                   |
 | `role_name`                        | string |                                          | Leave empty — derived as `<database_name>_APP`. Same identifier rules if set  |
 | `schema_privileges`                | string | `USAGE,CREATE TABLE,CREATE VIEW,CREATE STAGE` | Comma-separated privileges on the schema                                |
 | `table_privileges`                 | string | `SELECT,INSERT,UPDATE,DELETE`            | Comma-separated privileges on future tables in the schema                    |
 | `grant_future_table_privileges`    | bool   | `true`                                   | Apply `table_privileges` to future tables                                    |
-| `create_service_user`              | bool   | `true`                                   | Create a `SERVICE` user with a generated key pair and grant it the role      |
+| `create_service_user`              | bool   | `true`                                   | Create a SERVICE user with a generated RSA key pair and grant it the role, so an application on any cloud can connect. Set false to attach your own users to the role. |
 | `service_user_name`                | string |                                          | Leave empty — derived as `<database_name>_APP_USER`. Same rules if set        |
 | `grant_role_to_user`               | string |                                          | Existing user to also grant the role to. Unset = nobody beyond the service user |
 

@@ -5,7 +5,7 @@ metadata:
   name: "aws-cloudfront"
   displayName: "AWS CloudFront"
   primaryCategory: "Networking & Edge"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions"
   icon: "app://qovery-console/cloudfront"
   serviceFamily: "cloudfront"
@@ -47,12 +47,12 @@ spec:
     - name: "origin_domain_name"
       type: "string"
       required: true
-      description: "Origin hostname CloudFront pulls from (e.g. an ALB, app host, or S3 website endpoint). Bare hostname, no scheme or path."
+      description: "Hostname CloudFront pulls from (e.g. an ALB or S3 website endpoint). No scheme or path."
     - name: "comment"
       type: "string"
       required: false
       default: "Managed by Qovery blueprint"
-      description: "Distribution comment shown in the AWS console"
+      description: "Free text shown in the AWS console"
     - name: "enabled"
       type: "bool"
       required: false
@@ -108,25 +108,25 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Minimum cache TTL in seconds"
+      description: "In seconds"
     - name: "default_ttl"
       type: "number"
       required: false
       default: "3600"
-      description: "Default cache TTL in seconds"
+      description: "In seconds, for responses without Cache-Control or Expires headers"
     - name: "max_ttl"
       type: "number"
       required: false
       default: "86400"
-      description: "Maximum cache TTL in seconds (must be >= min_ttl)"
+      description: "In seconds; must be ≥ min_ttl"
     - name: "aliases"
       type: "string"
       required: false
-      description: "Comma-separated custom domain names (CNAMEs). Requires acm_certificate_arn. Empty = use the default *.cloudfront.net domain."
+      description: "Empty = the default *.cloudfront.net domain. Otherwise comma-separated custom domains (CNAMEs); requires acm_certificate_arn."
     - name: "acm_certificate_arn"
       type: "string"
       required: false
-      description: "ACM certificate ARN for the custom domains. Must be in us-east-1. Empty = default CloudFront certificate."
+      description: "Empty = default CloudFront certificate. Set it for the custom domains; must be in us-east-1."
     - name: "geo_restriction_type"
       type: "string"
       required: false

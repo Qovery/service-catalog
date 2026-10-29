@@ -36,19 +36,19 @@ No `bedrock:*` permission is needed — the blueprint only writes IAM.
 
 | Name                    | Type   | Sensitive | Description                                                          |
 | ----------------------- | ------ | --------- | ---------------------------------------------------------------------- |
-| `aws_access_key_id`     | string | yes       | Access key id Terraform authenticates as                              |
+| `aws_access_key_id`     | string | yes       | Access key id of the AWS principal Terraform authenticates as. Needs IAM write access on users, policies and access keys — including the delete and detach actions, or destroy fails. The blueprint README lists the full set. |
 | `aws_secret_access_key` | string | yes       | Matching secret access key                                            |
-| `name_prefix`           | string |           | Prefix for the user and policy. Unique within the account             |
-| `allowed_model_ids`     | string |           | Comma-separated model ids the credentials may invoke, or `*` for all  |
+| `name_prefix`           | string |           | Prefix for the resources this blueprint names: the IAM user (<prefix>-bedrock) and its policy (<prefix>-bedrock-invoke). Must be unique within the AWS account. |
+| `allowed_model_ids`     | string |           | Comma-separated Bedrock model ids the credentials may invoke, e.g. anthropic.claude-sonnet-4-5-20250929-v1:0. A cross-region id (us.anthropic.…) is expanded to both the inference profile and the underlying foundation model. Pass * to allow every foundation model in the account — deliberately not the default, since that also covers every model added in future. |
 
 ### Optional
 
 | Name                           | Type   | Default     | Description                                                                    |
 | ------------------------------ | ------ | ----------- | -------------------------------------------------------------------------------- |
-| `aws_region`                   | string | `us-east-1` | Region Bedrock is called in. Model availability differs per region              |
-| `allow_list_foundation_models` | bool   | `true`      | Also allow the read-only discovery calls most SDKs make before invoking         |
-| `create_iam_user`              | bool   | `true`      | Create the IAM user and access key                                             |
-| `attach_to_role_name`          | string |             | Existing IAM role to attach the policy to. Unset = attach to nothing           |
+| `aws_region`                   | string | `us-east-1` | Region Bedrock is called in. Model availability differs per region — check the model you want is offered there before changing it. |
+| `allow_list_foundation_models` | bool   | `true`      | Also allow read-only discovery calls (ListFoundationModels, GetFoundationModel, ListInferenceProfiles, GetInferenceProfile). Most SDK samples and model pickers call these before invoking. |
+| `create_iam_user`              | bool   | `true`      | Create an IAM user with a long-lived access key. This is what makes Bedrock reachable from a cluster outside AWS, which has no IAM role to assume. Set false on an AWS cluster and use `attach_to_role_name` instead. |
+| `attach_to_role_name`          | string |             | Existing IAM role in the same account to attach the invoke policy to — the keyless path for a workload that already has an AWS identity (IRSA, EC2 instance profile). Unset = attach to nothing. |
 
 ## Outputs
 

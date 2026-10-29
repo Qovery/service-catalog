@@ -12,7 +12,7 @@ variable "qovery_cluster_name" {
 # User-provided variables
 variable "origin_domain_name" {
   type        = string
-  description = "Origin hostname CloudFront pulls from (e.g. an ALB, app host, or S3 website endpoint). No scheme, no path."
+  description = "Hostname CloudFront pulls from (e.g. an ALB or S3 website endpoint). No scheme or path."
 
   validation {
     condition     = length(var.origin_domain_name) > 0 && !can(regex("://", var.origin_domain_name))
@@ -23,7 +23,7 @@ variable "origin_domain_name" {
 variable "comment" {
   type        = string
   default     = "Managed by Qovery blueprint"
-  description = "Distribution comment shown in the AWS console"
+  description = "Free text shown in the AWS console"
 }
 
 variable "enabled" {
@@ -94,19 +94,19 @@ variable "viewer_protocol_policy" {
 variable "min_ttl" {
   type        = number
   default     = 0
-  description = "Minimum cache TTL in seconds"
+  description = "In seconds"
 }
 
 variable "default_ttl" {
   type        = number
   default     = 3600
-  description = "Default cache TTL in seconds"
+  description = "In seconds, for responses without Cache-Control or Expires headers"
 }
 
 variable "max_ttl" {
   type        = number
   default     = 86400
-  description = "Maximum cache TTL in seconds"
+  description = "In seconds; must be ≥ min_ttl"
 
   validation {
     condition     = var.max_ttl >= var.min_ttl
@@ -118,7 +118,7 @@ variable "max_ttl" {
 variable "aliases" {
   type        = string
   default     = ""
-  description = "Comma-separated custom domain names (CNAMEs). Requires acm_certificate_arn. Empty = use the default *.cloudfront.net domain."
+  description = "Empty = the default *.cloudfront.net domain. Otherwise comma-separated custom domains (CNAMEs); requires acm_certificate_arn."
 
   validation {
     # CloudFront rejects aliases without a matching ACM certificate.
@@ -130,7 +130,7 @@ variable "aliases" {
 variable "acm_certificate_arn" {
   type        = string
   default     = ""
-  description = "ACM certificate ARN for the custom domains. Must be in us-east-1. Empty = use the default CloudFront certificate."
+  description = "Empty = default CloudFront certificate. Set it for the custom domains; must be in us-east-1."
 }
 
 # Geo restrictions

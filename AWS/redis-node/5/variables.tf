@@ -36,7 +36,7 @@ variable "import_identifier" {
 # User-provided variables
 variable "redis_name" {
   type        = string
-  description = "Display name (max 40 chars). Informational: the adopted cluster keeps its native tags."
+  description = "Display only, max 40 chars: the adopted cluster keeps its native tags."
 
   validation {
     condition     = length(var.redis_name) >= 1 && length(var.redis_name) <= 40
@@ -101,13 +101,13 @@ variable "apply_changes_now" {
 variable "preferred_maintenance_window" {
   type        = string
   default     = "Tue:02:00-Tue:04:00"
-  description = "Maintenance window (UTC) — ddd:hh24:mi-ddd:hh24:mi. Ignored after adoption, like the native template."
+  description = "UTC, format ddd:hh24:mi-ddd:hh24:mi. Ignored after adoption, like the native template."
 }
 
 variable "preferred_backup_window" {
   type        = string
   default     = "00:00-01:00"
-  description = "Daily snapshot window (UTC) — hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
+  description = "Daily, UTC, format hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
 }
 
 variable "backup_retention_period" {

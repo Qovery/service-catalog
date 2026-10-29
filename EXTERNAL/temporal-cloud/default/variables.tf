@@ -11,7 +11,7 @@ variable "temporal_cloud_api_key" {
 
 variable "namespace_name" {
   type        = string
-  description = "Namespace name (2-64 chars: lowercase letters, digits, hyphens). Temporal appends the account suffix to form the full namespace id."
+  description = "2–64 lowercase letters, digits, hyphens. Temporal appends the account suffix."
 
   validation {
     condition     = can(regex("^[a-z0-9-]{2,64}$", var.namespace_name))
@@ -33,7 +33,7 @@ variable "regions" {
 variable "retention_days" {
   type        = number
   default     = 30
-  description = "Workflow execution retention period in days"
+  description = "Days to keep workflow execution history (1–90)"
 
   validation {
     condition     = var.retention_days >= 1 && var.retention_days <= 90

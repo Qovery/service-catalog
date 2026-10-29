@@ -5,7 +5,7 @@ metadata:
   name: "snowflake-database"
   displayName: "Snowflake Database"
   primaryCategory: "Analytics"
-  version: "1.0.2"
+  version: "1.0.3"
   description: "Provision a Snowflake database, schema, warehouse and application role, with an optional SERVICE user and generated key pair so an application on any cloud — AWS, Azure, Scaleway or GCP — can connect"
   icon: "app://qovery-console/snowflake"
   serviceFamily: "snowflake"
@@ -43,11 +43,11 @@ spec:
     - name: "snowflake_organization_name"
       type: "string"
       required: true
-      description: "Snowflake organization name — the first half of the account identifier (the ORGNAME in ORGNAME-ACCOUNTNAME)"
+      description: "First half of the account identifier (the ORGNAME in ORGNAME-ACCOUNTNAME)"
     - name: "snowflake_account_name"
       type: "string"
       required: true
-      description: "Snowflake account name — the second half of the account identifier, not the legacy account locator"
+      description: "Second half of the account identifier (ORGNAME-ACCOUNTNAME), not the legacy account locator"
     - name: "snowflake_user"
       type: "string"
       required: true
@@ -70,7 +70,7 @@ spec:
     - name: "database_name"
       type: "string"
       required: true
-      description: "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier. Capped at 246 chars because the derived warehouse, role and user names append up to 9 more."
+      description: "Upper-cased, so it stays an unquoted identifier. Max 246 chars: derived warehouse, role and user names append up to 9 more."
       pattern: "^[A-Za-z_][A-Za-z0-9_$]*$"
       maxLength: 246
     - name: "schema_name"
@@ -94,7 +94,7 @@ spec:
       type: "string"
       required: false
       default: "XSMALL"
-      description: "Compute size of the created warehouse. Each step up doubles the credit burn per second of runtime."
+      description: "Warehouse size; each step up doubles the credit burn"
       allowedValues:
         - "XSMALL"
         - "SMALL"
@@ -147,7 +147,7 @@ spec:
       type: "bool"
       required: false
       default: "true"
-      description: "Create a SERVICE user with a generated RSA key pair and grant it the role, so an application on any cloud can connect. Set false to attach your own users to the role."
+      description: "Create a SERVICE user with a generated RSA key pair and the role, for apps on any cloud. Turn off to attach your own users to the role."
     - name: "service_user_name"
       type: "string"
       required: false
@@ -185,7 +185,7 @@ spec:
     - name: "service_user_name"
       description: "SERVICE user granted the role (empty when create_service_user is false)"
     - name: "service_user_private_key"
-      description: "PEM-encoded PKCS#8 private key for the SERVICE user, as the Snowflake drivers expect for key-pair auth"
+      description: "PEM PKCS#8 key of the SERVICE user, for Snowflake key-pair auth"
       sensitive: true
     - name: "jdbc_url"
       description: "JDBC URL preset to the created database, schema, warehouse and role"

@@ -5,7 +5,7 @@ metadata:
   name: "planetscale-database"
   displayName: "PlanetScale Database"
   primaryCategory: "Databases & Caches"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Provision a PlanetScale (Vitess/MySQL) database with a production branch and an application password, via the official PlanetScale Terraform provider"
   icon: "app://qovery-console/planetscale"
   serviceFamily: "planetscale"
@@ -57,7 +57,7 @@ spec:
     - name: "database_name"
       type: "string"
       required: true
-      description: "Database name. Created implicitly with the first branch (destroying the last branch destroys the database)."
+      description: "Letters, digits, hyphens, underscores; max 64 chars. Destroying the last branch destroys the database."
       pattern: "^[a-zA-Z0-9_-]{1,64}$"
     - name: "branch_name"
       type: "string"

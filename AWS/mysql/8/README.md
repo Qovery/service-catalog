@@ -14,7 +14,7 @@ The RDS identifier is derived from `db_name` by lowercasing and replacing unders
 | ------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `db_name`     | string |           | MySQL database name. Letters, digits, underscores only; must start with a letter; max 64 chars. Hyphens are not allowed. |
 | `instance_class`    | string |           | RDS instance class. Default suggestion: `db.t3.micro`.                                             |
-| `allocated_storage` | number |           | Allocated storage in GiB (min 20, max 65536). Default suggestion: `20`.                             |
+| `allocated_storage` | number |           | Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384) |
 
 Available instance classes: every RDS instance class Qovery offers for native managed PostgreSQL and MySQL — the `db.t3`, `db.t4g`, `db.m5`–`db.m8g`, `db.r5`–`db.r8g` (including `db.r5b`), `db.x2g`, `db.x2idn` and `db.x2iedn` families, with their Graviton (`g`), Intel (`i`), local-storage (`d`) and network-optimized (`n`) variants. `db.c6gd` is left out because RDS offers it only for Multi-AZ DB clusters. The full list is in `qbm.yml`.
 
@@ -27,9 +27,9 @@ empty variable value.
 
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Omit to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: admin, rdsadmin, mysql. |
-| `db_password` | string | yes | _generated_ | Omit when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance, this must carry that instance's current master password, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. |
-| `manage_db_password` | bool |  | `false` | Adopted instances only, and one-way: once true, leave it true. Changing `db_password` then rotates the live instance's master password. An instance this blueprint created always owns its password. |
+| `db_username` | string |  | `qoveryadmin` | Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 32 chars (MySQL limit). Reserved names not allowed: admin, rdsadmin, mysql. |
+| `db_password` | string | yes | _generated_ | Leave empty when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance this must carry the current master password of that instance, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. Changing it rotates the master password on the live instance (adopted instances: only once `manage_db_password` is true). |
+| `manage_db_password` | bool |  | `false` | Adopted instances only, and one-way: once true, leave it true. Switching it on applies `db_password` to the instance, so confirm that value is the one the instance already has. Changing `db_password` then rotates it. An instance this blueprint created always owns its password. |
 
 Changing `db_password` rotates the live instance's master password: the value is sent as a
 write-only argument, triggered by a version derived from the password itself, so a change
@@ -62,7 +62,7 @@ as the credential without ever being applied.
 | `port`              | number | `3306`        | Database port                                                  |
 | `storage_type`      | string | `gp3`         | EBS storage type: `gp2`, `gp3`, `io1`, `io2`                   |
 | `storage_encrypted` | bool   | `true`        | Encrypt storage at rest                                        |
-| `disk_iops`         | number | `0`           | Provisioned IOPS (io1/io2 or gp3 ≥400 GiB). `0` = AWS default. |
+| `disk_iops`         | number | `0`           | Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default. |
 
 ### Network
 
@@ -70,8 +70,8 @@ as the credential without ever being applied.
 | ---------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------- |
 | `multi_az`             | bool   | `false` | Enable Multi-AZ deployment                                                                               |
 | `publicly_accessible`  | bool   | `false` | Expose the database to the public internet                                                               |
-| `db_subnet_group_name` | string |         | Leave empty — the Qovery cluster DB subnet group. Set only on a user-provided VPC.                       |
-| `security_group_ids`   | string |         | Leave empty — the Qovery cluster workers security group. Set only on a user-provided VPC.                |
+| `db_subnet_group_name` | string |         | Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing. |
+| `security_group_ids`   | string |         | Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing. |
 
 By default the instance is attached to the Qovery cluster network: the DB subnet group created at cluster bootstrap (named after the cluster VPC id) and the cluster workers security group, so pods in the cluster can reach the database out of the box. On clusters deployed into an existing VPC (user-provided network), the `ClusterId` tag lookup may not resolve; set `db_subnet_group_name` and `security_group_ids` explicitly in that case.
 
@@ -91,7 +91,7 @@ By default the instance is attached to the Qovery cluster network: the DB subnet
 | `preferred_backup_window`  | string | `00:00-01:00` | Daily backup window (UTC), `hh24:mi-hh24:mi` |
 | `backup_retention_period`  | number | `7`           | Days to retain backups (0–35). `0` disables. |
 | `skip_final_snapshot`      | bool   | `false`       | Skip final snapshot on deletion              |
-| `delete_automated_backups` | bool   | `false`       | Delete automated backups on deletion         |
+| `delete_automated_backups` | bool   | `false`       | Delete automated backups when the instance is deleted. Default keeps them for `backup_retention_period` days; set true for throwaway instances |
 | `copy_tags_to_snapshot`    | bool   | `true`        | Propagate instance tags to snapshots         |
 
 Deleting the service keeps a final snapshot and the automated backups by default, and both keep
@@ -108,8 +108,8 @@ create/destroy cycles of the same name do not collide.
 | Name                                    | Type   | Default             | Description                                                                    |
 | --------------------------------------- | ------ | ------------------- | ------------------------------------------------------------------------------ |
 | `performance_insights_enabled`          | bool   | `false`             | Enable RDS Performance Insights                                                |
-| `performance_insights_retention_period` | number | `7`                 | PI retention in days (only when enabled). 7, 31, or k·31 ≤ 731.                |
-| `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval seconds. `0` disables. 0/1/5/10/15/30/60.         |
+| `performance_insights_retention_period` | number | `7`                 | Performance Insights retention in days. Only used when `performance_insights_enabled` is true. Valid: 7, 731, or a multiple of 31. |
+| `monitoring_interval`                   | number | `0`                 | Enhanced monitoring interval in seconds (0 disables). Allowed values: 0, 1, 5, 10, 15, 30, 60. |
 | `monitoring_role_arn`                   | string |                     | IAM role ARN for enhanced monitoring. Required when `monitoring_interval > 0`. |
 | `ca_cert_identifier`                    | string | `rds-ca-rsa2048-g1` | CA certificate identifier                                                      |
 
@@ -117,7 +117,7 @@ create/destroy cycles of the same name do not collide.
 
 | Name                                  | Type   | Default | Description                                        |
 | ------------------------------------- | ------ | ------- | -------------------------------------------------- |
-| `option_group_name`                   | string |         | Optional option group. Unset = AWS default.        |
+| `option_group_name`                   | string |         | Optional option group name. Empty = AWS default. |
 | `deletion_protection`                 | bool   | `false` | Prevent deletion via TF/API                        |
 | `iam_database_authentication_enabled` | bool   | `false` | Enable IAM DB authentication                       |
 | `dedicated_log_volume`                | bool   | `false` | Provision a dedicated EBS volume for database logs |

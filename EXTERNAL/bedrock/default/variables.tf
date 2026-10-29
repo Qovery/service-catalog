@@ -1,7 +1,7 @@
 variable "aws_access_key_id" {
   type        = string
   sensitive   = true
-  description = "Access key id of the AWS principal Terraform authenticates as. Needs IAM write access on users, policies and access keys — including the delete and detach actions, or destroy fails. The blueprint README lists the full set."
+  description = "Key of the principal Terraform runs as. Needs IAM write on users, policies and access keys, delete and detach included; see the README."
 
   validation {
     condition     = length(var.aws_access_key_id) > 0
@@ -12,7 +12,7 @@ variable "aws_access_key_id" {
 variable "aws_secret_access_key" {
   type        = string
   sensitive   = true
-  description = "Secret access key matching aws_access_key_id"
+  description = "Matches aws_access_key_id"
 
   validation {
     condition     = length(var.aws_secret_access_key) > 0
@@ -23,7 +23,7 @@ variable "aws_secret_access_key" {
 variable "aws_region" {
   type        = string
   default     = "us-east-1"
-  description = "Region Bedrock is called in. Model availability differs per region — check the model you want is offered there before changing it."
+  description = "Region Bedrock is called in. Model availability differs per region: check yours is offered there."
 
   validation {
     condition     = can(regex("^[a-z]{2}(-gov)?-[a-z]+-[0-9]$", var.aws_region))
@@ -33,7 +33,7 @@ variable "aws_region" {
 
 variable "name_prefix" {
   type        = string
-  description = "Prefix for the resources this blueprint names: the IAM user (<prefix>-bedrock) and its policy (<prefix>-bedrock-invoke). Must be unique within the AWS account."
+  description = "Names the IAM user (<prefix>-bedrock) and its policy (<prefix>-bedrock-invoke). Must be unique within the AWS account."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,47}$", var.name_prefix))
@@ -43,7 +43,7 @@ variable "name_prefix" {
 
 variable "allowed_model_ids" {
   type        = string
-  description = "Comma-separated Bedrock model ids the credentials may invoke, e.g. anthropic.claude-sonnet-4-5-20250929-v1:0. A cross-region id (us.anthropic.…) is expanded to both the inference profile and the underlying foundation model. Pass \"*\" to allow every foundation model in the account — deliberately not the default, since that also covers every model added in future."
+  description = "Comma-separated model ids, e.g. anthropic.claude-sonnet-4-5-20250929-v1:0; a cross-region id (us.…) also covers its base model. * allows every model."
 
   validation {
     condition     = length(compact([for m in split(",", var.allowed_model_ids) : trimspace(m)])) > 0
@@ -54,19 +54,19 @@ variable "allowed_model_ids" {
 variable "allow_list_foundation_models" {
   type        = bool
   default     = true
-  description = "Also allow read-only discovery calls (ListFoundationModels, GetFoundationModel, ListInferenceProfiles, GetInferenceProfile). Most SDK samples and model pickers call these before invoking."
+  description = "Also allow read-only discovery calls (List/Get FoundationModel, InferenceProfile), which most SDK samples and model pickers make before invoking."
 }
 
 variable "create_iam_user" {
   type        = bool
   default     = true
-  description = "Create an IAM user with a long-lived access key. This is what makes Bedrock reachable from a cluster outside AWS, which has no IAM role to assume. Set false on an AWS cluster and use attach_to_role_name instead."
+  description = "Create an IAM user with a long-lived key, needed outside AWS where there is no role to assume. On an AWS cluster, turn off and use attach_to_role_name."
 }
 
 variable "attach_to_role_name" {
   type        = string
   default     = ""
-  description = "Existing IAM role in the same account to attach the invoke policy to — the keyless path for a workload that already has an AWS identity (IRSA, EC2 instance profile). Unset = attach to nothing."
+  description = "Unset = attach to nothing. Else an existing IAM role in the account (IRSA, EC2 instance profile) to attach the invoke policy to."
 }
 
 variable "qovery_cluster_name" {

@@ -5,7 +5,7 @@ metadata:
   name: "helm-signoz"
   displayName: "SigNoz"
   primaryCategory: "Observability"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "SigNoz APM (traces, metrics, logs over OpenTelemetry) with the cluster's Qovery-managed Prometheus metrics federated in"
   icon: "app://qovery-console/signoz"
   serviceFamily: "signoz"
@@ -45,14 +45,14 @@ spec:
     - name: "admin_email"
       type: "string"
       required: true
-      description: "Email of the SigNoz admin (root user). Changing it and redeploying updates the admin's email."
+      description: "Root user's email. Changing it and redeploying updates it."
       pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
       maxLength: 254
     - name: "admin_password"
       type: "string"
       required: true
       sensitive: true
-      description: "SigNoz admin password: 12 to 72 characters with an uppercase letter, a lowercase letter, a digit and one of ~!@#$%^&*()_+`-={}|[]\\:\"<>?,./ ASCII only; no spaces, single quotes or semicolons. Changing it and redeploying resets it."
+      description: "12–72 ASCII chars with an uppercase, a lowercase, a digit and a symbol; no spaces, ' or ;. Changing it and redeploying resets it."
       minLength: 12
       # bcrypt, which SigNoz hashes the root password with, rejects inputs over 72 bytes; the pattern
       # below is ASCII-only, so 72 characters is 72 bytes.
@@ -69,7 +69,7 @@ spec:
       type: "string"
       required: false
       default: "SigNoz"
-      description: "Name of the organization SigNoz creates on first start. Set once: changing it later has no effect (rename the organization in SigNoz settings)."
+      description: "Organization SigNoz creates on first start. Later changes have no effect (rename it in SigNoz settings)."
       minLength: 1
       maxLength: 64
     - name: "external_url"
@@ -91,7 +91,7 @@ spec:
       type: "string"
       required: false
       default: "true"
-      description: "Copy metrics from the cluster's Prometheus into SigNoz, so PromQL panels and alerts in SigNoz can use them. Only data from the install onwards."
+      description: "Copy cluster Prometheus metrics into SigNoz for PromQL panels and alerts, from install onwards"
       allowedValues:
         - "true"
         - "false"
@@ -99,7 +99,7 @@ spec:
       type: "string"
       required: false
       default: "prometheus-operated.prometheus.svc.cluster.local:9090"
-      description: "Leave the default on AWS and Scaleway clusters: the Prometheus Qovery installs with cluster metrics. On GKE and AKS use prometheus-operated.qovery.svc.cluster.local:9090. host:port, no scheme."
+      description: "Leave the default on AWS and Scaleway. On GKE and AKS use prometheus-operated.qovery.svc.cluster.local:9090 (host:port, no scheme)."
       pattern: "^[a-zA-Z0-9.-]+:[0-9]{1,5}$"
     - name: "federation_match"
       type: "string"
@@ -120,12 +120,12 @@ spec:
       type: "string"
       required: false
       default: "50Gi"
-      description: "Volume holding every trace, log and metric. Valid Kubernetes quantity. It can only grow after creation, on a storage class that allows expansion."
+      description: "Kubernetes quantity (e.g. 50Gi) holding every trace, log and metric. Can only grow, on a storage class that allows expansion."
       pattern: "^[0-9]+(Ei|Pi|Ti|Gi|Mi|Ki)$"
     - name: "storage_class"
       type: "string"
       required: false
-      description: "Unset = the cluster's default storage class, for every SigNoz volume. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy."
+      description: "Unset = the cluster's default, for every SigNoz volume. Set at creation: a volume cannot change class, so a later change fails the deploy."
       pattern: "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
       maxLength: 253
 
@@ -134,25 +134,25 @@ spec:
       type: "string"
       required: false
       default: "500m"
-      description: "CPU request for ClickHouse. Valid Kubernetes quantity (e.g. 500m, 2)."
+      description: "CPU request, as a Kubernetes quantity (e.g. 500m, 2)"
       pattern: "^[0-9]+(\\.[0-9]+)?m?$"
     - name: "clickhouse_memory"
       type: "string"
       required: false
       default: "4Gi"
-      description: "Memory limit for ClickHouse, which queries run in. Requests are a quarter of it. Valid Kubernetes quantity."
+      description: "Limit for ClickHouse, which runs the queries; requests are a quarter. Kubernetes quantity in Mi or Gi."
       pattern: "^[0-9]+(Gi|Mi)$"
     - name: "collector_memory"
       type: "string"
       required: false
       default: "4Gi"
-      description: "Memory limit for the OpenTelemetry collector. Federation of the default selector needs about 2Gi on a mid-size cluster. Valid Kubernetes quantity."
+      description: "OpenTelemetry collector limit, in Mi or Gi. Federating the default selector needs about 2Gi on a mid-size cluster."
       pattern: "^[0-9]+(Gi|Mi)$"
     - name: "signoz_memory"
       type: "string"
       required: false
       default: "1Gi"
-      description: "Memory limit for the SigNoz UI and query server. Valid Kubernetes quantity."
+      description: "Limit for the UI and query server, in Mi or Gi"
       pattern: "^[0-9]+(Gi|Mi)$"
 
   outputs:
@@ -160,5 +160,5 @@ spec:
       description: "In-cluster SigNoz UI and API service (signoz, port 8080)"
       sensitive: false
     - name: "otlp_endpoint"
-      description: "In-cluster OTLP endpoint for applications: signoz-otel-collector, ports 4317 (gRPC) and 4318 (HTTP)"
+      description: "In-cluster OTLP endpoint: signoz-otel-collector, 4317 (gRPC), 4318 (HTTP)"
       sensitive: false

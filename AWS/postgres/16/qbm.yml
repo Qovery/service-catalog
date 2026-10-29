@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "4.8.0"
+  version: "4.8.1"
   description: "AWS RDS PostgreSQL 16 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -49,33 +49,33 @@ spec:
     - name: "db_name"
       type: "string"
       required: true
-      description: "PostgreSQL database name. Letters, digits, underscores only; must start with a letter; max 63 chars. Hyphens are not allowed."
+      description: "Letters, digits, underscores; must start with a letter; max 63 chars. No hyphens."
       pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
       minLength: 1
       maxLength: 63
     - name: "db_username"
       type: "string"
       required: false
-      description: "Leave empty to use qoveryadmin, the login used by native managed databases. To set your own: letters, digits, underscores; must start with a letter; max 63 chars. Reserved names not allowed: admin, rdsadmin, rdsrepladmin, rdstopmgr, or any name starting with 'pg_'."
+      description: "Leave empty to use qoveryadmin. Letters, digits, underscores, starting with a letter, max 63; not admin, rdsadmin, rdsrepladmin, rdstopmgr or pg_*."
       pattern: "^([a-zA-Z][a-zA-Z0-9_]{0,62})?$"
       maxLength: 63
     - name: "db_password"
       type: "string"
       required: false
       sensitive: true
-      description: 'Leave empty when creating a database and Qovery generates a 32-character alphanumeric password; when adopting an existing instance this must carry the current master password of that instance, because RDS never returns it. To set your own: 8–128 chars, must not contain /, @, ", or spaces. Changing it rotates the master password on the live instance (adopted instances: only once manage_db_password is true).'
+      description: 'Leave empty and Qovery generates one (adopted: its current password). 8–128 chars, no /, @, ", spaces; edits rotate it (adopted: needs manage_db_password).'
       pattern: '^([^/@" ]{8,128})?$'
       maxLength: 128
     - name: "manage_db_password"
       type: "bool"
       required: false
       default: "false"
-      description: "Adopted instances only, and one-way: once true, leave it true. Switching it on applies db_password to the instance, so confirm that value is the one the instance already has. Changing db_password then rotates it. An instance this blueprint created always owns its password."
+      description: "Adopted instances only, one-way: once on, keep it on. Turning it on applies db_password, so it must match the instance's current one."
     - name: "port"
       type: "number"
       required: false
       default: "5432"
-      description: "Database port (RDS reserves ports below 1150)"
+      description: "Min 1150 (RDS reserves lower ports)."
       min: 1150
       max: 65535
     - name: "instance_class"
@@ -325,7 +325,7 @@ spec:
       type: "number"
       required: true
       default: "20"
-      description: "Allocated storage in GiB (min 20; max 65536 for gp3/io1/io2, but gp2 caps at 16384)"
+      description: "GiB. Min 20; max 65536 (gp2: 16384)."
       min: 20
       max: 65536
     - name: "storage_type"
@@ -347,14 +347,14 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Provisioned IOPS. Only meaningful with io1/io2 (always) or gp3 (≥400 GiB). 0 lets AWS choose the default."
+      description: "Only for io1/io2, or gp3 at ≥400 GiB. 0 lets AWS choose."
       min: 0
       max: 256000
     - name: "storage_throughput"
       type: "number"
       required: false
       default: "0"
-      description: "0 = AWS baseline on a new instance; an existing one keeps its current value. Otherwise provisioned storage throughput in MiB/s, 500-4000, gp3 with allocated_storage ≥400 GiB only (below that AWS fixes it at 125 MiB/s). Needs disk_iops set too, 12000 or more (on an existing instance, its current IOPS): AWS rejects a throughput without IOPS. Max 0.25 × disk_iops. To return throughput to baseline, set 500 and keep disk_iops at the instance's current IOPS (12000 at the gp3 baseline)."
+      description: "0 = AWS baseline (an existing instance keeps its value). Else 500–4000 MiB/s, gp3 ≥400 GiB only, ≤0.25 × disk_iops, with disk_iops ≥12000 set."
       min: 0
       max: 4000
     - name: "multi_az"
@@ -370,11 +370,11 @@ spec:
     - name: "db_subnet_group_name"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's DB subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's DB subnet group. Set it only on a user-provided VPC."
     - name: "security_group_ids"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
     - name: "apply_changes_now"
       type: "bool"
       required: false
@@ -394,12 +394,12 @@ spec:
       type: "string"
       required: false
       default: "Tue:02:00-Tue:04:00"
-      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+      description: "UTC, format ddd:hh24:mi-ddd:hh24:mi."
     - name: "preferred_backup_window"
       type: "string"
       required: false
       default: "00:00-01:00"
-      description: "Daily backup window (UTC), format hh24:mi-hh24:mi"
+      description: "Daily, UTC, format hh24:mi-hh24:mi."
     - name: "backup_retention_period"
       type: "number"
       required: false
@@ -411,12 +411,12 @@ spec:
       type: "bool"
       required: false
       default: "false"
-      description: "Skip the final snapshot on deletion. Default keeps one, billed until deleted; set true for throwaway instances"
+      description: "Off keeps a final snapshot on deletion, billed until deleted. Turn on for throwaway instances."
     - name: "delete_automated_backups"
       type: "bool"
       required: false
       default: "false"
-      description: "Delete automated backups when the instance is deleted. Default keeps them for backup_retention_period days; set true for throwaway instances"
+      description: "Delete automated backups with the instance. Off keeps them backup_retention_period days; turn on for throwaway ones."
     - name: "copy_tags_to_snapshot"
       type: "bool"
       required: false
@@ -431,7 +431,7 @@ spec:
       type: "number"
       required: false
       default: "7"
-      description: "Performance Insights retention in days. Only used when performance_insights_enabled is true. Valid: 7, 731, or a multiple of 31."
+      description: "Retention in days. Only used when performance_insights_enabled is true."
       allowedValues:
         - "7"
         - "31"
@@ -467,7 +467,7 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Enhanced monitoring interval in seconds (0 disables). Allowed values: 0, 1, 5, 10, 15, 30, 60."
+      description: "Enhanced monitoring interval in seconds (0 disables)"
       allowedValues:
         - "0"
         - "1"
@@ -479,16 +479,16 @@ spec:
     - name: "monitoring_role_arn"
       type: "string"
       required: false
-      description: "IAM role ARN for enhanced monitoring. Required when monitoring_interval > 0."
+      description: "For enhanced monitoring. Required when monitoring_interval > 0."
     - name: "option_group_name"
       type: "string"
       required: false
-      description: "Optional option group name. Empty = AWS default."
+      description: "Empty = AWS default."
     - name: "db_parameters"
       type: "string"
       format: "json"
       required: false
-      description: 'Empty = the instance keeps its current parameter group, except one this blueprint created: that one is deleted and the instance and its read replicas return to the family default. JSON object of PostgreSQL parameters, e.g. {"log_connections":"1","shared_preload_libraries":{"value":"pg_stat_statements,auto_explain","apply_method":"pending-reboot"}}: the blueprint creates a parameter group with them and attaches it to the instance and its read replicas. Static parameters need apply_method pending-reboot and take effect at the next reboot.'
+      description: 'Empty = keep the current group (one this blueprint made is deleted). Else JSON, e.g. {"log_connections":"1"}; static params need apply_method pending-reboot.'
     - name: "deletion_protection"
       type: "bool"
       required: false
@@ -508,13 +508,13 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Number of same-region read replicas (0 disables; max 15). Point analytics tools (Metabase, BI dashboards) at the replica endpoints to offload reads. Requires backup_retention_period > 0."
+      description: "Same-region read replicas (0 disables; max 15), e.g. for analytics tools. Requires backup_retention_period > 0."
       min: 0
       max: 15
     - name: "read_replica_instance_class"
       type: "string"
       required: false
-      description: "Instance class for read replicas. Empty = same as the primary. Analytics workloads often want a larger class here."
+      description: "Empty = same as the primary. Analytics workloads often want a larger class."
     - name: "read_replica_publicly_accessible"
       type: "bool"
       required: false
@@ -523,7 +523,7 @@ spec:
     - name: "read_replica_allowed_cidrs"
       type: "string"
       required: false
-      description: "Empty = replicas use the primary's security groups. Comma-separated IPv4 network CIDRs, max 50 (e.g. Metabase Cloud IPs; 10.0.0.0/24, not 10.0.0.5/24): replicas then accept only these and the VPC on the database port. Needs read_replica_count > 0; public addresses also need read_replica_publicly_accessible = true."
+      description: "Empty = the primary's security groups. Else up to 50 network CIDRs (10.0.0.0/24, not 10.0.0.5/24); public ones need read_replica_publicly_accessible."
       pattern: "^(((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(3[0-2]|[12]?[0-9])( *, *((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(3[0-2]|[12]?[0-9])){0,49})?$"
     - name: "read_replica_multi_az"
       type: "bool"

@@ -1,6 +1,6 @@
 variable "snowflake_organization_name" {
   type        = string
-  description = "Snowflake organization name — the first half of the account identifier (SHOW ORGANIZATION ACCOUNTS, or the ORGNAME in ORGNAME-ACCOUNTNAME)"
+  description = "First half of the account identifier (the ORGNAME in ORGNAME-ACCOUNTNAME)"
 
   validation {
     condition     = length(var.snowflake_organization_name) > 0
@@ -10,7 +10,7 @@ variable "snowflake_organization_name" {
 
 variable "snowflake_account_name" {
   type        = string
-  description = "Snowflake account name — the second half of the account identifier (the ACCOUNTNAME in ORGNAME-ACCOUNTNAME), not the legacy account locator"
+  description = "Second half of the account identifier (ORGNAME-ACCOUNTNAME), not the legacy account locator"
 
   validation {
     condition     = length(var.snowflake_account_name) > 0
@@ -49,12 +49,12 @@ variable "snowflake_private_key_passphrase" {
 variable "snowflake_role" {
   type        = string
   default     = "ACCOUNTADMIN"
-  description = "Role Terraform runs as. It must be able to create databases, warehouses and account roles, and to grant them — SYSADMIN alone cannot create a role, so a custom role needs CREATE ROLE and CREATE USER on the account as well."
+  description = "Role Terraform runs as. It must be able to create databases, warehouses, roles and users, and to grant them — SYSADMIN alone cannot create a role."
 }
 
 variable "database_name" {
   type        = string
-  description = "Database to create. Upper-cased before use, so it stays an unquoted Snowflake identifier."
+  description = "Upper-cased, so it stays an unquoted identifier. Max 246 chars: derived warehouse, role and user names append up to 9 more."
 
   # 246, not Snowflake's 255: the derived warehouse/role/user names append up to "_APP_USER", so a
   # 255-char database name would produce a 264-char identifier that fails at apply. The cap is
@@ -91,7 +91,7 @@ variable "warehouse_name" {
 variable "warehouse_size" {
   type        = string
   default     = "XSMALL"
-  description = "Compute size of the created warehouse. Each step up doubles the credit burn per second of runtime."
+  description = "Warehouse size; each step up doubles the credit burn"
 
   validation {
     condition = contains([
@@ -143,7 +143,7 @@ variable "schema_privileges" {
 variable "table_privileges" {
   type        = string
   default     = "SELECT,INSERT,UPDATE,DELETE"
-  description = "Comma-separated privileges granted to the role on future tables in the schema. Applies to tables created after this deployment, which is every table when the schema is new."
+  description = "Comma-separated privileges granted to the role on future tables in the schema"
 }
 
 variable "grant_future_table_privileges" {
@@ -155,7 +155,7 @@ variable "grant_future_table_privileges" {
 variable "create_service_user" {
   type        = bool
   default     = true
-  description = "Create a SERVICE user with a generated RSA key pair and grant it the role, so an application on any cloud can connect. Set false to attach your own users to the role."
+  description = "Create a SERVICE user with a generated RSA key pair and the role, for apps on any cloud. Turn off to attach your own users to the role."
 }
 
 variable "service_user_name" {

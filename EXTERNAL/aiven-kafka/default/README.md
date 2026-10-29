@@ -13,8 +13,8 @@ An **Aiven API token** supplied as the sensitive `aiven_api_token` variable (`cr
 | `aiven_api_token` | string | yes       | —                | Aiven API token (required)                             |
 | `project`         | string |           | —                | Existing Aiven project (required)                      |
 | `service_name`    | string |           | —                | Service name, immutable (required)                     |
-| `cloud_name`      | string |           | `aws-eu-west-1`  | `<provider>-<region>` (e.g. `google-europe-west1`)     |
-| `plan`            | string |           | `startup-2`      | Sizing tier (`startup-2`, `business-4`, `premium-8`)   |
+| `cloud_name`      | string |           | `aws-eu-west-1`  | Aiven cloud/region, formatted <provider>-<region> (e.g. aws-eu-west-1) |
+| `plan`            | string |           | `startup-2`      | Aiven service `plan` / sizing tier (e.g. startup-2, business-4, premium-8) |
 | `kafka_version`   | string |           | `3.9`            | Apache Kafka version                                   |
 
 ## Outputs

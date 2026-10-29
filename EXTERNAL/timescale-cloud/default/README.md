@@ -17,15 +17,15 @@ Timescale Cloud **client credentials**: `timescale_project_id` + a `timescale_ac
 | `timescale_project_id` | string |           | Timescale Cloud project ID                |
 | `timescale_access_key` | string | yes       | Client credentials — access key           |
 | `timescale_secret_key` | string | yes       | Client credentials — secret key           |
-| `service_name`         | string |           | Service name (1-128 chars)                |
+| `service_name`         | string |           | Timescale service name (1-128 chars) |
 
 ### Service shape
 
 | Name          | Type   | Default     | Description                                                        |
 | ------------- | ------ | ----------- | ------------------------------------------------------------------ |
-| `region_code` | string | `us-east-1` | Region (AWS-style code, e.g. `us-east-1`, `eu-west-1`)             |
-| `milli_cpu`   | number | `500`       | CPU in milli-CPU: 500/1000/2000/4000/8000/16000/32000              |
-| `memory_gb`   | number | `2`         | Memory GB: 2/4/8/16/32/64/128 (paired with `milli_cpu`)            |
+| `region_code` | string | `us-east-1` | Region for the service (AWS-style code, e.g. us-east-1, eu-west-1) |
+| `milli_cpu`   | number | `500`       | CPU allocation in milli-CPU. Must pair with `memory_gb` per Timescale's allowed sizes. |
+| `memory_gb`   | number | `2`         | Memory in GB. Timescale pairs this with `milli_cpu` (500m/2GB, 1000m/4GB, 2000m/8GB, ...). |
 | `ha_replicas` | number | `0`         | High-availability replicas (0-2)                                   |
 
 Timescale requires matching CPU/memory pairs — `500m ↔ 2GB`, `1000m ↔ 4GB`, `2000m ↔ 8GB`, and so on. Mismatched pairs are rejected at apply time.

@@ -1,7 +1,7 @@
 variable "confluent_cloud_api_key" {
   type        = string
   sensitive   = true
-  description = "Confluent Cloud API key (Cloud-level, used by the provider)"
+  description = "Cloud-level key Terraform uses"
 
   validation {
     condition     = length(var.confluent_cloud_api_key) > 0
@@ -28,7 +28,7 @@ variable "environment_name" {
 
 variable "cluster_name" {
   type        = string
-  description = "Kafka cluster display name"
+  description = "Display name, max 64 chars"
 
   validation {
     condition     = length(var.cluster_name) > 0 && length(var.cluster_name) <= 64

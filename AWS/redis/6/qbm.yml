@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-redis"
   displayName: "Amazon ElastiCache for Redis"
   primaryCategory: "Databases & Caches"
-  version: "1.0.0"
+  version: "1.0.1"
   description: "AWS ElastiCache for Redis replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -50,7 +50,7 @@ spec:
     - name: "redis_name"
       type: "string"
       required: true
-      description: "Replication group name. Must start with a letter, end with a letter or digit, and use single hyphens between them; max 40 chars. Underscores are not allowed."
+      description: "Letters, digits, single hyphens; must start with a letter and end with a letter or digit; max 40 chars. No underscores."
       pattern: "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
       minLength: 1
       maxLength: 40
@@ -151,7 +151,7 @@ spec:
       type: "number"
       required: false
       default: "1"
-      description: "Node groups (shards). 1 = a single node with no replica. Above 1 enables cluster mode with one replica per shard, and forces failover and Multi-AZ. Pick it at creation — ElastiCache cannot turn cluster mode on later."
+      description: "Shards: 1 = single node; more enables cluster mode (a replica per shard, Multi-AZ). Pick at creation: cluster mode cannot be turned on later."
       min: 1
       max: 45
     - name: "at_rest_encryption_enabled"
@@ -166,11 +166,11 @@ spec:
     - name: "subnet_group_name"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's ElastiCache subnet group. Set it only on a user-provided VPC."
     - name: "security_group_ids"
       type: "string"
       required: false
-      description: "Leave empty — derived from the Qovery cluster's workers security group. Set it (comma-separated ids) only on a cluster with a user-provided VPC, where that lookup finds nothing."
+      description: "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
     - name: "apply_changes_now"
       type: "bool"
       required: false
@@ -185,12 +185,12 @@ spec:
       type: "string"
       required: false
       default: "Tue:02:00-Tue:04:00"
-      description: "Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi"
+      description: "UTC, format ddd:hh24:mi-ddd:hh24:mi."
     - name: "preferred_backup_window"
       type: "string"
       required: false
       default: "00:00-01:00"
-      description: "Daily snapshot window (UTC), format hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
+      description: "Daily, UTC, format hh24:mi-hh24:mi. Only used when backup_retention_period > 0."
     - name: "backup_retention_period"
       type: "number"
       required: false
@@ -206,13 +206,13 @@ spec:
     - name: "snapshot_name"
       type: "string"
       required: false
-      description: "Existing ElastiCache snapshot to seed the group from. Unset = start empty. Read at creation only."
+      description: "Unset = start empty. Else an existing ElastiCache snapshot to seed from; read at creation only."
 
   outputs:
     - name: "redis_identifier"
       description: "ElastiCache replication group id (what the AWS console shows as the cluster name)"
     - name: "redis_host"
-      description: "Hostname applications connect to (configuration endpoint in cluster mode, primary endpoint otherwise)"
+      description: "Hostname to connect to: configuration endpoint in cluster mode, else primary"
     - name: "redis_port"
       description: "Redis port"
     - name: "redis_username"

@@ -32,7 +32,7 @@ variable "timescale_secret_key" {
 
 variable "service_name" {
   type        = string
-  description = "Timescale service name"
+  description = "1–128 chars"
 
   validation {
     condition     = length(var.service_name) > 0 && length(var.service_name) <= 128
@@ -43,13 +43,13 @@ variable "service_name" {
 variable "region_code" {
   type        = string
   default     = "us-east-1"
-  description = "Region for the service (AWS-style code, e.g. us-east-1, eu-west-1)"
+  description = "AWS-style code, e.g. us-east-1, eu-west-1"
 }
 
 variable "milli_cpu" {
   type        = number
   default     = 500
-  description = "CPU allocation in milli-CPU. Must pair with memory_gb per Timescale's allowed sizes."
+  description = "CPU in milli-CPU; must pair with memory_gb"
 
   validation {
     condition     = contains([500, 1000, 2000, 4000, 8000, 16000, 32000], var.milli_cpu)
@@ -60,7 +60,7 @@ variable "milli_cpu" {
 variable "memory_gb" {
   type        = number
   default     = 2
-  description = "Memory in GB. Timescale pairs this with milli_cpu (500m/2GB, 1000m/4GB, 2000m/8GB, ...)."
+  description = "Memory in GB; must pair with milli_cpu (500m/2GB, 1000m/4GB, …)"
 
   validation {
     condition     = contains([2, 4, 8, 16, 32, 64, 128], var.memory_gb)
@@ -71,7 +71,7 @@ variable "memory_gb" {
 variable "ha_replicas" {
   type        = number
   default     = 0
-  description = "Number of high-availability replicas (0-2)"
+  description = "High-availability replicas, 0–2"
 
   validation {
     condition     = var.ha_replicas >= 0 && var.ha_replicas <= 2

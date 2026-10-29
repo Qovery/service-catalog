@@ -5,7 +5,7 @@ metadata:
   name: "temporal-cloud-namespace"
   displayName: "Temporal Cloud Namespace"
   primaryCategory: "Compute & Runtime"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Provision a Temporal Cloud namespace (regions, retention, client auth) via the Temporal Cloud Terraform provider"
   icon: "app://qovery-console/temporal"
   serviceFamily: "temporal-cloud"
@@ -51,7 +51,7 @@ spec:
     - name: "namespace_name"
       type: "string"
       required: true
-      description: "Namespace name (2-64 chars: lowercase letters, digits, hyphens). Temporal appends the account suffix."
+      description: "2–64 lowercase letters, digits, hyphens. Temporal appends the account suffix."
       pattern: "^[a-z0-9-]{2,64}$"
     - name: "regions"
       type: "string"
@@ -62,7 +62,7 @@ spec:
       type: "number"
       required: false
       default: "30"
-      description: "Workflow execution retention period in days (1-90)"
+      description: "Days to keep workflow execution history (1–90)"
       min: 1
       max: 90
     - name: "accepted_client_ca"

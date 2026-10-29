@@ -1,6 +1,6 @@
 variable "atlas_public_key" {
   type        = string
-  description = "MongoDB Atlas programmatic API key — public key"
+  description = "Public half of the Atlas programmatic API key"
 
   validation {
     condition     = length(var.atlas_public_key) > 0
@@ -11,7 +11,7 @@ variable "atlas_public_key" {
 variable "atlas_private_key" {
   type        = string
   sensitive   = true
-  description = "MongoDB Atlas programmatic API key — private key"
+  description = "Private half of the Atlas programmatic API key"
 
   validation {
     condition     = length(var.atlas_private_key) > 0
@@ -31,7 +31,7 @@ variable "project_id" {
 
 variable "cluster_name" {
   type        = string
-  description = "Cluster name (letters, digits, hyphens; max 64 chars)"
+  description = "Letters, digits, hyphens; max 64 chars."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9-]{1,64}$", var.cluster_name))
@@ -83,7 +83,7 @@ variable "backup_enabled" {
 variable "db_username" {
   type        = string
   default     = ""
-  description = "Database user to create (SCRAM auth, readWriteAnyDatabase). Empty uses qoveryadmin, the login used by native managed databases. Atlas keys users by (username, auth database) per project, so a second database in the same Atlas project needs a distinct username."
+  description = "Leave empty to use qoveryadmin (SCRAM, readWriteAnyDatabase). A second database in the same Atlas project needs a distinct username."
 
   validation {
     # Empty is the sentinel that selects the qoveryadmin fallback. Anything supplied has to be a

@@ -9,7 +9,7 @@ Creates a GCP Memorystore for Redis 7 instance with configurable tier, memory si
 | Name             | Type   | Sensitive | Description                                                                                                       |
 | ---------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------ |
 | `redis_name`     | string |           | Memorystore instance ID. Lowercase letters, digits, hyphens; must start with a letter and not end with a hyphen; max 40 chars. |
-| `tier`            | string |           | Service tier: `BASIC` or `STANDARD_HA`. Default suggestion: `BASIC`.                                              |
+| `tier`            | string |           | Service `tier`. BASIC is a single node with no failover. STANDARD_HA adds cross-zone replication and automatic failover. |
 | `memory_size_gb`  | number |           | Instance memory size in GiB (min 1, max 300). Default suggestion: `1`.                                            |
 
 ### Engine & sizing
@@ -24,10 +24,10 @@ Creates a GCP Memorystore for Redis 7 instance with configurable tier, memory si
 | Name                      | Type   | Default          | Description                                                                                                      |
 | ------------------------- | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `auth_enabled`            | bool   | `true`           | Require an AUTH string to connect                                                                                |
-| `transit_encryption_mode` | string | `DISABLED`       | `DISABLED` or `SERVER_AUTHENTICATION` (TLS; clients must trust the CA cert from `redis_server_ca_certs`)         |
-| `authorized_network`      | string |                  | VPC network self-link to connect to. Unset = the project's default network.                                      |
-| `connect_mode`            | string | `DIRECT_PEERING` | `DIRECT_PEERING` or `PRIVATE_SERVICE_ACCESS`                                                                      |
-| `reserved_ip_range`       | string |                  | CIDR /29 (or named allocated range for PSA) reserved for the instance. Unset = GCP picks one automatically.       |
+| `transit_encryption_mode` | string | `DISABLED`       | In-transit (TLS) encryption. Defaults to DISABLED, meaning cache traffic and (if `auth_enabled`) the AUTH string travel unencrypted over the VPC. SERVER_AUTHENTICATION requires clients to trust the CA certificate published via the redis_server_ca_certs output. |
+| `authorized_network`      | string |                  | VPC network self-link the instance connects to. Empty = the project's default network. Set this to your Qovery cluster's VPC self-link so pods in the cluster can reach the instance. |
+| `connect_mode`            | string | `DIRECT_PEERING` | How the instance connects to `authorized_network`. PRIVATE_SERVICE_ACCESS requires a pre-existing private services access connection on that network. |
+| `reserved_ip_range`       | string |                  | CIDR /29 (DIRECT_PEERING) or named allocated range (PRIVATE_SERVICE_ACCESS) reserved for the instance. Empty = GCP picks an unused range automatically. |
 
 By default the instance attaches to the project's **default** VPC network, which is usually *not* the Qovery cluster's VPC. Set `authorized_network` to the cluster's VPC self-link (and `connect_mode`/`reserved_ip_range` as required by that network's setup) so pods in the cluster can reach the instance without extra peering.
 
@@ -44,14 +44,14 @@ By default the instance attaches to the project's **default** VPC network, which
 
 | Name                     | Type   | Default | Description                                                                 |
 | ------------------------ | ------ | ------- | ----------------------------------------------------------------------------- |
-| `maintenance_day`        | string |         | Day of week for the maintenance window. Unset disables a fixed window.       |
-| `maintenance_start_hour` | number | `2`     | Maintenance window start hour, UTC 24h. Only used when `maintenance_day` is set. |
+| `maintenance_day`        | string |         | Day of week for the scheduled maintenance window. Empty disables a fixed window (GCP may perform maintenance at any time). |
+| `maintenance_start_hour` | number | `2`     | Maintenance window start hour, UTC 24h (0-23). Only used when `maintenance_day` is set. |
 
 ### Read replicas
 
 | Name            | Type   | Default | Description                                                                                                        |
 | --------------- | ------ | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `replica_count` | number | `0`     | Number of *exposed* cross-zone read replicas (0-5). Only supported when `tier` is `STANDARD_HA`.                  |
+| `replica_count` | number | `0`     | Number of exposed cross-zone read replicas (0-5). Only supported when `tier` is STANDARD_HA; read traffic can be pointed at the redis_read_endpoint output. STANDARD_HA always allocates a standby node for failover regardless of this value; 0 just means that node isn't exposed as a readable replica. |
 
 Replicas are asynchronous, cross-zone, read-only copies of the primary; point analytics/BI tools at the `redis_read_endpoint` output to keep read traffic off the primary. Setting `replica_count > 0` requires `tier = STANDARD_HA`.
 
@@ -61,7 +61,7 @@ Replicas are asynchronous, cross-zone, read-only copies of the primary; point an
 
 | Name             | Type   | Default | Description                                                                       |
 | ---------------- | ------ | ------- | ---------------------------------------------------------------------------------- |
-| `gcp_project_id` | string |         | Leave empty — inferred from the deploy credentials. Set only to target another project. |
+| `gcp_project_id` | string |         | Leave empty — inferred from the credentials used to deploy (cluster credentials or the env-mode service account). Set it only to target a different GCP project. |
 
 ## Outputs
 

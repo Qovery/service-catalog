@@ -30,7 +30,7 @@ explicit `db_username` or its user creation collides with the first.
 
 | Name | Type | Sensitive | Default | Description |
 | ---- | ---- | --------- | ------- | ----------- |
-| `db_username` | string |  | `qoveryadmin` | Database user to create (SCRAM auth, readWriteAnyDatabase). Omit to use qoveryadmin. |
+| `db_username` | string |  | `qoveryadmin` | Database user to create (SCRAM auth, readWriteAnyDatabase). Leave empty to use qoveryadmin. Atlas keys users by (username, auth database) per project, so a second database in the same Atlas project needs a distinct username. |
 | `db_password` | string | yes | _generated_ | Omit and Qovery generates a 32-character alphanumeric password. To set your own: min 8 chars. |
 
 ### Cluster shape

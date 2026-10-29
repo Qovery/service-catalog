@@ -5,7 +5,7 @@ metadata:
   name: "timescale-cloud-service"
   displayName: "Timescale Cloud Service"
   primaryCategory: "Databases & Caches"
-  version: "1.0.6"
+  version: "1.0.7"
   description: "Provision a Timescale Cloud (TimescaleDB/Postgres) service with configurable CPU, memory, and HA replicas, via the Timescale Terraform provider"
   icon: "app://qovery-console/timescaledb"
   serviceFamily: "timescale-cloud"
@@ -60,17 +60,17 @@ spec:
     - name: "service_name"
       type: "string"
       required: true
-      description: "Timescale service name (1-128 chars)"
+      description: "1–128 chars"
     - name: "region_code"
       type: "string"
       required: false
       default: "us-east-1"
-      description: "Region for the service (AWS-style code, e.g. us-east-1, eu-west-1)"
+      description: "AWS-style code, e.g. us-east-1, eu-west-1"
     - name: "milli_cpu"
       type: "number"
       required: false
       default: "500"
-      description: "CPU allocation in milli-CPU. Must pair with memory_gb per Timescale's allowed sizes."
+      description: "CPU in milli-CPU; must pair with memory_gb"
       allowedValues:
         - "500"
         - "1000"
@@ -83,7 +83,7 @@ spec:
       type: "number"
       required: false
       default: "2"
-      description: "Memory in GB. Timescale pairs this with milli_cpu (500m/2GB, 1000m/4GB, 2000m/8GB, ...)."
+      description: "Memory in GB; must pair with milli_cpu (500m/2GB, 1000m/4GB, …)"
       allowedValues:
         - "2"
         - "4"
@@ -96,7 +96,7 @@ spec:
       type: "number"
       required: false
       default: "0"
-      description: "Number of high-availability replicas (0-2)"
+      description: "High-availability replicas, 0–2"
       min: 0
       max: 2
 
@@ -113,5 +113,5 @@ spec:
       description: "Master database password"
       sensitive: true
     - name: "connection_uri"
-      description: "Ready-to-use PostgreSQL connection URI with credentials embedded (database: tsdb, TLS required)"
+      description: "PostgreSQL URI with credentials (database tsdb, TLS required)"
       sensitive: true

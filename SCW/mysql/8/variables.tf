@@ -22,7 +22,7 @@ variable "qovery_cluster_id" {
 # User-provided variables
 variable "instance_name" {
   type        = string
-  description = "Database instance name (letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars)"
+  description = "Letters, digits, hyphens, underscores; must start with a letter or digit; max 100 chars."
 
   validation {
     condition     = length(var.instance_name) >= 1 && length(var.instance_name) <= 100
@@ -37,7 +37,7 @@ variable "instance_name" {
 
 variable "db_name" {
   type        = string
-  description = "MySQL database name (letters, digits, underscores; must start with a letter; max 64 chars)"
+  description = "Letters, digits, underscores; must start with a letter; max 64 chars. No hyphens."
 
   validation {
     condition     = length(var.db_name) >= 1 && length(var.db_name) <= 64
@@ -53,7 +53,7 @@ variable "db_name" {
 variable "db_username" {
   type        = string
   default     = ""
-  description = "Database username (letters, digits, underscores; must start with a letter; max 32 chars). Empty uses qoveryadmin, the login used by native managed databases."
+  description = "Leave empty to use qoveryadmin. Letters, digits, underscores, starting with a letter, max 32; not rdb_admin or mysql."
 
   validation {
     condition     = var.db_username == "" || (length(var.db_username) >= 1 && length(var.db_username) <= 32)
@@ -120,7 +120,7 @@ variable "volume_type" {
 variable "volume_size_gb" {
   type        = number
   default     = 5
-  description = "Volume size in GB (minimum 5)"
+  description = "GB, 5–10000"
 
   validation {
     condition     = var.volume_size_gb >= 5 && var.volume_size_gb <= 10000
@@ -149,13 +149,13 @@ variable "slow_query_log" {
 variable "publicly_accessible" {
   type        = bool
   default     = false
-  description = "Open the database to traffic from acl_allowed_cidr through a public endpoint. When false, a new database is reachable only from the cluster's private network. An existing public endpoint is not removed (see the README)."
+  description = "Expose a public endpoint open to acl_allowed_cidr. Turning it off later keeps the endpoint: delete it in the Scaleway console."
 }
 
 variable "acl_allowed_cidr" {
   type        = string
   default     = "0.0.0.0/0"
-  description = "Single CIDR allowed to reach the instance (only used when publicly_accessible)."
+  description = "Single CIDR, only used when publicly_accessible is true, and then not 0.0.0.0/0. Use the Scaleway console for multi-CIDR allowlists."
 
   validation {
     # Reject out-of-range octets (>255) and prefixes (>32).

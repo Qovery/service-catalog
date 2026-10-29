@@ -16,7 +16,7 @@ Adopts an existing single-node AWS ElastiCache for Redis 7 cluster (`aws_elastic
 | `parameter_group_name` | string | | Required. Parameter group of the adopted cluster (native: `default.redis7`) |
 | `legacy_connection_username`, `legacy_connection_password` | string | | Values held in the legacy connection variables, republished as `db_username` / `db_password` so those variables keep refreshing. Not used for auth. Qovery's migration sets them. |
 | `apply_changes_now` | bool | `false` | Apply changes immediately instead of during the maintenance window |
-| `preferred_maintenance_window` | string | `Tue:02:00-Tue:04:00` | Maintenance window (UTC). Ignored after adoption. |
+| `preferred_maintenance_window` | string | `Tue:02:00-Tue:04:00` | Maintenance window (UTC), format ddd:hh24:mi-ddd:hh24:mi. Ignored after adoption, like the native template. |
 | `preferred_backup_window` | string | `00:00-01:00` | Daily snapshot window (UTC), used when `backup_retention_period > 0` |
 | `backup_retention_period` | number | `14` | Days to retain automatic snapshots (0 disables) |
 | `skip_final_snapshot` | bool | `false` | Skip the final snapshot on deletion. With `false`, deleting the service leaves a `<cluster id>-final-snap-<timestamp>` snapshot behind, billed until you delete it. |

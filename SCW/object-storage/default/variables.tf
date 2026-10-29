@@ -25,7 +25,7 @@ variable "qovery_cluster_id" {
 # User-provided variables
 variable "bucket_name" {
   type        = string
-  description = "Object Storage bucket name (globally unique, 3–63 chars, letters/digits/hyphens only — automatically lowercased)"
+  description = "Globally unique, auto-lowercased: 3–63 letters, digits or hyphens, starting and ending with a letter or digit. No underscores."
 
   validation {
     condition     = length(var.bucket_name) >= 3 && length(var.bucket_name) <= 63

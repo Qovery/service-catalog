@@ -1,7 +1,7 @@
 variable "gcp_service_account_key" {
   type        = string
   sensitive   = true
-  description = "JSON key of the Google service account Terraform authenticates as. Needs BigQuery Admin on the project, plus Service Account Admin and Service Account Key Admin when create_service_account is true, and Project IAM Admin when grant_job_user is true."
+  description = "JSON key Terraform runs as; needs BigQuery Admin. Also Service Account (Key) Admin with create_service_account, Project IAM Admin with grant_job_user."
 
   validation {
     condition     = can(jsondecode(var.gcp_service_account_key))
@@ -31,7 +31,7 @@ variable "gcp_project_id" {
 
 variable "dataset_id" {
   type        = string
-  description = "BigQuery dataset id, up to 1024 chars of letters, digits and underscores (BigQuery rejects hyphens)"
+  description = "Up to 1024 letters, digits and underscores. No hyphens."
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9_]+$", var.dataset_id)) && length(var.dataset_id) <= 1024
@@ -42,7 +42,7 @@ variable "dataset_id" {
 variable "location" {
   type        = string
   default     = "US"
-  description = "Dataset location: a multi-region (US, EU) or a region (europe-west1, us-central1). Immutable — changing it recreates the dataset and destroys its tables."
+  description = "Multi-region (US, EU) or region (europe-west1). Immutable: changing it recreates the dataset and destroys its tables."
 }
 
 variable "friendly_name" {
@@ -54,13 +54,13 @@ variable "friendly_name" {
 variable "dataset_description" {
   type        = string
   default     = ""
-  description = "Free-text description attached to the dataset. Empty = no description."
+  description = "Free text attached to the dataset. Empty = none."
 }
 
 variable "default_table_expiration_ms" {
   type        = number
   default     = 0
-  description = "Lifetime in milliseconds of a table created without its own expiration. 0 = tables never expire. BigQuery rejects anything below 3600000 (1 hour)."
+  description = "Lifetime in ms of tables without their own expiration. 0 = never; otherwise at least 3600000 (1 hour)."
 
   validation {
     condition     = var.default_table_expiration_ms == 0 || var.default_table_expiration_ms >= 3600000
@@ -71,7 +71,7 @@ variable "default_table_expiration_ms" {
 variable "default_partition_expiration_ms" {
   type        = number
   default     = 0
-  description = "Lifetime in milliseconds of a partition in a partitioned table created without its own expiration. 0 = partitions never expire."
+  description = "Lifetime in ms of partitions without their own expiration. 0 = never; otherwise at least 3600000 (1 hour)."
 
   validation {
     condition     = var.default_partition_expiration_ms == 0 || var.default_partition_expiration_ms >= 3600000
@@ -94,7 +94,7 @@ variable "create_service_account" {
 variable "service_account_id" {
   type        = string
   default     = ""
-  description = "Leave empty — derived from the dataset id as qovery-bq-<dataset>. Set it only when that derived id collides with an existing service account in the project."
+  description = "Leave empty — derived as qovery-bq-<dataset>. Set it only if that id collides with an existing service account."
 
   validation {
     condition     = var.service_account_id == "" || can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.service_account_id))
@@ -120,7 +120,7 @@ variable "service_account_role" {
 variable "grant_job_user" {
   type        = bool
   default     = true
-  description = "Also grant the created service account roles/bigquery.jobUser on the project. Without it the account can read and write table data but cannot run a query — job creation is a project-level right that no dataset role carries."
+  description = "Also grant the created account roles/bigquery.jobUser. Without it, it can read and write tables but not run queries."
 }
 
 variable "qovery_cluster_name" {
