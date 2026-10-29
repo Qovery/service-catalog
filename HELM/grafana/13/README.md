@@ -51,7 +51,7 @@ The admin login is `admin_user` (default `admin`) and the sensitive `admin_passw
 | `default_timezone` | string | `browser` | Timezone dashboards display, for users who have not picked one: browser, utc, or an IANA name such as Europe/Paris or UTC. |
 | `log_level` | string | `info` | Grafana server log level (`debug`/`info`/`warn`/`error`). |
 | `persistence` | string | `true` | Keep Grafana's database on a volume. `false` = users, saved dashboards and alert rules are lost on every restart; switching an existing service to `false` deletes the volume. |
-| `storage_size` | string | `10Gi` | Size of the data volume. Valid Kubernetes quantity (e.g. 10Gi). It can only grow after creation, on a storage class that allows expansion. |
+| `storage_size` | string | `10Gi` | Size of the data volume. Use a number with an Ei, Pi, Ti, Gi, Mi, or Ki suffix (e.g. 10Gi). It can only grow after creation, on a storage class that allows expansion. |
 | `storage_class` | string | — | Unset = the cluster's default storage class. Choose it when creating the service: a volume cannot change class, so changing it later fails the deploy. |
 | `cpu_request` | string | `100m` | CPU request for the Grafana container. Valid Kubernetes quantity (e.g. 100m, 1). |
 | `memory` | string | `512Mi` | Memory request and limit for the Grafana container. Valid Kubernetes quantity (e.g. 512Mi, 1Gi). |
