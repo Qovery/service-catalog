@@ -102,11 +102,13 @@ With `skip_final_snapshot = false`, destroying the service leaves a snapshot nam
 
 ### Auth token
 
-`auth_token` and `auth_token_update_strategy` are deliberately *not* ignored. An adopted group's state holds no token, and the AWS provider sends the token from state on any update of the group: ignored, it reaches AWS empty and the apply fails with `Invalid AUTH token provided`. Tracked, the first apply after an adoption re-sends `redis_password` with `ROTATE`, a no-op when it is the live token.
+`auth_token` and `auth_token_update_strategy` are deliberately *not* ignored. An adopted group's state holds no token, and the AWS provider sends the token from state on any update of the group: ignored, it would reach AWS empty and the apply would fail with `Invalid AUTH token provided`.
 
-Changing `redis_password` later rotates through Terraform: `ROTATE` adds the new token and keeps the old one valid until it is removed out-of-band.
+So the first apply after an adoption sends `redis_password` with `ROTATE`, immediately: the provider forces `ApplyImmediately` on that call, whatever `apply_changes_now` says. **Nothing here checks `redis_password` against the live token.** Set it to the live one: a stale value is added as a second valid token. Rehearsed on Redis 7 only (2026-11-03, a 7.0 replication group with the live token): AWS accepted the call and the token kept working. Not run on Redis 6.
 
-**Before moving a service created on an earlier version to this one**, make `redis_password` equal the group's live token. Earlier versions ignored `auth_token`, so a token rotated out-of-band left state holding the old one: the first apply on this version then ROTATEs `redis_password` in, and AWS keeps or rejects it depending on what is already live.
+Changing `redis_password` later rotates through Terraform: `ROTATE` adds the new token and keeps the old one valid. Revoke the old one with `aws elasticache modify-replication-group --replication-group-id <id> --auth-token <new> --auth-token-update-strategy SET --apply-immediately`.
+
+**Before moving a service created on an earlier version to this one**, make `redis_password` equal the group's live token. Earlier versions ignored `auth_token`, so a token rotated out-of-band left the old one in state, and the first apply on this version sends `redis_password` with `ROTATE`.
 
 ## Required AWS IAM permissions
 
