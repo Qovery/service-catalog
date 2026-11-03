@@ -95,13 +95,19 @@ With `skip_final_snapshot = false`, destroying the service leaves a snapshot nam
 
 ## Lifecycle ignore_changes
 
-- `auth_token` — ElastiCache never returns it, so any configured value would show a perpetual diff. Rotation is therefore not managed here: rotate out-of-band and update `valkey_password` to keep the output truthful.
-- `auth_token_update_strategy` — an imported group holds null here while the provider defaults to `ROTATE`; that diff would send the empty token from state and AWS rejects it (`Invalid AUTH token provided`). Set explicitly in config, since provider v6 drops the default.
 - `log_delivery_configuration`, `notification_topic_arn`, `user_group_ids` — configured outside the blueprint.
 - `transit_encryption_mode` — AWS picks `preferred` vs `required` and reports its own value back.
 - `tags` — preserves tags set on the group outside the blueprint.
 
 `engine_version` is deliberately *not* ignored, so a version change applies. ElastiCache only upgrades forward.
+
+### Auth token
+
+`auth_token` and `auth_token_update_strategy` are deliberately *not* ignored. An adopted group's state holds no token, and the AWS provider sends the token from state on any update of the group: ignored, it reaches AWS empty and the apply fails with `Invalid AUTH token provided`. Tracked, the first apply after an adoption re-sends `valkey_password` with `ROTATE`, a no-op when it is the live token.
+
+Changing `valkey_password` later rotates through Terraform: `ROTATE` adds the new token and keeps the old one valid until it is removed out-of-band.
+
+**Before moving a service created on an earlier version to this one**, make `valkey_password` equal the group's live token. Earlier versions ignored `auth_token`, so a token rotated out-of-band left state holding the old one: the first apply on this version then ROTATEs `valkey_password` in, and AWS keeps or rejects it depending on what is already live.
 
 ## Required AWS IAM permissions
 
