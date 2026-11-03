@@ -96,6 +96,7 @@ With `skip_final_snapshot = false`, destroying the service leaves a snapshot nam
 ## Lifecycle ignore_changes
 
 - `auth_token` — ElastiCache never returns it, so any configured value would show a perpetual diff. Rotation is therefore not managed here: rotate out-of-band and update `valkey_password` to keep the output truthful.
+- `auth_token_update_strategy` — an imported group holds null here while the provider defaults to `ROTATE`; that diff would send the empty token from state and AWS rejects it (`Invalid AUTH token provided`). Set explicitly in config, since provider v6 drops the default.
 - `log_delivery_configuration`, `notification_topic_arn`, `user_group_ids` — configured outside the blueprint.
 - `transit_encryption_mode` — AWS picks `preferred` vs `required` and reports its own value back.
 - `tags` — preserves tags set on the group outside the blueprint.

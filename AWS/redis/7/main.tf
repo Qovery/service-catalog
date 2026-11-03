@@ -108,6 +108,8 @@ resource "aws_elasticache_replication_group" "this" {
   # would leave a Redis reachable with no password at all.
   transit_encryption_enabled = true
   auth_token                 = local.redis_password
+  # Explicit: provider v6 drops the default and requires it beside auth_token.
+  auth_token_update_strategy = "ROTATE"
   at_rest_encryption_enabled = var.at_rest_encryption_enabled
 
   # Network
@@ -147,6 +149,9 @@ resource "aws_elasticache_replication_group" "this" {
       # Write-only: ElastiCache never returns it, so an adopted group shows a perpetual diff.
       # ignore_changes can't be conditional, so rotation isn't managed here — rotate out-of-band.
       auth_token,
+      # Imported state holds null vs provider default ROTATE: that diff sends the state's empty
+      # token and AWS rejects it (Invalid AUTH token provided).
+      auth_token_update_strategy,
       # Seeding is a create-time choice, but the attribute is ForceNew — without this, editing it
       # on a live group plans a replacement instead of being the no-op the user expects.
       snapshot_name,
