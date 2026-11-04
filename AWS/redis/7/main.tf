@@ -107,7 +107,10 @@ resource "aws_elasticache_replication_group" "this" {
   # Always on: ElastiCache only accepts an auth token on a TLS-enabled group, so turning it off
   # would leave a Redis reachable with no password at all.
   transit_encryption_enabled = true
-  auth_token                 = local.redis_password
+  # Tracked, not ignored: imported state holds no token (README, Auth token).
+  auth_token = local.redis_password
+  # Explicit: provider v6 drops the default and requires it beside auth_token.
+  auth_token_update_strategy = "ROTATE"
   at_rest_encryption_enabled = var.at_rest_encryption_enabled
 
   # Network
@@ -144,9 +147,6 @@ resource "aws_elasticache_replication_group" "this" {
 
   lifecycle {
     ignore_changes = [
-      # Write-only: ElastiCache never returns it, so an adopted group shows a perpetual diff.
-      # ignore_changes can't be conditional, so rotation isn't managed here — rotate out-of-band.
-      auth_token,
       # Seeding is a create-time choice, but the attribute is ForceNew — without this, editing it
       # on a live group plans a replacement instead of being the no-op the user expects.
       snapshot_name,

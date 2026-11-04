@@ -95,12 +95,21 @@ With `skip_final_snapshot = false`, destroying the service leaves a snapshot nam
 
 ## Lifecycle ignore_changes
 
-- `auth_token` — ElastiCache never returns it, so any configured value would show a perpetual diff. Rotation is therefore not managed here: rotate out-of-band and update `valkey_password` to keep the output truthful.
 - `log_delivery_configuration`, `notification_topic_arn`, `user_group_ids` — configured outside the blueprint.
 - `transit_encryption_mode` — AWS picks `preferred` vs `required` and reports its own value back.
 - `tags` — preserves tags set on the group outside the blueprint.
 
 `engine_version` is deliberately *not* ignored, so a version change applies. ElastiCache only upgrades forward.
+
+### Auth token
+
+`auth_token` and `auth_token_update_strategy` are deliberately *not* ignored. An adopted group's state holds no token, and the AWS provider sends the token from state on any update of the group: ignored, it would reach AWS empty and the apply would fail with `Invalid AUTH token provided`.
+
+So the first apply after an adoption sends `valkey_password` with `ROTATE`, immediately: the provider forces `ApplyImmediately` on that call, whatever `apply_changes_now` says. **Nothing here checks `valkey_password` against the live token.** Set it to the live one: a stale value is added as a second valid token. Rehearsed on Redis 7 only (2026-11-03, a 7.0 replication group with the live token): AWS accepted the call and the token kept working. Not run on Valkey.
+
+Changing `valkey_password` later rotates through Terraform: `ROTATE` adds the new token and keeps the old one valid. Revoke the old one with `aws elasticache modify-replication-group --replication-group-id <id> --auth-token <new> --auth-token-update-strategy SET --apply-immediately`.
+
+**Before moving a service created on an earlier version to this one**, make `valkey_password` equal the group's live token. Earlier versions ignored `auth_token`, so a token rotated out-of-band left the old one in state, and the first apply on this version sends `valkey_password` with `ROTATE`.
 
 ## Required AWS IAM permissions
 

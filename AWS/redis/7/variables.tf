@@ -102,8 +102,8 @@ variable "redis_password" {
 
   validation {
     # ElastiCache never returns the auth token, so an adopted group's real one cannot be read
-    # back. Generating a fresh one here would publish a redis_password output that does not
-    # authenticate, and auth_token is ignored after create (see main.tf) so it would not be applied.
+    # back. A generated one would be ROTATEd onto the live group as an extra token on the first
+    # apply (see main.tf): redis_password must be the live token.
     condition     = var.import_identifier == "" || var.redis_password != ""
     error_message = "redis_password must be set to the existing replication group's auth token when import_identifier is set."
   }
