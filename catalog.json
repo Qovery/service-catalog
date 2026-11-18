@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-11-03T17:06:48Z",
+  "generatedAt": "2026-11-18T09:18:14Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -165,19 +165,19 @@
         "elasticache"
       ],
       "provider": "AWS",
-      "serviceFamily": "redis",
+      "serviceFamily": "redis-node",
       "majorVersions": [
         {
           "serviceVersion": "5",
-          "latestTag": "AWS/redis-node/5/1.0.1"
+          "latestTag": "AWS/redis-node/5/1.0.2"
         },
         {
           "serviceVersion": "6",
-          "latestTag": "AWS/redis-node/6/1.0.1"
+          "latestTag": "AWS/redis-node/6/1.0.2"
         },
         {
           "serviceVersion": "7",
-          "latestTag": "AWS/redis-node/7/1.0.1"
+          "latestTag": "AWS/redis-node/7/1.0.2"
         }
       ]
     },
