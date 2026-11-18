@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-11-18T09:18:14Z",
+  "generatedAt": "2026-11-18T12:03:29Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -220,6 +220,29 @@
         {
           "serviceVersion": "9",
           "latestTag": "AWS/valkey/9/1.0.2"
+        }
+      ]
+    },
+    {
+      "name": "aws-elasticache-valkey-serverless",
+      "displayName": "Amazon ElastiCache Serverless for Valkey",
+      "primaryCategory": "Databases & Caches",
+      "kind": "ServiceBlueprint",
+      "description": "AWS ElastiCache Serverless cache on Valkey 9, billed on usage, with TLS and a password-protected user, on the Qovery cluster network. Needs a cluster-mode client.",
+      "icon": "app://qovery-console/redis",
+      "categories": [
+        "database",
+        "cache",
+        "valkey",
+        "elasticache",
+        "serverless"
+      ],
+      "provider": "AWS",
+      "serviceFamily": "valkey-serverless",
+      "majorVersions": [
+        {
+          "serviceVersion": "9",
+          "latestTag": "AWS/valkey-serverless/9/1.0.0"
         }
       ]
     },

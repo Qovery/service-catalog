@@ -1,0 +1,127 @@
+apiVersion: "qovery.com/v1"
+kind: ServiceBlueprint
+
+metadata:
+  name: "aws-elasticache-valkey-serverless"
+  displayName: "Amazon ElastiCache Serverless for Valkey"
+  primaryCategory: "Databases & Caches"
+  version: "1.0.0"
+  description: "AWS ElastiCache Serverless cache on Valkey 9, billed on usage, with TLS and a password-protected user, on the Qovery cluster network. Needs a cluster-mode client."
+  icon: "app://qovery-console/redis"
+  serviceFamily: "valkey-serverless"
+  categories:
+    - "database"
+    - "cache"
+    - "valkey"
+    - "elasticache"
+    - "serverless"
+
+spec:
+  engine:
+    type: terraform
+    provider: AWS
+    terraform:
+      version: "1.9.7"
+      allowedValues: ["1.9.7", "1.13.3"]
+      overridable: true
+    credentials:
+      default: cluster
+      allowedValues: ["cluster", "env"]
+      overridable: true
+    backend:
+      default: qovery
+      allowedValues: ["qovery", "user_provided"]
+      overridable: true
+    timeout: 3600
+    resources:
+      cpu: "500m"
+      ram: "512Mi"
+
+  contextVariables:
+    - name: "region"
+      source: "cluster.region"
+      overridable: true
+    - name: "qovery_cluster_name"
+      source: "cluster.name"
+    - name: "qovery_cluster_id"
+      source: "cluster.id"
+
+  variables:
+    - name: "valkey_name"
+      type: "string"
+      required: true
+      description: "Letters, digits, single hyphens; must start with a letter and end with a letter or digit; max 32 chars. No underscores."
+      pattern: "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      minLength: 1
+      maxLength: 32
+    - name: "valkey_password"
+      type: "string"
+      required: false
+      sensitive: true
+      description: 'Leave empty and Qovery generates a 32-character one. To set your own: 16–128 chars, no comma, /, @, " or spaces. A change replaces it.'
+      pattern: '^[^,/@" ]{16,128}$'
+      maxLength: 128
+    - name: "data_storage_max_gb"
+      type: "number"
+      required: false
+      default: "0"
+      description: "0 = the AWS maximum, 5000 GB. Else the most data the cache may store, in GB (1–5000)."
+      min: 0
+      max: 5000
+    - name: "ecpu_per_second_max"
+      type: "number"
+      required: false
+      default: "0"
+      description: "0 = the AWS maximum, 15000000. Else the most ECPUs per second the cache may use (1000–15000000)."
+      min: 0
+      max: 15000000
+    - name: "subnet_ids"
+      type: "string"
+      required: false
+      description: "Leave empty — derived from the cluster's ElastiCache subnet group. Set it (comma-separated, one per AZ) only on a user-provided VPC; read at creation."
+    - name: "security_group_ids"
+      type: "string"
+      required: false
+      description: "Leave empty for the blueprint's own group (opens 6379–6380 to allowed_cidrs). Else comma-separated ids."
+    - name: "allowed_cidrs"
+      type: "string"
+      required: false
+      description: "Leave empty to allow the whole VPC (every cluster pod). Else comma-separated IPv4 CIDRs; only affects the blueprint's security group."
+      pattern: "^(([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}( *, *([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2})*)?$"
+    - name: "backup_retention_period"
+      type: "number"
+      required: false
+      default: "14"
+      description: "Days to retain daily automatic snapshots (0 disables)"
+      min: 0
+      max: 35
+    - name: "daily_snapshot_time"
+      type: "string"
+      required: false
+      default: "00:00"
+      description: "UTC, format hh24:mi. Only used when backup_retention_period > 0."
+      pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+
+  outputs:
+    - name: "valkey_identifier"
+      description: "ElastiCache serverless cache name"
+    - name: "valkey_host"
+      description: "Hostname applications connect to (cluster-mode clients only)"
+    - name: "valkey_port"
+      description: "Port of the primary endpoint, for writes and consistent reads"
+    - name: "valkey_reader_port"
+      description: "Port of the reader endpoint, on the same hostname"
+    - name: "valkey_username"
+      description: "Valkey user applications authenticate as"
+    - name: "valkey_password"
+      description: "Password of that user (generated when the input was left empty)"
+      sensitive: true
+    - name: "valkey_url"
+      description: "Connection URL over TLS, on the primary endpoint"
+      sensitive: true
+    - name: "valkey_arn"
+      description: "Serverless cache ARN"
+    - name: "valkey_engine_version_actual"
+      description: "Engine version actually running (including the patch AWS chose)"
+    - name: "valkey_security_group_id"
+      description: "Security group created for the cache (empty when security_group_ids is set)"
