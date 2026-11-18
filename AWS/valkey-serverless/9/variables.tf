@@ -66,22 +66,22 @@ variable "valkey_password" {
 variable "data_storage_max_gb" {
   type        = number
   default     = 0
-  description = "0 = no cap. Else the most data the cache may store, in GB (1-5000)."
+  description = "0 = the AWS maximum, 5000 GB. Else the most data the cache may store, in GB (1-5000)."
 
   validation {
     condition     = var.data_storage_max_gb >= 0 && var.data_storage_max_gb <= 5000 && floor(var.data_storage_max_gb) == var.data_storage_max_gb
-    error_message = "data_storage_max_gb must be a whole number between 0 and 5000 (0 = no cap)."
+    error_message = "data_storage_max_gb must be a whole number between 0 and 5000 (0 = the AWS maximum)."
   }
 }
 
 variable "ecpu_per_second_max" {
   type        = number
   default     = 0
-  description = "0 = no cap. Else the most ECPUs per second the cache may use (1000-15000000)."
+  description = "0 = the AWS maximum, 15000000. Else the most ECPUs per second the cache may use (1000-15000000)."
 
   validation {
     condition     = var.ecpu_per_second_max == 0 || (var.ecpu_per_second_max >= 1000 && var.ecpu_per_second_max <= 15000000 && floor(var.ecpu_per_second_max) == var.ecpu_per_second_max)
-    error_message = "ecpu_per_second_max must be 0 (no cap) or a whole number between 1000 and 15000000."
+    error_message = "ecpu_per_second_max must be 0 (the AWS maximum) or a whole number between 1000 and 15000000."
   }
 }
 

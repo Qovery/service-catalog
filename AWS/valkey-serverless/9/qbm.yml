@@ -58,21 +58,21 @@ spec:
       type: "string"
       required: false
       sensitive: true
-      description: 'Leave empty and Qovery generates a 32-character one. To set your own: 16–128 chars, no comma, /, @, " or spaces; a change replaces it at once.'
+      description: 'Leave empty and Qovery generates a 32-character one. To set your own: 16–128 chars, no comma, /, @, " or spaces. A change replaces it.'
       pattern: '^([^,/@" ]{16,128})?$'
       maxLength: 128
     - name: "data_storage_max_gb"
       type: "number"
       required: false
       default: "0"
-      description: "0 = no cap. Else the most data the cache may store, in GB (1–5000)."
+      description: "0 = the AWS maximum, 5000 GB. Else the most data the cache may store, in GB (1–5000)."
       min: 0
       max: 5000
     - name: "ecpu_per_second_max"
       type: "number"
       required: false
       default: "0"
-      description: "0 = no cap. Else the most ECPUs per second the cache may use (1000–15000000)."
+      description: "0 = the AWS maximum, 15000000. Else the most ECPUs per second the cache may use (1000–15000000)."
       min: 0
       max: 15000000
     - name: "subnet_ids"

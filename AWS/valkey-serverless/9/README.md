@@ -8,7 +8,7 @@ For a cache with a fixed node type, use the `aws-elasticache-valkey` blueprint i
 
 Three things differ from the node-based blueprint:
 
-- **A cluster-mode client is required.** A serverless cache always runs in cluster mode, so the application needs a Valkey or Redis client that speaks the cluster protocol. A client in standalone mode fails with `CROSSLOT` or `SELECT` errors, and multi-key commands only work on keys that share a hash slot.
+- **Use a cluster-mode client.** A serverless cache always runs in cluster mode, and AWS only supports clients that speak the cluster protocol. Multi-key commands only work on keys that share a hash slot; across slots they fail with `CROSSSLOT`.
 - **Two ports.** The cache serves writes and consistent reads on `6379` and replica reads on `6380`, on the same hostname. Many clients open connections to both, so the security group opens both.
 - **A user name is required.** Applications authenticate as the `app` user with `valkey_password`. There is no auth token and no usable `default` user.
 
@@ -32,16 +32,18 @@ The limit is 32 characters, not 40, because the user id (`<name>-app`) and the u
 
 In the Console, leaving the field blank omits it. Through the API or Terraform, omit the variable rather than sending an empty string: the platform rejects an empty variable value.
 
-Changing `valkey_password` replaces the password at once. Applications still holding the old one are refused until they are redeployed with the new value.
+Changing `valkey_password` replaces the password in place, without touching the cache or its data. AWS takes a few minutes to apply it (close to four in testing). Applications still holding the old one must be redeployed with the new value.
 
 ### Usage limits
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data_storage_max_gb` | number | `0` | Most data the cache may store, in GB (1–5000). `0` = no cap. |
-| `ecpu_per_second_max` | number | `0` | Most ECPUs per second the cache may use (1000–15000000). `0` = no cap. |
+| `data_storage_max_gb` | number | `0` | Most data the cache may store, in GB (1–5000). `0` = the AWS maximum, 5000 GB. |
+| `ecpu_per_second_max` | number | `0` | Most ECPUs per second the cache may use (1000–15000000). `0` = the AWS maximum, 15000000. |
 
-With both at `0`, no limit is sent and the cache scales as far as AWS allows. A cap bounds the bill as well as the capacity.
+With both at `0`, the cache scales as far as AWS allows. A cap bounds the bill as well as the capacity.
+
+The blueprint always sends both limits, with `0` translated to the AWS maximum. A cache whose limits are removed altogether cannot be updated: AWS rejects the call with `No modifications were requested`.
 
 ### Network
 

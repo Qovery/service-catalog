@@ -159,27 +159,17 @@ resource "aws_elasticache_serverless_cache" "this" {
   # Access
   user_group_id = aws_elasticache_user_group.this.user_group_id
 
-  # Usage caps. The block is left out entirely when both are 0, so AWS applies no limit.
-  dynamic "cache_usage_limits" {
-    for_each = var.data_storage_max_gb > 0 || var.ecpu_per_second_max > 0 ? [1] : []
+  # Usage caps. The block is always sent, with the AWS maximums standing for "no cap": removing
+  # it from a cache that had limits makes the provider send an empty ModifyServerlessCache, which
+  # AWS rejects with "No modifications were requested".
+  cache_usage_limits {
+    data_storage {
+      maximum = var.data_storage_max_gb > 0 ? var.data_storage_max_gb : 5000
+      unit    = "GB"
+    }
 
-    content {
-      dynamic "data_storage" {
-        for_each = var.data_storage_max_gb > 0 ? [1] : []
-
-        content {
-          maximum = var.data_storage_max_gb
-          unit    = "GB"
-        }
-      }
-
-      dynamic "ecpu_per_second" {
-        for_each = var.ecpu_per_second_max > 0 ? [1] : []
-
-        content {
-          maximum = var.ecpu_per_second_max
-        }
-      }
+    ecpu_per_second {
+      maximum = var.ecpu_per_second_max > 0 ? var.ecpu_per_second_max : 15000000
     }
   }
 
