@@ -22,7 +22,7 @@ The `valkey_url` output carries all of it: `rediss://app:<password>@<host>:6379`
 | ---- | ---- | --------- | ----------- |
 | `valkey_name` | string | | Cache name, lowercased by AWS. Must start with a letter, end with a letter or digit, and use single hyphens between them; max 32 chars. Underscores are not allowed. |
 
-The limit is 32 characters, not 40, because the user id (`<name>-app`) and the user group id (`<name>-users`) are built from the name and ElastiCache caps both at 40.
+The limit is 32 characters to leave room for the suffixes of the user id (`<name>-app`) and the user group id (`<name>-users`), which ElastiCache caps at 40.
 
 ### Credentials
 
@@ -38,8 +38,8 @@ Changing `valkey_password` replaces the password in place, without touching the 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data_storage_max_gb` | number | `0` | Most data the cache may store, in GB (1–5000). `0` = the AWS maximum, 5000 GB. |
-| `ecpu_per_second_max` | number | `0` | Most ECPUs per second the cache may use (1000–15000000). `0` = the AWS maximum, 15000000. |
+| `data_storage_max_gb` | number | `0` | Most data the cache may store, in whole GB (1–5000). `0` = the AWS maximum, 5000 GB. |
+| `ecpu_per_second_max` | number | `0` | Most ECPUs per second the cache may use, a whole number (1000–15000000). `0` = the AWS maximum, 15000000. |
 
 With both at `0`, the cache scales as far as AWS allows. A cap bounds the bill as well as the capacity.
 
@@ -51,7 +51,7 @@ The blueprint always sends both limits, with `0` translated to the AWS maximum. 
 | ---- | ---- | ------- | ----------- |
 | `subnet_ids` | string | | Leave empty — derived from the Qovery cluster's ElastiCache subnet group. Set it (comma-separated, one per Availability Zone) only on a cluster with a user-provided VPC, where that lookup finds nothing. Read at creation only. |
 | `security_group_ids` | string | | Leave empty for the blueprint's own security group. Set it (comma-separated ids) to attach existing groups instead; they must open 6379 and 6380 to the cluster. |
-| `allowed_cidrs` | string | | Leave empty to allow the whole VPC, which covers every pod of the cluster. Set it (comma-separated IPv4 CIDRs) to narrow the blueprint's security group. Ignored when `security_group_ids` is set. |
+| `allowed_cidrs` | string | | Leave empty to allow the whole VPC, which covers every pod of the cluster. Set it (comma-separated IPv4 network addresses, such as `10.0.0.0/24`) to narrow the blueprint's security group. Ignored when `security_group_ids` is set. |
 
 By default the cache is attached to the Qovery cluster network. The subnets come from the ElastiCache subnet group created at cluster bootstrap (`elasticache-<cluster vpc id>`): one subnet per Availability Zone, three at most. The security group is created by the blueprint, named `qovery-valkey-serverless-<name>`, and opens 6379–6380 to every CIDR of the VPC. It does not reuse the cluster workers security group, which opens 6379 only.
 
@@ -61,7 +61,7 @@ ElastiCache cannot move a serverless cache to other subnets, so `subnet_ids` is 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `backup_retention_period` | number | `14` | Days to retain daily automatic snapshots (0–35). `0` disables. |
+| `backup_retention_period` | number | `14` | Whole days to retain daily automatic snapshots (0–35). `0` disables. |
 | `daily_snapshot_time` | string | `00:00` | Time of the daily snapshot (UTC), `hh24:mi`. Only used when `backup_retention_period > 0`. |
 
 **Deleting the service deletes the cache without a final snapshot.** The AWS Terraform provider has no argument for one on a serverless cache. To keep the data, take a manual snapshot in AWS before deleting the service.

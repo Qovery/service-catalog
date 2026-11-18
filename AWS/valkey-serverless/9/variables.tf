@@ -107,6 +107,13 @@ variable "allowed_cidrs" {
     condition     = var.allowed_cidrs == "" || alltrue([for c in split(",", var.allowed_cidrs) : can(regex("^[0-9.]+/[0-9]+$", trimspace(c))) && can(cidrhost(trimspace(c), 0))])
     error_message = "allowed_cidrs must be comma-separated IPv4 CIDRs, e.g. 10.0.0.0/16,192.168.1.0/24."
   }
+
+  validation {
+    # AWS stores a rule under its network address, so 10.0.0.5/24 would come back as 10.0.0.0/24
+    # and show as a change on every plan.
+    condition     = var.allowed_cidrs == "" || alltrue([for c in split(",", var.allowed_cidrs) : try(cidrhost(trimspace(c), 0) == split("/", trimspace(c))[0], false)])
+    error_message = "allowed_cidrs entries must be network addresses, e.g. 10.0.0.0/24 rather than 10.0.0.5/24."
+  }
 }
 
 variable "backup_retention_period" {
@@ -115,8 +122,8 @@ variable "backup_retention_period" {
   description = "Days to retain daily automatic snapshots (0 disables)"
 
   validation {
-    condition     = var.backup_retention_period >= 0 && var.backup_retention_period <= 35
-    error_message = "backup_retention_period must be between 0 and 35."
+    condition     = var.backup_retention_period >= 0 && var.backup_retention_period <= 35 && floor(var.backup_retention_period) == var.backup_retention_period
+    error_message = "backup_retention_period must be a whole number between 0 and 35."
   }
 }
 

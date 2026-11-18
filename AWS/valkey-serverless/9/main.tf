@@ -97,6 +97,13 @@ resource "aws_security_group" "cache" {
   }
 
   tags = local.tags
+
+  lifecycle {
+    # The cache never leaves the VPC it was created in (subnet_ids is ignored on it), so the group
+    # must not follow a later subnet_ids change into another VPC: that would replace it while the
+    # cache still uses it.
+    ignore_changes = [vpc_id]
+  }
 }
 
 locals {
