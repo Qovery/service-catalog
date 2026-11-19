@@ -928,6 +928,13 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                     vd.full_path
                 ));
             }
+            // The engine checks below are skipped for stacks, so reject the AWS-only override here too.
+            if spec.engine.as_ref().and_then(|e| e.role_arn.as_ref()).is_some() {
+                errors.push(format!(
+                    "{}: spec.engine.roleArn is only supported on AWS terraform/opentofu blueprints",
+                    vd.full_path
+                ));
+            }
         } else {
             let engine = spec.engine.as_ref();
             let engine_type = engine.and_then(|e| e.type_.as_deref());
@@ -1002,11 +1009,18 @@ fn validate_blueprints(root: &Path) -> Result<()> {
 
             // The role is assumed by the AWS provider block, so the override only means something on an
             // AWS terraform/opentofu blueprint; anywhere else q-core would accept a value nothing reads.
-            if engine.and_then(|e| e.role_arn.as_ref()).is_some() {
+            if let Some(role_arn) = engine.and_then(|e| e.role_arn.as_ref()) {
                 let is_iac = matches!(engine_type, Some("terraform") | Some("opentofu"));
                 if vd.provider != "AWS" || !is_iac {
                     errors.push(format!(
                         "{}: spec.engine.roleArn is only supported on AWS terraform/opentofu blueprints",
+                        vd.full_path
+                    ));
+                }
+                // The block's only job is to opt in: `roleArn: {}` would silently leave the override off.
+                if role_arn.overridable != Some(true) {
+                    errors.push(format!(
+                        "{}: spec.engine.roleArn must set overridable: true (declaring it without opting in does nothing)",
                         vd.full_path
                     ));
                 }

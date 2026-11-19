@@ -6,7 +6,7 @@ By default the distribution serves over the CloudFront-managed `*.cloudfront.net
 
 ## Credentials
 
-Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The credentials must allow the CloudFront and (when using ACM) certificate actions listed under [Required IAM permissions](#required-aws-iam-permissions).
+Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The credentials must allow the CloudFront and (when using ACM) certificate actions listed under [Required IAM permissions](#required-aws-iam-permissions). When the `role_arn` override is set, the listed permissions are needed by that role instead, and the deploy credentials only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
 
 ## Variables
 
@@ -71,11 +71,12 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The 
 
 ## Assuming an IAM role
 
-Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`.
-- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
-- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+- The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, **and** the role's trust policy must allow the deploy credentials' IAM principal to assume it. Without both, the deployment fails with `AccessDenied`.
+- The role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
 
 ## Required AWS IAM permissions
 

@@ -163,7 +163,7 @@ variable "role_arn" {
   default     = ""
 
   validation {
-    condition     = var.role_arn == "" || can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:role/.+$", var.role_arn))
+    condition     = var.role_arn == "" || can(regex("^arn:aws(-cn|-us-gov|-iso(-[a-z])?)?:iam::[0-9]{12}:role(/[!-~]+)*/[A-Za-z0-9+=,.@_-]{1,64}$", var.role_arn))
     error_message = "role_arn must be an IAM role ARN (arn:aws:iam::<account-id>:role/<name>)."
   }
 }
