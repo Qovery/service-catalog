@@ -82,6 +82,9 @@ No `bedrock:*` permission is needed — the blueprint only writes IAM.
   Qovery. Rotating it means tainting `aws_iam_access_key.app` and redeploying. Prefer
   `create_iam_user = false` plus `attach_to_role_name` wherever the workload already has an AWS
   identity.
+- **A Qovery cluster rename does not touch the IAM policy.** AWS cannot change a policy description
+  in place, so the description no longer carries the cluster name (from 1.0.4) and changes to it are
+  ignored. A policy created on an earlier version keeps its old description.
 - **`force_destroy` is set on the IAM user**, so destroying the blueprint removes the user together
   with the keys it still holds instead of failing.
 - Guardrails, knowledge bases and provisioned throughput are out of scope: each is a substantial

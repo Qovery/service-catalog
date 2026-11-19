@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-11-19T13:58:42Z",
+  "generatedAt": "2026-11-19T15:00:36Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -284,7 +284,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/bedrock/default/1.0.3"
+          "latestTag": "EXTERNAL/bedrock/default/1.0.4"
         }
       ]
     },
