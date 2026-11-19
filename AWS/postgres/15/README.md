@@ -310,6 +310,14 @@ Two attributes remain ignored on the primary:
 - `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
 - `tags` — ignored on the primary and every read replica, so tag changes from the blueprint never reach an existing database. The reason is adoption: the native path tags managed RDS with `cluster_id`, which the YACE CloudWatch exporter filters DB metrics on.
 
+## Assuming an IAM role
+
+Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`.
+- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
 The credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured. The EC2 write actions are used while `read_replica_allowed_cidrs` is set, and on the apply that clears it (Terraform revokes the rules and deletes the group), so keep them until that apply has run.

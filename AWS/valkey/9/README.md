@@ -111,6 +111,14 @@ Changing `valkey_password` later rotates through Terraform: `ROTATE` adds the ne
 
 **Before moving a service created on an earlier version to this one**, make `valkey_password` equal the group's live token. Earlier versions ignored `auth_token`, so a token rotated out-of-band left the old one in state, and the first apply on this version sends `valkey_password` with `ROTATE`.
 
+## Assuming an IAM role
+
+Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`.
+- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
 The credentials used to deploy this blueprint must allow the actions below. EC2 read actions are needed so Terraform can look up the cluster VPC and workers security group when the network variables are left empty.

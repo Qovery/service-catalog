@@ -24,6 +24,14 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 
 `bucket_policy` defaults to `true`, so upgrading an existing bucket attaches the TLS policy. S3 holds a single policy per bucket: this one **replaces** any policy attached outside the blueprint. Preview the update before applying it (the plan shows `aws_s3_bucket_policy.this[0]` being created), and set `bucket_policy = false` if the bucket relies on a policy managed elsewhere. Setting it to `false` after the policy was replaced deletes the policy; it does not restore the previous one.
 
+## Assuming an IAM role
+
+Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`.
+- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
 The credentials used to deploy this blueprint must allow the actions below. Resource scope: `arn:aws:s3:::*` (bucket-level) and `arn:aws:s3:::*/*` (object-level, only needed when `force_destroy = true`).

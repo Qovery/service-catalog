@@ -204,3 +204,15 @@ variable "extra_configuration" {
   default     = ""
   description = "Extra rabbitmq.conf lines, separated by ';'. Amazon MQ rejects keys it does not allow at apply."
 }
+
+# Set through the blueprint `role_arn` override (qbm.yml spec.engine.roleArn); q-core injects it.
+variable "role_arn" {
+  description = "Unset = use the cluster credentials directly. Set an IAM role ARN from the cluster's AWS account to assume it; cross-account roles are not supported."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.role_arn == "" || can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:role/.+$", var.role_arn))
+    error_message = "role_arn must be an IAM role ARN (arn:aws:iam::<account-id>:role/<name>)."
+  }
+}

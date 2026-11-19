@@ -188,6 +188,14 @@ A few attributes remain ignored:
 - `parameter_group_name` — an adopted instance keeps its live parameter group; the blueprint's group is applied on create.
 - `name_prefix` on the parameter group — groups created before 3.6.0 were prefixed with the cluster name. Ignoring it means a cluster rename, or the upgrade to 3.6.0, never replaces the group. New groups are prefixed with the database name only.
 
+## Assuming an IAM role
+
+Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`.
+- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
 The credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured.

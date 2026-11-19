@@ -18,4 +18,12 @@ terraform {
 
 provider "aws" {
   region = var.region
+
+  # Optional: assume a role in the same AWS account as the engine-injected credentials.
+  dynamic "assume_role" {
+    for_each = var.role_arn != "" ? [var.role_arn] : []
+    content {
+      role_arn = assume_role.value
+    }
+  }
 }

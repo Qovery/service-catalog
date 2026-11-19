@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-redis-node"
   displayName: "Amazon ElastiCache for Redis (legacy single node)"
   primaryCategory: "Databases & Caches"
-  version: "1.0.2"
+  version: "1.1.0"
   description: "Adopts an existing single-node AWS ElastiCache for Redis cluster created by Qovery native managed Redis. Import only: it cannot create a new cluster. This shape has no auth token and no TLS."
   icon: "app://qovery-console/redis"
   serviceFamily: "redis-node"
@@ -27,6 +27,8 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
+      overridable: true
+    roleArn:
       overridable: true
     backend:
       default: qovery

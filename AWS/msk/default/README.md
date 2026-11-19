@@ -36,6 +36,14 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). By d
 - MSK Serverless does not create networking; it attaches to existing subnets/SG (auto-discovered here).
 - Billed per-throughput + storage (no idle broker-hour cost, unlike provisioned MSK).
 
+## Assuming an IAM role
+
+Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`.
+- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions-to-deploy).
+
 ## Required AWS IAM permissions (to deploy)
 
 ```json

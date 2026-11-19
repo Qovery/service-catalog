@@ -94,6 +94,14 @@ Terraform manages the membership list of the group: a user added to it outside t
 
 - `subnet_ids` — set at creation; see [Network](#network).
 
+## Assuming an IAM role
+
+Optional. Set the `role_arn` blueprint override to make the blueprint assume an IAM role instead of using the credentials directly; leave it unset to use the cluster credentials as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`.
+- The role must be in the **same AWS account** as the cluster credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, and the role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
 The credentials used to deploy this blueprint must allow the actions below. The EC2 read actions let Terraform look up the cluster VPC and its subnets. `ec2:CreateVpcEndpoint`, the `ec2:CreateTags` that goes with it and `iam:CreateServiceLinkedRole` are the ones the AWS managed policy `AmazonElastiCacheFullAccess` grants for serverless caches: ElastiCache places a VPC endpoint in the chosen subnets.
