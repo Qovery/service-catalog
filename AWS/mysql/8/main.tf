@@ -45,7 +45,8 @@ resource "aws_db_parameter_group" "mysql" {
   # name_prefix forces replacement, and the instance ignores parameter_group_name, so a replacement
   # leaves the instance on the old group and the delete of that group fails on every apply. Groups
   # created before 3.6.0 carry the cluster name in their prefix; ignoring it keeps them in place
-  # across this upgrade and any later cluster rename. A family change still replaces the group.
+  # across this upgrade and any later cluster rename. The family is fixed to mysql8.4 here: a new
+  # MySQL major gets its own blueprint directory, not a family change.
   lifecycle {
     create_before_destroy = true
     ignore_changes        = [name_prefix]
