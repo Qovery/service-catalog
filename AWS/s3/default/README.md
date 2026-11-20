@@ -24,9 +24,20 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 
 `bucket_policy` defaults to `true`, so upgrading an existing bucket attaches the TLS policy. S3 holds a single policy per bucket: this one **replaces** any policy attached outside the blueprint. Preview the update before applying it (the plan shows `aws_s3_bucket_policy.this[0]` being created), and set `bucket_policy = false` if the bucket relies on a policy managed elsewhere. Setting it to `false` after the policy was replaced deletes the policy; it does not restore the previous one.
 
+## Assuming an IAM role
+
+Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
+- The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, **and** the role's trust policy must allow the deploy credentials' IAM principal to assume it. Without both, the deployment fails with `AccessDenied`.
+- The role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
-The credentials used to deploy this blueprint must allow the actions below. Resource scope: `arn:aws:s3:::*` (bucket-level) and `arn:aws:s3:::*/*` (object-level, only needed when `force_destroy = true`).
+> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+
+Unless the `role_arn` override is set, the credentials used to deploy this blueprint must allow the actions below. Resource scope: `arn:aws:s3:::*` (bucket-level) and `arn:aws:s3:::*/*` (object-level). The last two statements, `s3:ListBucketVersions` and the object deletes, are only needed when `force_destroy = true`: Terraform uses them to empty the bucket before deleting it.
 
 ```json
 {
@@ -65,10 +76,14 @@ The credentials used to deploy this blueprint must allow the actions below. Reso
     },
     {
       "Effect": "Allow",
+      "Action": "s3:ListBucketVersions",
+      "Resource": "arn:aws:s3:::*"
+    },
+    {
+      "Effect": "Allow",
       "Action": [
         "s3:DeleteObject",
-        "s3:DeleteObjectVersion",
-        "s3:ListBucketVersions"
+        "s3:DeleteObjectVersion"
       ],
       "Resource": "arn:aws:s3:::*/*"
     }

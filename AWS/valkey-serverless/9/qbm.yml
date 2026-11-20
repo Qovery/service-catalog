@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-valkey-serverless"
   displayName: "Amazon ElastiCache Serverless for Valkey"
   primaryCategory: "Databases & Caches"
-  version: "1.0.0"
+  version: "1.1.0"
   description: "AWS ElastiCache Serverless cache on Valkey 9, billed on usage, with TLS and a password-protected user, on the Qovery cluster network. Needs a cluster-mode client."
   icon: "app://qovery-console/redis"
   serviceFamily: "valkey-serverless"
@@ -27,6 +27,8 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
+      overridable: true
+    roleArn:
       overridable: true
     backend:
       default: qovery

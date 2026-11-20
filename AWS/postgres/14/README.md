@@ -310,9 +310,20 @@ Two attributes remain ignored on the primary:
 - `password` — the master password moved to the write-only `password_wo`; ignoring the plain attribute stops the value left in older state reading as a removal.
 - `tags` — ignored on the primary and every read replica, so tag changes from the blueprint never reach an existing database. The reason is adoption: the native path tags managed RDS with `cluster_id`, which the YACE CloudWatch exporter filters DB metrics on.
 
+## Assuming an IAM role
+
+Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
+
+- Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
+- The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
+- The deploy credentials need `sts:AssumeRole` on that role, **and** the role's trust policy must allow the deploy credentials' IAM principal to assume it. Without both, the deployment fails with `AccessDenied`.
+- The role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
+
 ## Required AWS IAM permissions
 
-The credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured. The EC2 write actions are used while `read_replica_allowed_cidrs` is set, and on the apply that clears it (Terraform revokes the rules and deletes the group), so keep them until that apply has run.
+> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+
+Unless the `role_arn` override is set, the credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured. The EC2 write actions are used while `read_replica_allowed_cidrs` is set, and on the apply that clears it (Terraform revokes the rules and deletes the group), so keep them until that apply has run.
 
 ```json
 {
@@ -368,4 +379,12 @@ The credentials used to deploy this blueprint must allow the actions below. The 
 }
 ```
 
-When `monitoring_interval > 0`, the supplied `monitoring_role_arn` must be assumable by RDS (`monitoring.rds.amazonaws.com` trust relationship) and grant the `AmazonRDSEnhancedMonitoringRole` managed policy.
+When `monitoring_interval > 0`, the supplied `monitoring_role_arn` must be assumable by RDS (`monitoring.rds.amazonaws.com` trust relationship) and grant the `AmazonRDSEnhancedMonitoringRole` managed policy. The identity that applies the blueprint (the assumed role when `role_arn` is set) also needs `iam:PassRole` on that role, to hand it to RDS. It is not in the policy above because it only applies when monitoring is enabled; add this statement, with the resource set to your `monitoring_role_arn`:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:PassRole",
+  "Resource": "arn:aws:iam::<account-id>:role/<monitoring-role-name>"
+}
+```

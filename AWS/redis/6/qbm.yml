@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-redis"
   displayName: "Amazon ElastiCache for Redis"
   primaryCategory: "Databases & Caches"
-  version: "1.0.2"
+  version: "1.1.0"
   description: "AWS ElastiCache for Redis replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -27,6 +27,8 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
+      overridable: true
+    roleArn:
       overridable: true
     backend:
       default: qovery
