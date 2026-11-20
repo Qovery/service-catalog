@@ -49,6 +49,7 @@ Unless the `role_arn` override is set, the credentials used to deploy this bluep
         "s3:CreateBucket",
         "s3:DeleteBucket",
         "s3:ListBucket",
+        "s3:ListBucketVersions",
         "s3:GetBucketLocation",
         "s3:GetBucketVersioning",
         "s3:PutBucketVersioning",
@@ -78,8 +79,7 @@ Unless the `role_arn` override is set, the credentials used to deploy this bluep
       "Effect": "Allow",
       "Action": [
         "s3:DeleteObject",
-        "s3:DeleteObjectVersion",
-        "s3:ListBucketVersions"
+        "s3:DeleteObjectVersion"
       ],
       "Resource": "arn:aws:s3:::*/*"
     }

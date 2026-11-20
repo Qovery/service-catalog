@@ -379,4 +379,4 @@ Unless the `role_arn` override is set, the credentials used to deploy this bluep
 }
 ```
 
-When `monitoring_interval > 0`, the supplied `monitoring_role_arn` must be assumable by RDS (`monitoring.rds.amazonaws.com` trust relationship) and grant the `AmazonRDSEnhancedMonitoringRole` managed policy.
+When `monitoring_interval > 0`, the supplied `monitoring_role_arn` must be assumable by RDS (`monitoring.rds.amazonaws.com` trust relationship) and grant the `AmazonRDSEnhancedMonitoringRole` managed policy. The identity that applies the blueprint (the assumed role when `role_arn` is set) also needs `iam:PassRole` on `monitoring_role_arn`.
