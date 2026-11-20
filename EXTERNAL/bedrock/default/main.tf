@@ -79,9 +79,16 @@ data "aws_iam_policy_document" "invoke" {
 
 resource "aws_iam_policy" "invoke" {
   name        = local.policy_name
-  description = "Bedrock invoke access issued by the Qovery bedrock blueprint for cluster ${var.qovery_cluster_name}"
+  description = "Bedrock invoke access issued by the Qovery bedrock blueprint"
   policy      = data.aws_iam_policy_document.invoke.json
   tags        = local.tags
+
+  # description forces replacement. Policies created before 1.0.4 carry the cluster name in it;
+  # ignoring it keeps them in place across this upgrade and any later cluster rename, instead of
+  # deleting the policy (and the app's Bedrock access) and recreating it.
+  lifecycle {
+    ignore_changes = [description]
+  }
 }
 
 resource "aws_iam_user" "app" {

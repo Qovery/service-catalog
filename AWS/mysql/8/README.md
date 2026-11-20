@@ -162,6 +162,9 @@ Read this before repointing a deployment at this version.
 - Terraform moves from 1.9.7 to 1.13.3, and `1.9.7` is no longer an accepted override. State written by
   1.13.3 cannot be read by 1.9.7, so a deployment cannot be repointed at an earlier blueprint version
   once it has applied.
+- From 3.6.0 the parameter group name no longer depends on the Qovery cluster name. Up to 3.5.1, renaming
+  the cluster made the next apply create a new group and then fail to delete the old one, still attached
+  to the instance. An existing group keeps its name and is not touched by the upgrade.
 
 ## Lifecycle ignore_changes
 
@@ -182,7 +185,8 @@ A few attributes remain ignored:
 - `enabled_cloudwatch_logs_exports` — list type, not yet supported by the qbm.yml schema.
 - `max_allocated_storage` — will turn into a managed input when the storage autoscale feature is added.
 
-Note: `parameter_group_name` is **not** ignored — the blueprint owns its parameter group.
+- `parameter_group_name` — an adopted instance keeps its live parameter group; the blueprint's group is applied on create.
+- `name_prefix` on the parameter group — groups created before 3.6.0 were prefixed with the cluster name. Ignoring it means a cluster rename, or the upgrade to 3.6.0, never replaces the group. New groups are prefixed with the database name only.
 
 ## Required AWS IAM permissions
 

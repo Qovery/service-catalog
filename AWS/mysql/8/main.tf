@@ -17,8 +17,9 @@ locals {
   final_snapshot_cleaned = replace(local.final_snapshot_raw, "/[^a-zA-Z0-9-]/", "")
   final_snapshot_name    = can(regex("^[a-zA-Z]", local.final_snapshot_cleaned)) ? local.final_snapshot_cleaned : "snap-${local.final_snapshot_cleaned}"
 
-  # Param-group names: lowercase alphanumerics/hyphens, must begin with a letter. Sanitize the cluster-derived prefix.
-  pg_prefix_cleaned = replace(lower("${var.qovery_cluster_name}-${replace(var.db_name, "_", "-")}"), "/[^a-z0-9-]/", "")
+  # Param-group names: lowercase alphanumerics/hyphens, must begin with a letter. Derived from the
+  # database name only: a cluster rename must not change it (see the ignore_changes on the group).
+  pg_prefix_cleaned = replace(lower(replace(var.db_name, "_", "-")), "/[^a-z0-9-]/", "")
   pg_name_prefix    = can(regex("^[a-z]", local.pg_prefix_cleaned)) ? "${local.pg_prefix_cleaned}-" : "pg-${local.pg_prefix_cleaned}-"
 }
 
@@ -41,8 +42,14 @@ resource "aws_db_parameter_group" "mysql" {
     ServiceFamily = "mysql"
   }
 
+  # name_prefix forces replacement, and the instance ignores parameter_group_name, so a replacement
+  # leaves the instance on the old group and the delete of that group fails on every apply. Groups
+  # created before 3.6.0 carry the cluster name in their prefix; ignoring it keeps them in place
+  # across this upgrade and any later cluster rename. The family is fixed to mysql8.4 here: a new
+  # MySQL major gets its own blueprint directory, not a family change.
   lifecycle {
     create_before_destroy = true
+    ignore_changes        = [name_prefix]
   }
 }
 

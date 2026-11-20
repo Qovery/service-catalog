@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generatedAt": "2026-11-18T12:03:29Z",
+  "generatedAt": "2026-11-19T15:00:36Z",
   "blueprints": [
     {
       "name": "aws-cloudfront",
@@ -61,7 +61,7 @@
       "majorVersions": [
         {
           "serviceVersion": "8",
-          "latestTag": "AWS/mysql/8/3.5.1"
+          "latestTag": "AWS/mysql/8/3.6.0"
         }
       ]
     },
@@ -284,7 +284,7 @@
       "majorVersions": [
         {
           "serviceVersion": "default",
-          "latestTag": "EXTERNAL/bedrock/default/1.0.3"
+          "latestTag": "EXTERNAL/bedrock/default/1.0.4"
         }
       ]
     },
