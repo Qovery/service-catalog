@@ -105,7 +105,9 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-The credentials used to deploy this blueprint must allow the actions below. The EC2 read actions let Terraform look up the cluster VPC and its subnets. `ec2:CreateVpcEndpoint`, the `ec2:CreateTags` that goes with it and `iam:CreateServiceLinkedRole` are the ones the AWS managed policy `AmazonElastiCacheFullAccess` grants for serverless caches: ElastiCache places a VPC endpoint in the chosen subnets.
+> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
+
+Unless the `role_arn` override is set, the credentials used to deploy this blueprint must allow the actions below. The EC2 read actions let Terraform look up the cluster VPC and its subnets. `ec2:CreateVpcEndpoint`, the `ec2:CreateTags` that goes with it and `iam:CreateServiceLinkedRole` are the ones the AWS managed policy `AmazonElastiCacheFullAccess` grants for serverless caches: ElastiCache places a VPC endpoint in the chosen subnets.
 
 ```json
 {

@@ -199,7 +199,9 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-The credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured.
+> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
+
+Unless the `role_arn` override is set, the credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured.
 
 ```json
 {

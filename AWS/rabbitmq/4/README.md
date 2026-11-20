@@ -173,8 +173,10 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-The identity that deploys the blueprint needs the actions below. With `credentials: cluster` (the
-default) that is the cluster's IAM role, `qovery-user-role` on a standard installation: attach them
+> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
+
+Unless the `role_arn` override is set, the identity that deploys the blueprint needs the actions
+below. With `credentials: cluster` (the default) that is the cluster's IAM role, `qovery-user-role` on a standard installation: attach them
 to it as an extra policy. With `credentials: env`, the keys you supply need them. The EC2 and RDS
 read actions let Terraform find the cluster subnets, and the security group actions create the
 broker's own group; the `logs` actions are only used with `general_logs = true`.

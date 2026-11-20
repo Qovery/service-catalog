@@ -58,6 +58,8 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
+> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
+
 ```json
 {
   "Version": "2012-10-17",
