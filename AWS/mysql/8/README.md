@@ -241,4 +241,12 @@ Unless the `role_arn` override is set, the credentials used to deploy this bluep
 }
 ```
 
-When `monitoring_interval > 0`, the supplied `monitoring_role_arn` must be assumable by RDS (`monitoring.rds.amazonaws.com` trust relationship) and grant the `AmazonRDSEnhancedMonitoringRole` managed policy. The identity that applies the blueprint (the assumed role when `role_arn` is set) also needs `iam:PassRole` on `monitoring_role_arn`.
+When `monitoring_interval > 0`, the supplied `monitoring_role_arn` must be assumable by RDS (`monitoring.rds.amazonaws.com` trust relationship) and grant the `AmazonRDSEnhancedMonitoringRole` managed policy. The identity that applies the blueprint (the assumed role when `role_arn` is set) also needs `iam:PassRole` on that role, to hand it to RDS. It is not in the policy above because it only applies when monitoring is enabled; add this statement, with the resource set to your `monitoring_role_arn`:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:PassRole",
+  "Resource": "arn:aws:iam::<account-id>:role/<monitoring-role-name>"
+}
+```
