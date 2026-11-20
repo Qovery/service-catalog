@@ -11,6 +11,7 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 | `encryption`    | bool   | no       |           | `true`  | Enable AES-256 server-side encryption                                                                                                                                                                                      |
 | `force_destroy` | bool   | no       |           | `false` | Allow bucket deletion even if it contains objects                                                                                                                                                                          |
 | `bucket_policy` | bool   | no       |           | `true`  | Enforce TLS: attach a bucket policy that denies plain HTTP requests                                                                                                                                                        |
+| `role_arn`      | string | no       |           | —       | Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported.                                                                        |
 
 ## Outputs
 
@@ -26,7 +27,7 @@ Creates an S3 bucket with encryption, versioning, and public access block config
 
 ## Assuming an IAM role
 
-Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
+Optional. Set the `role_arn` variable to make the blueprint assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
 - The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
@@ -35,9 +36,9 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+> When `role_arn` is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
 
-Unless the `role_arn` override is set, the credentials used to deploy this blueprint must allow the actions below. Resource scope: `arn:aws:s3:::*` (bucket-level) and `arn:aws:s3:::*/*` (object-level). The last two statements, `s3:ListBucketVersions` and the object deletes, are only needed when `force_destroy = true`: Terraform uses them to empty the bucket before deleting it.
+Unless `role_arn` is set, the credentials used to deploy this blueprint must allow the actions below. Resource scope: `arn:aws:s3:::*` (bucket-level) and `arn:aws:s3:::*/*` (object-level). The last two statements, `s3:ListBucketVersions` and the object deletes, are only needed when `force_destroy = true`: Terraform uses them to empty the bucket before deleting it.
 
 ```json
 {

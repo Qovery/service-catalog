@@ -168,6 +168,7 @@ deploy.
 | `deletion_protection`                 | bool   | `false` | Prevent deletion via TF/API                        |
 | `iam_database_authentication_enabled` | bool   | `false` | Enable IAM DB authentication                       |
 | `dedicated_log_volume`                | bool   | `false` | Provision a dedicated EBS volume for database logs |
+| `role_arn`                            | string |         | Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported. |
 
 ### Parameters
 
@@ -312,7 +313,7 @@ Two attributes remain ignored on the primary:
 
 ## Assuming an IAM role
 
-Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
+Optional. Set the `role_arn` variable to make the blueprint assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
 - The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
@@ -321,9 +322,9 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+> When `role_arn` is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
 
-Unless the `role_arn` override is set, the credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured. The EC2 write actions are used while `read_replica_allowed_cidrs` is set, and on the apply that clears it (Terraform revokes the rules and deletes the group), so keep them until that apply has run.
+Unless `role_arn` is set, the credentials used to deploy this blueprint must allow the actions below. The RDS actions target instances in any region you deploy to; EC2 read actions are needed so Terraform can look up the default VPC, subnets, and security groups when none are explicitly configured. The EC2 write actions are used while `read_replica_allowed_cidrs` is set, and on the apply that clears it (Terraform revokes the rules and deletes the group), so keep them until that apply has run.
 
 ```json
 {

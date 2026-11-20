@@ -5,7 +5,7 @@ metadata:
   name: "aws-cloudfront"
   displayName: "AWS CloudFront"
   primaryCategory: "Networking & Edge"
-  version: "1.1.0"
+  version: "1.2.0"
   description: "AWS CloudFront CDN distribution in front of an HTTP/S origin (ALB, app host, or S3 website), with configurable caching, price class, custom domains, and geo restrictions"
   icon: "app://qovery-console/cloudfront"
   serviceFamily: "cloudfront"
@@ -26,8 +26,6 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
-      overridable: true
-    roleArn:
       overridable: true
     backend:
       default: qovery
@@ -142,6 +140,11 @@ spec:
       type: "string"
       required: false
       description: "Comma-separated ISO 3166-1-alpha-2 country codes (e.g. US,FR). Required when geo_restriction_type is not none."
+    - name: "role_arn"
+      type: "string"
+      required: false
+      description: "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
+      pattern: "^arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64}$"
 
   outputs:
     - name: "distribution_id"

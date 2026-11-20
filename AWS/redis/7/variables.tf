@@ -200,9 +200,8 @@ variable "snapshot_name" {
   description = "Unset = start empty. Else an existing ElastiCache snapshot to seed from; read at creation only."
 }
 
-# Set through the blueprint `role_arn` override (qbm.yml spec.engine.roleArn); q-core injects it.
 variable "role_arn" {
-  description = "Unset = use the cluster credentials directly. Set an IAM role ARN from the cluster's AWS account to assume it; cross-account roles are not supported."
+  description = "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
   type        = string
   default     = ""
 

@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-valkey-serverless"
   displayName: "Amazon ElastiCache Serverless for Valkey"
   primaryCategory: "Databases & Caches"
-  version: "1.1.0"
+  version: "1.2.0"
   description: "AWS ElastiCache Serverless cache on Valkey 9, billed on usage, with TLS and a password-protected user, on the Qovery cluster network. Needs a cluster-mode client."
   icon: "app://qovery-console/redis"
   serviceFamily: "valkey-serverless"
@@ -27,8 +27,6 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
-      overridable: true
-    roleArn:
       overridable: true
     backend:
       default: qovery
@@ -103,6 +101,11 @@ spec:
       default: "00:00"
       description: "UTC, format hh24:mi. Only used when backup_retention_period > 0."
       pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+    - name: "role_arn"
+      type: "string"
+      required: false
+      description: "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
+      pattern: "^arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64}$"
 
   outputs:
     - name: "valkey_identifier"

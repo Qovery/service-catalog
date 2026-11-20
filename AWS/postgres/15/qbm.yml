@@ -5,7 +5,7 @@ metadata:
   name: "aws-rds-postgresql"
   displayName: "Amazon RDS for PostgreSQL"
   primaryCategory: "Databases & Caches"
-  version: "4.10.0"
+  version: "4.11.0"
   description: "AWS RDS PostgreSQL 15 instance with configurable size, storage, backups, maintenance, monitoring, network, and optional read replicas"
   icon: "app://qovery-console/postgresql"
   serviceFamily: "postgres"
@@ -26,8 +26,6 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
-      overridable: true
-    roleArn:
       overridable: true
     backend:
       default: qovery
@@ -543,6 +541,11 @@ spec:
       required: false
       default: "false"
       description: "Enable Multi-AZ for read replicas (higher availability, roughly doubles their cost)."
+    - name: "role_arn"
+      type: "string"
+      required: false
+      description: "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
+      pattern: "^arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64}$"
 
   outputs:
     - name: "db_identifier"

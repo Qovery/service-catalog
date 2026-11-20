@@ -6,7 +6,7 @@ By default the distribution serves over the CloudFront-managed `*.cloudfront.net
 
 ## Credentials
 
-Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The credentials must allow the CloudFront and (when using ACM) certificate actions listed under [Required IAM permissions](#required-aws-iam-permissions). When the `role_arn` override is set, the listed permissions are needed by that role instead, and the deploy credentials only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
+Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The credentials must allow the CloudFront and (when using ACM) certificate actions listed under [Required IAM permissions](#required-aws-iam-permissions). When `role_arn` is set, the listed permissions are needed by that role instead, and the deploy credentials only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
 
 ## Variables
 
@@ -52,6 +52,12 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The 
 | `geo_restriction_type`      | string | `none`  | `none`, `whitelist`, or `blacklist`                                               |
 | `geo_restriction_locations` | string |         | Comma-separated ISO country codes (e.g. `US,FR`). Required when type is not `none`. |
 
+### IAM role
+
+| Name       | Type   | Default | Description                                                                                                                                         |
+| ---------- | ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `role_arn` | string | —       | Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported. |
+
 ## Outputs
 
 | Name               | Description                                                     |
@@ -71,7 +77,7 @@ Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The 
 
 ## Assuming an IAM role
 
-Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
+Optional. Set the `role_arn` variable to make the blueprint assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
 - The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
@@ -80,7 +86,7 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+> When `role_arn` is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
 
 ```json
 {

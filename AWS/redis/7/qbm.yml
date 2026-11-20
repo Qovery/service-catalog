@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-redis"
   displayName: "Amazon ElastiCache for Redis"
   primaryCategory: "Databases & Caches"
-  version: "1.2.0"
+  version: "1.3.0"
   description: "AWS ElastiCache for Redis 7 replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
   icon: "app://qovery-console/redis"
   serviceFamily: "redis"
@@ -27,8 +27,6 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
-      overridable: true
-    roleArn:
       overridable: true
     backend:
       default: qovery
@@ -209,6 +207,11 @@ spec:
       type: "string"
       required: false
       description: "Unset = start empty. Else an existing ElastiCache snapshot to seed from; read at creation only."
+    - name: "role_arn"
+      type: "string"
+      required: false
+      description: "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
+      pattern: "^arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64}$"
 
   outputs:
     - name: "redis_identifier"

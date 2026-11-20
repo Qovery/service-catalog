@@ -174,10 +174,6 @@ struct ValidateEngine {
     /// Nested per-engine block carrying the opentofu binary version. Required when type=opentofu.
     opentofu: Option<ValidateEngineVersion>,
     credentials: Option<ValidateCredentials>,
-    /// Lets the user override an IAM role to assume (`spec_overrides.role_arn`). AWS terraform/opentofu only:
-    /// q-core feeds it to the module's `role_arn` variable, which only an AWS provider block consumes.
-    #[serde(rename = "roleArn")]
-    role_arn: Option<ValidateRoleArn>,
     backend: Option<ValidateBackend>,
     /// Ports of the created Helm service. Helm only; mirrors qovery_helm.ports.
     ports: Option<Vec<ValidatePort>>,
@@ -284,12 +280,6 @@ struct ValidateCredentials {
     default: Option<String>,
     #[serde(rename = "allowedValues")]
     allowed_values: Option<Vec<String>>,
-    overridable: Option<bool>,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(default)]
-struct ValidateRoleArn {
     overridable: Option<bool>,
 }
 
@@ -928,13 +918,6 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                     vd.full_path
                 ));
             }
-            // The engine checks below are skipped for stacks, so reject the AWS-only override here too.
-            if spec.engine.as_ref().and_then(|e| e.role_arn.as_ref()).is_some() {
-                errors.push(format!(
-                    "{}: spec.engine.roleArn is only supported on AWS terraform/opentofu blueprints",
-                    vd.full_path
-                ));
-            }
         } else {
             let engine = spec.engine.as_ref();
             let engine_type = engine.and_then(|e| e.type_.as_deref());
@@ -1003,25 +986,6 @@ fn validate_blueprints(root: &Path) -> Result<()> {
                     errors.push(format!(
                         "{}: spec.engine.backend.user_provided.type must be set (e.g. \"s3\", \"gcs\", \"azurerm\")",
                         vd.full_path,
-                    ));
-                }
-            }
-
-            // The role is assumed by the AWS provider block, so the override only means something on an
-            // AWS terraform/opentofu blueprint; anywhere else q-core would accept a value nothing reads.
-            if let Some(role_arn) = engine.and_then(|e| e.role_arn.as_ref()) {
-                let is_iac = matches!(engine_type, Some("terraform") | Some("opentofu"));
-                if vd.provider != "AWS" || !is_iac {
-                    errors.push(format!(
-                        "{}: spec.engine.roleArn is only supported on AWS terraform/opentofu blueprints",
-                        vd.full_path
-                    ));
-                }
-                // The block's only job is to opt in: `roleArn: {}` would silently leave the override off.
-                if role_arn.overridable != Some(true) {
-                    errors.push(format!(
-                        "{}: spec.engine.roleArn must set overridable: true (declaring it without opting in does nothing)",
-                        vd.full_path
                     ));
                 }
             }
