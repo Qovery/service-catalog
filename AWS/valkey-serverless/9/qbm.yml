@@ -105,7 +105,7 @@ spec:
       type: "string"
       required: false
       description: "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
-      pattern: "^arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64}$"
+      pattern: "^(arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64})?$"
 
   outputs:
     - name: "valkey_identifier"
