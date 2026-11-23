@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-redis-node"
   displayName: "Amazon ElastiCache for Redis (legacy single node)"
   primaryCategory: "Databases & Caches"
-  version: "1.1.0"
+  version: "1.2.0"
   description: "Adopts an existing single-node AWS ElastiCache for Redis cluster created by Qovery native managed Redis. Import only: it cannot create a new cluster. This shape has no auth token and no TLS."
   icon: "app://qovery-console/redis"
   serviceFamily: "redis-node"
@@ -27,8 +27,6 @@ spec:
     credentials:
       default: cluster
       allowedValues: ["cluster", "env"]
-      overridable: true
-    roleArn:
       overridable: true
     backend:
       default: qovery
@@ -179,6 +177,11 @@ spec:
       required: false
       default: "false"
       description: "Skip the final snapshot on deletion. False leaves a snapshot behind after the cluster is destroyed."
+    - name: "role_arn"
+      type: "string"
+      required: false
+      description: "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
+      pattern: "^(arn:aws(-cn|-us-gov|-iso|-iso-[bef])?:iam::[0-9]{12}:role(/|/[!-~]{1,510}/)[A-Za-z0-9+=,.@_-]{1,64})?$"
 
   outputs:
     - name: "redis_identifier"

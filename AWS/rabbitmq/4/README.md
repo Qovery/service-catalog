@@ -114,6 +114,7 @@ for the keys Amazon MQ accepts.
 | ---- | ---- | ------- | ----------- |
 | `general_logs` | bool | `false` | Send broker logs to CloudWatch Logs (billed by CloudWatch). |
 | `kms_key_id` | string | | Empty = encrypted with an AWS-owned key. Set a KMS key ARN to use your own key. Changing it replaces the broker. |
+| `role_arn` | string | | Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported. |
 
 Amazon MQ can only publish logs once a CloudWatch Logs resource policy lets it. With
 `general_logs = true` the blueprint creates one, named `qovery-amazonmq-<broker_name>`. AWS allows
@@ -164,7 +165,7 @@ not. See
 
 ## Assuming an IAM role
 
-Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; the blueprint opts in through `spec.engine.roleArn`) to make it assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
+Optional. Set the `role_arn` variable to make the blueprint assume an IAM role instead of using the configured credentials directly; leave it unset to use them as is.
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
 - The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
@@ -173,9 +174,9 @@ Optional. Set the blueprint's `role_arn` override (`spec_overrides.role_arn`; th
 
 ## Required AWS IAM permissions
 
-> When the `role_arn` override is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+> When `role_arn` is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
 
-Unless the `role_arn` override is set, the identity that deploys the blueprint needs the actions
+Unless `role_arn` is set, the identity that deploys the blueprint needs the actions
 below. With `credentials: cluster` (the default) that is the cluster's IAM role, `qovery-user-role` on a standard installation: attach them
 to it as an extra policy. With `credentials: env`, the keys you supply need them. The EC2 and RDS
 read actions let Terraform find the cluster subnets, and the security group actions create the

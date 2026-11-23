@@ -42,9 +42,8 @@ variable "security_group_ids" {
   description = "Leave empty — derived from the cluster's workers security group. Set it (comma-separated ids) only on a user-provided VPC."
 }
 
-# Set through the blueprint `role_arn` override (qbm.yml spec.engine.roleArn); q-core injects it.
 variable "role_arn" {
-  description = "Unset = use the cluster credentials directly. Set an IAM role ARN from the cluster's AWS account to assume it; cross-account roles are not supported."
+  description = "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
   type        = string
   default     = ""
 

@@ -127,9 +127,8 @@ variable "skip_final_snapshot" {
   description = "Skip the final snapshot on deletion. False keeps a snapshot behind after the cluster is destroyed."
 }
 
-# Set through the blueprint `role_arn` override (qbm.yml spec.engine.roleArn); q-core injects it.
 variable "role_arn" {
-  description = "Unset = use the cluster credentials directly. Set an IAM role ARN from the cluster's AWS account to assume it; cross-account roles are not supported."
+  description = "Unset = use the cluster credentials directly. Set an IAM role ARN of the cluster's AWS account to assume it; cross-account roles are not supported."
   type        = string
   default     = ""
 
