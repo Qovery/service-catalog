@@ -5,7 +5,7 @@ metadata:
   name: "aws-elasticache-valkey"
   displayName: "Amazon ElastiCache for Valkey"
   primaryCategory: "Databases & Caches"
-  version: "1.2.0"
+  version: "1.2.1"
   description: "AWS ElastiCache for Valkey replication group with TLS and auth token, attached to the Qovery cluster network, with configurable size, topology, backups and maintenance"
   icon: "app://qovery-console/redis"
   serviceFamily: "valkey"
