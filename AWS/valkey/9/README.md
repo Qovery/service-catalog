@@ -123,6 +123,7 @@ Optional. Set the `role_arn` variable to make the blueprint assume an IAM role i
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
 - The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
+- The role's trust policy must allow the deploy credentials' IAM principal to assume it.
 - The role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
 
 ## Required AWS IAM permissions
