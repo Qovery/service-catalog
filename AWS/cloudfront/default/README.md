@@ -6,7 +6,7 @@ By default the distribution serves over the CloudFront-managed `*.cloudfront.net
 
 ## Credentials
 
-Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The credentials must allow the CloudFront and (when using ACM) certificate actions listed under [Required IAM permissions](#required-aws-iam-permissions). When `role_arn` is set, the listed permissions are needed by that role instead, and the deploy credentials only need `sts:AssumeRole` on it (see [Assuming an IAM role](#assuming-an-iam-role)).
+Uses the Qovery cluster's AWS credentials (`credentials.default: cluster`). The credentials must allow the CloudFront and (when using ACM) certificate actions listed under [Required IAM permissions](#required-aws-iam-permissions). When `role_arn` is set, the listed permissions are needed by that role instead (see [Assuming an IAM role](#assuming-an-iam-role)).
 
 ## Variables
 
@@ -81,12 +81,12 @@ Optional. Set the `role_arn` variable to make the blueprint assume an IAM role i
 
 - Format: `arn:aws:iam::<account-id>:role/<name>`, with an optional path (`role/<path>/<name>`). The `aws-cn`, `aws-us-gov` and `aws-iso*` partitions are accepted too.
 - The role must be in the **same AWS account** as the credentials; cross-account roles are not supported.
-- The deploy credentials need `sts:AssumeRole` on that role, **and** the role's trust policy must allow the deploy credentials' IAM principal to assume it. Without both, the deployment fails with `AccessDenied`.
+- The role's trust policy must allow the deploy credentials' IAM principal to assume it.
 - The role itself must carry the permissions listed in [Required AWS IAM permissions](#required-aws-iam-permissions).
 
 ## Required AWS IAM permissions
 
-> When `role_arn` is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role; the deploy credentials then only need `sts:AssumeRole` on it for those calls (see [Assuming an IAM role](#assuming-an-iam-role)). Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
+> When `role_arn` is set, Terraform makes these AWS calls as the assumed role, so the permissions below belong to that role. Access to a user-provided Terraform backend, if you use one, is not covered by `role_arn`: it keeps using the deploy credentials.
 
 ```json
 {
